@@ -1,14 +1,61 @@
 'use client'
 import { useState } from 'react'
+import axios from 'axios'
 import Header from '@/components/layout/Header'
 import api from '@/lib/api'
 import { useApiData, useMutation } from '@/lib/hooks'
 import { PageLoader, ErrorMessage, useToast } from '@/components/ui/feedback'
-import { Users2, Lock, Unlock, Eye, RefreshCw, StopCircle } from 'lucide-react'
+import {
+  Users2,
+  Lock,
+  Unlock,
+  Eye,
+  RefreshCw,
+  StopCircle,
+  Plus
+} from 'lucide-react'
 import { formatNumber } from '@/lib/utils'
 
+
+const SUBJECTS = [
+  'Polity',
+  'History',
+  'Geography',
+  'Economy',
+  'Bihar GK',
+  'Science',
+  'Current Affairs',
+  'General',
+]
+
+const EXAM_TAGS = [
+  'BPSC 70th CCE',
+  'BPSC 69th CCE',
+  'Bihar Police SI',
+  'Bihar Daroga',
+  'CDPO',
+  'BPSC Teacher',
+]
+
+
 export default function StudyRoomsPage() {
+
   const [selected, setSelected] = useState<any>(null)
+
+  const [showCreate, setShowCreate] = useState(false)
+
+const [form, setForm] = useState({
+  name: '',
+  subject: SUBJECTS[0],
+  todayFocus: '',
+  maxMembers: 100,
+  isPrivate: false,
+  isFeatured: true,
+  examTags: [] as string[],
+})
+
+const [saving, setSaving] = useState(false)
+
   const { showToast, ToastComponent } = useToast()
 
   const { data, loading, error, refetch } = useApiData<any>(
@@ -24,6 +71,59 @@ export default function StudyRoomsPage() {
   )
 
   const totalMembers = active.reduce((a, r) => a + parseInt(r.current_members || 0), 0)
+
+  const toggleTag = (tag: string) => {
+    setForm(f => ({
+      ...f,
+      examTags: f.examTags.includes(tag)
+        ? f.examTags.filter(t => t !== tag)
+        : [...f.examTags, tag],
+    }))
+  }
+  
+  const createRoom = async () => {
+    if (!form.name.trim()) {
+      showToast('Room name required', 'error')
+      return
+    }
+  
+    try {
+      setSaving(true)
+  
+      await axios.post('/api/v1/admin/study-rooms', {
+        name: form.name,
+        subject: form.subject,
+        todayFocus: form.todayFocus,
+        maxMembers: form.maxMembers,
+        isPrivate: form.isPrivate,
+        isFeatured: form.isFeatured,
+        examTags: form.examTags,
+      })
+  
+      showToast('Room created successfully')
+  
+      setShowCreate(false)
+  
+      setForm({
+        name: '',
+        subject: SUBJECTS[0],
+        todayFocus: '',
+        maxMembers: 100,
+        isPrivate: false,
+        isFeatured: true,
+        examTags: [],
+      })
+  
+      refetch()
+    } catch (e: any) {
+      showToast(
+        e?.response?.data?.message || 'Failed to create room',
+        'error'
+      )
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
     <div className="min-h-screen">
@@ -48,9 +148,23 @@ export default function StudyRoomsPage() {
           ))}
         </div>
 
-        <div className="flex justify-end">
-          <button onClick={refetch} className="btn-secondary"><RefreshCw size={14} />Refresh</button>
-        </div>
+        <div className="flex justify-end gap-3">
+  <button
+    onClick={refetch}
+    className="btn-secondary"
+  >
+    <RefreshCw size={14} />
+    Refresh
+  </button>
+
+  <button
+    onClick={() => setShowCreate(true)}
+    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors"
+  >
+    <Plus size={14} />
+    Create Room
+  </button>
+</div>
 
         {loading ? <PageLoader /> : error ? (
           <ErrorMessage message={error} onRetry={refetch} />
@@ -200,7 +314,192 @@ export default function StudyRoomsPage() {
             </div>
           </div>
         </div>
+
+        
       )}
+      {showCreate && (
+  <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+    <div className="bg-white rounded-2xl shadow-modal w-full max-w-lg animate-slide-up">
+
+      <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+        <div>
+          <h3
+            className="font-bold text-slate-900 text-lg"
+            style={{ fontFamily: 'DM Serif Display,serif' }}
+          >
+            Create Study Room
+          </h3>
+
+          <p className="text-sm text-slate-500 mt-1">
+            Create an official room visible to all users
+          </p>
+        </div>
+
+        <button
+          onClick={() => setShowCreate(false)}
+          className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500"
+        >
+          ✕
+        </button>
+      </div>
+
+      <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
+
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            Room Name *
+          </label>
+
+          <input
+            type="text"
+            placeholder="Polity Discussion Room"
+            value={form.name}
+            onChange={e =>
+              setForm(f => ({ ...f, name: e.target.value }))
+            }
+            className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            Subject
+          </label>
+
+          <select
+            value={form.subject}
+            onChange={e =>
+              setForm(f => ({ ...f, subject: e.target.value }))
+            }
+            className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {SUBJECTS.map(s => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            Today's Focus
+          </label>
+
+          <input
+            type="text"
+            placeholder="Indian Constitution Articles"
+            value={form.todayFocus}
+            onChange={e =>
+              setForm(f => ({
+                ...f,
+                todayFocus: e.target.value,
+              }))
+            }
+            className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            Max Members
+          </label>
+
+          <input
+            type="number"
+            min={10}
+            max={1000}
+            value={form.maxMembers}
+            onChange={e =>
+              setForm(f => ({
+                ...f,
+                maxMembers: Number(e.target.value),
+              }))
+            }
+            className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            Exam Tags
+          </label>
+
+          <div className="flex flex-wrap gap-2">
+            {EXAM_TAGS.map(tag => (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => toggleTag(tag)}
+                className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                  form.examTags.includes(tag)
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-white text-slate-600 border-slate-200'
+                }`}
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-3">
+
+          <label className="flex items-center justify-between">
+            <span className="text-sm font-medium text-slate-700">
+              ⭐ Featured Room
+            </span>
+
+            <input
+              type="checkbox"
+              checked={form.isFeatured}
+              onChange={() =>
+                setForm(f => ({
+                  ...f,
+                  isFeatured: !f.isFeatured,
+                }))
+              }
+            />
+          </label>
+
+          <label className="flex items-center justify-between">
+            <span className="text-sm font-medium text-slate-700">
+              🔒 Private Room
+            </span>
+
+            <input
+              type="checkbox"
+              checked={form.isPrivate}
+              onChange={() =>
+                setForm(f => ({
+                  ...f,
+                  isPrivate: !f.isPrivate,
+                }))
+              }
+            />
+          </label>
+        </div>
+      </div>
+
+      <div className="p-5 border-t border-slate-100 flex gap-3">
+        <button
+          onClick={() => setShowCreate(false)}
+          className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50"
+        >
+          Cancel
+        </button>
+
+        <button
+          onClick={createRoom}
+          disabled={saving}
+          className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold"
+        >
+          {saving ? 'Creating...' : 'Create Room'}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   )
 }
