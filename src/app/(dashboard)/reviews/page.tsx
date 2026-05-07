@@ -19,9 +19,9 @@ export default function ReviewsPage() {
   const { mutate: review } = useMutation(
     (id: string, action: string) => api.library.review(id, action),
     {
-      onSuccess: (_data, args: any[]) => {
+      onSuccess: (_data, args?: any[]) => {
         refetch()
-        showToast(args[1] === 'published' ? 'Approved — now live in app ✅' : 'Rejected')
+	showToast(args?.[1] === 'published' ? 'Approved — now live in app ✅' : 'Rejected')
       },
       onError: (msg) => showToast(msg, 'error'),
     }
