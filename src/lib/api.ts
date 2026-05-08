@@ -36,7 +36,8 @@ const request = async (url: string, options: any = {}) => {
     headers['Authorization'] = `Bearer ${token}`
   }
 
-  const res = await fetch(`http://localhost:5000/api/v1${url}`, {
+  // const res = await fetch(`http://localhost:5000/api/v1${url}`, {
+    const res = await fetch(`${BASE_URL}${url}`, {
     ...options,
     headers,
   })
