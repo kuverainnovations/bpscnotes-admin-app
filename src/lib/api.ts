@@ -200,7 +200,17 @@ export const api = {
   // ── Study Rooms ───────────────────────────────────────────
   studyRooms: {
     list: () => request('/admin/study-rooms'),
-    end:  (id: string) => request(`/admin/study-rooms/${id}/end`, { method: 'PUT' }),
+  
+    create: (data: any) =>
+      request('/admin/study-rooms', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      }),
+  
+    end: (id: string) =>
+      request(`/admin/study-rooms/${id}/end`, {
+        method: 'PUT'
+      }),
   },
 
   // ── Exams ─────────────────────────────────────────────────
