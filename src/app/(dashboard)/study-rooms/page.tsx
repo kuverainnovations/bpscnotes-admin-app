@@ -73,7 +73,7 @@ export default function FlashcardsPage() {
   // ── Stats ──────────────────────────────────────────────────
   const stats = [
     { label: 'Total Cards',  value: list.length,                                 emoji: '🃏' },
-    { label: 'Subjects',     value: [...new Set(list.map(c => c.subject))].length, emoji: '📚' },
+    { label: 'Subjects',     value: Array.from(new Set(list.map(c => c.subject))).length, emoji: '📚' },
     { label: 'Easy',         value: list.filter(c => c.difficulty === 'easy').length,   emoji: '🟢' },
     { label: 'Hard',         value: list.filter(c => c.difficulty === 'hard').length,   emoji: '🔴' },
   ]
