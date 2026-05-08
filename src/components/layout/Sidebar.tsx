@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Users, BookOpen, FileText, HelpCircle,
   Briefcase, Newspaper, CreditCard, Bell, Coins, Users2,
   Trophy, Radio, Award, Image, Tag, CheckSquare, Settings,
-  Shield, GraduationCap, ChevronRight, LogOut, Zap
+  Shield, GraduationCap, ChevronRight, LogOut, Zap, Brain
 } from 'lucide-react'
 
 const nav = [
@@ -27,6 +27,7 @@ const nav = [
       { href: '/content/notes',  icon: FileText,        label: 'Notes & Library' },
       { href: '/quizzes',        icon: HelpCircle,      label: 'Quizzes & Mock Tests' },
       { href: '/current-affairs',icon: Newspaper,       label: 'Current Affairs' },
+      { href: '/flashcards',     icon: Brain,           label: 'Flashcards (Active Recall)' },
       { href: '/reviews',        icon: CheckSquare,     label: 'Review Uploads' },
     ]
   },
