@@ -90,7 +90,7 @@ const [saving, setSaving] = useState(false)
     try {
       setSaving(true)
   
-      await axios.post('/api/v1/admin/study-rooms', {
+      await api.studyRooms.create({
         name: form.name,
         subject: form.subject,
         todayFocus: form.todayFocus,
