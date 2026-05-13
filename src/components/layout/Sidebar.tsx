@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Users, BookOpen, FileText, HelpCircle,
   Briefcase, Newspaper, CreditCard, Bell, Coins, Users2,
   Trophy, Radio, Award, Image, Tag, CheckSquare, Settings,
-  Shield, GraduationCap, ChevronRight, LogOut, Zap, Brain
+  Shield, GraduationCap, ChevronRight, LogOut, Zap, Brain, Layers
 } from 'lucide-react'
 
 const nav = [
@@ -48,6 +48,7 @@ const nav = [
     items: [
       { href: '/notifications',  icon: Bell,            label: 'Notifications' },
       { href: '/study-rooms',    icon: Users2,          label: 'Study Rooms' },
+      { href: '/tier-rooms',     icon: Layers,          label: 'Tier Room System' },
       { href: '/live-classes',   icon: Radio,           label: 'Live Classes' },
       { href: '/leaderboard',    icon: Trophy,          label: 'Leaderboard' },
       { href: '/certificates',   icon: Award,           label: 'Certificates' },

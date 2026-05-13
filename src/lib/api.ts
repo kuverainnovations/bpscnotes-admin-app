@@ -254,6 +254,16 @@ export const api = {
   },
 
   // ── Admin Role Management ─────────────────────────────────
+  // ── Tier Rooms (Phase 1) ──────────────────────────────────
+  tierRooms: {
+    getAllTiers:    ()                    => request('/admin/room-tiers'),
+    updateTier:    (id: string, d: any)  => request(`/admin/room-tiers/${id}`,       { method: 'PUT',  body: JSON.stringify(d) }),
+    getRules:      ()                    => request('/admin/room-tiers/rules'),
+    updateRule:    (id: string, d: any)  => request(`/admin/room-tiers/rules/${id}`, { method: 'PUT',  body: JSON.stringify(d) }),
+    promoteUser:   (d: any)              => request('/admin/room-tiers/promote',     { method: 'POST', body: JSON.stringify(d) }),
+    getDistribution: ()                  => request('/admin/room-tiers/distribution'),
+  },
+
   adminUsers: {
     list:   () => request('/admin/users/admin-accounts/list'),
     create: (data: any) => request('/admin/users/admin-accounts', { method: 'POST', body: JSON.stringify(data) }),
