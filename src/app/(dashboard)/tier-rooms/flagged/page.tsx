@@ -74,7 +74,7 @@ export default function FlaggedUsersPage() {
             <p className="font-semibold">How this works</p>
             <p className="text-xs mt-0.5">
               The system automatically flags users with suspicious patterns (too-fast heartbeats,
-              >60% AFK ratio, coin velocity exceeding the daily maximum). Review each case —
+              {" > "}60% AFK ratio, coin velocity exceeding the daily maximum). Review each case —
               most are network issues, not genuine cheating. Click "Clear" after reviewing.
             </p>
           </div>
