@@ -270,12 +270,15 @@ export const api = {
   // ── Admin Role Management ─────────────────────────────────
   // ── Tier Rooms (Phase 1) ──────────────────────────────────
   tierRooms: {
-    getAllTiers:    ()                    => request('/admin/room-tiers'),
-    updateTier:    (id: string, d: any)  => request(`/admin/room-tiers/${id}`,       { method: 'PUT',  body: JSON.stringify(d) }),
-    getRules:      ()                    => request('/admin/room-tiers/rules'),
-    updateRule:    (id: string, d: any)  => request(`/admin/room-tiers/rules/${id}`, { method: 'PUT',  body: JSON.stringify(d) }),
-    promoteUser:   (d: any)              => request('/admin/room-tiers/promote',     { method: 'POST', body: JSON.stringify(d) }),
-    getDistribution: ()                  => request('/admin/room-tiers/distribution'),
+    getAllTiers:      ()                    => request('/admin/room-tiers'),
+    updateTier:      (id: string, d: any)  => request(`/admin/room-tiers/${id}`,         { method: 'PUT',  body: JSON.stringify(d) }),
+    getRules:        ()                    => request('/admin/room-tiers/rules'),
+    updateRule:      (id: string, d: any)  => request(`/admin/room-tiers/rules/${id}`,   { method: 'PUT',  body: JSON.stringify(d) }),
+    promoteUser:     (d: any)              => request('/admin/room-tiers/promote',         { method: 'POST', body: JSON.stringify(d) }),
+    getDistribution: ()                    => request('/admin/room-tiers/distribution'),
+    // Phase 5 — anti-cheat
+    getFlaggedUsers: (q: any = {})         => request(`/admin/room-tiers/flagged-users?${new URLSearchParams(q)}`),
+    clearUserFlags:  (userId: string)      => request(`/admin/room-tiers/flagged-users/${userId}/clear`, { method: 'POST' }),
   },
 
   adminUsers: {
