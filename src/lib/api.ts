@@ -253,6 +253,20 @@ export const api = {
               request('/admin/settings', { method: 'PUT', body: JSON.stringify({ settings }) }),
   },
 
+  // ── Achievements admin ────────────────────────────────────────
+  adminAchievements: {
+    list:   () => request('/admin/achievements'),
+    create: (d: any) => request('/admin/achievements', { method:'POST', body:JSON.stringify(d) }),
+    toggle: (id: string, isActive: boolean) => request(`/admin/achievements/${id}/toggle`, { method:'POST', body:JSON.stringify({ isActive }) }),
+  },
+
+  // ── Challenges admin ────────────────────────────────────────
+  adminChallenges: {
+    list:   (q: any = {}) => request(`/admin/challenges?${new URLSearchParams(q)}`),
+    create: (d: any)      => request('/admin/challenges', { method:'POST', body:JSON.stringify(d) }),
+    toggle: (id: string, isActive: boolean) => request(`/admin/challenges/${id}/toggle`, { method:'POST', body:JSON.stringify({ isActive }) }),
+  },
+
   // ── Admin Role Management ─────────────────────────────────
   // ── Tier Rooms (Phase 1) ──────────────────────────────────
   tierRooms: {

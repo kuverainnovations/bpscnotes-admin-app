@@ -49,6 +49,8 @@ const nav = [
       { href: '/notifications',  icon: Bell,            label: 'Notifications' },
       { href: '/study-rooms',    icon: Users2,          label: 'Study Rooms' },
       { href: '/tier-rooms',     icon: Layers,          label: 'Tier Room System' },
+      { href: '/achievements',   icon: Trophy,          label: 'Achievements' },
+      { href: '/challenges',     icon: Zap,             label: 'Weekly Challenges' },
       { href: '/live-classes',   icon: Radio,           label: 'Live Classes' },
       { href: '/leaderboard',    icon: Trophy,          label: 'Leaderboard' },
       { href: '/certificates',   icon: Award,           label: 'Certificates' },
