@@ -150,6 +150,43 @@ export const api = {
                  request(`/admin/library/${id}/review`, { method: 'PUT', body: JSON.stringify({ action }) }),
   },
 
+  studyMaterials: {
+    adminStats: () =>
+      request('/admin/study-materials/stats'),
+  
+    adminList: (params = {}) =>
+      request(`/admin/study-materials?${qs(params)}`),
+  
+    approve: (id: string) =>
+      request(`/admin/study-materials/${id}/approve`, {
+        method: 'PUT',
+      }),
+  
+    reject: (id: string, reason: string) =>
+      request(`/admin/study-materials/${id}/reject`, {
+        method: 'PUT',
+        body: JSON.stringify({ reason }),
+      }),
+  
+    toggleFeatured: (id: string) =>
+      request(`/admin/study-materials/${id}/toggle-featured`, {
+        method: 'PUT',
+      }),
+  
+    toggleTrending: (id: string) =>
+      request(`/admin/study-materials/${id}/toggle-trending`, {
+        method: 'PUT',
+      }),
+  
+    delete: (id: string) =>
+      request(`/admin/study-materials/${id}`, {
+        method: 'DELETE',
+      }),
+  
+    signedUrl: (id: string) =>
+      request(`/admin/study-materials/${id}/signed-url`),
+  },
+
   // ── Quizzes ───────────────────────────────────────────────
   quizzes: {
     list:         (params = {}) => request(`/admin/quizzes?${qs(params)}`),
