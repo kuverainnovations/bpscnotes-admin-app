@@ -8,19 +8,43 @@ const BASE_URL =
   'https://api.bpscnotes.in/api/v1'
 
 // ── Token helpers ─────────────────────────────────────────────
+// export const getToken = (): string | null => {
+//   if (typeof window === 'undefined') return null
+//   return typeof window !== 'undefined'
+//   ? localStorage.getItem('admin_token')
+//   : null //localStorage.getItem('adminToken')
+// }
+// export const setToken = (token: string) => {
+//   if (typeof window !== 'undefined') localStorage.setItem('adminToken', token)
+// }
+// export const clearToken = () => {
+//   if (typeof window !== 'undefined') {
+//     localStorage.removeItem('adminToken')
+//     localStorage.removeItem('adminUser')
+//   }
+// }
+// export const isLoggedIn = (): boolean => !!getToken()
+
+const TOKEN_KEY = 'admin_token'
+
 export const getToken = (): string | null => {
   if (typeof window === 'undefined') return null
-  return localStorage.getItem('adminToken')
+  return localStorage.getItem(TOKEN_KEY)
 }
+
 export const setToken = (token: string) => {
-  if (typeof window !== 'undefined') localStorage.setItem('adminToken', token)
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(TOKEN_KEY, token)
+  }
 }
+
 export const clearToken = () => {
   if (typeof window !== 'undefined') {
-    localStorage.removeItem('adminToken')
+    localStorage.removeItem(TOKEN_KEY)
     localStorage.removeItem('adminUser')
   }
 }
+
 export const isLoggedIn = (): boolean => !!getToken()
 
 // ── Core request ──────────────────────────────────────────────
