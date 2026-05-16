@@ -21,7 +21,7 @@ export function PageError({ message, onRetry }: { message: string; onRetry?: () 
         <p className="text-sm text-red-500 mb-4">{message}</p>
         <div className="bg-slate-50 rounded-xl p-3 mb-4 text-left">
           <p className="text-xs text-slate-500 font-medium mb-1">Backend URL:</p>
-          <code className="text-xs text-slate-700">{process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'}</code>
+          <code className="text-xs text-slate-700">{process.env.NEXT_PUBLIC_API_URL}</code>
         </div>
         <p className="text-xs text-slate-400 mb-4">Make sure bpscnotes-backend is running</p>
         {onRetry && (
