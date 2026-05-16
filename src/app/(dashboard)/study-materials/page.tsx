@@ -41,8 +41,9 @@ export default function StudyMaterialsAdminPage() {
 
   const loadStats = useCallback(async () => {
     try {
-      const res = await api.studyMaterials.adminStats()
-      setStats(res.data)
+      //const res = await api.studyMaterials.adminStats()
+     // setStats(res.data)
+     setStats({})
     } catch {}
   }, [])
 
