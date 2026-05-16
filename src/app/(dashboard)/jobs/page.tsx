@@ -1,164 +1,242 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Header from '@/components/layout/Header'
 import api from '@/lib/api'
-import { getStatusColor, formatNumber } from '@/lib/utils'
-import { Search, Plus, Edit, Trash2, ExternalLink, Briefcase, RefreshCw } from 'lucide-react'
+import { useToast } from '@/components/ui/feedback'
+import { Plus, Search, RefreshCw, Edit, Trash2, Eye, X, ExternalLink } from 'lucide-react'
 
-const empty = { title:'', organization:'', category:'BPSC', totalPosts:'', lastDate:'', examDate:'', ageLimit:'21-37 years', qualification:'Graduation', applicationLink:'', status:'active' }
+const EMPTY = {
+  title:'', organization:'', category:'BPSC', totalVacancies:0,
+  location:'Bihar (All Districts)', salary:'', qualification:'',
+  ageLimit:'', lastDate:'', applicationUrl:'', isNew:true,
+  description:'',
+}
+const CATS = ['BPSC','Bihar Govt','Central Govt','Railway','Banking','SSC','Defence','Private','Part-time']
 
 export default function JobsPage() {
-  const [list, setList]         = useState<any[]>([])
+  const searchParams = useSearchParams()
+  const { showToast, ToastComponent } = useToast()
+
+  const [jobs, setJobs]         = useState<any[]>([])
+  const [total, setTotal]       = useState(0)
   const [loading, setLoading]   = useState(true)
   const [search, setSearch]     = useState('')
-  const [showModal, setShowModal] = useState(false)
+  const [cat, setCat]           = useState('')
+  const [page, setPage]         = useState(1)
+  const [showModal, setShowModal] = useState(searchParams.get('create') === '1')
   const [editing, setEditing]   = useState<any>(null)
-  const [form, setForm]         = useState<any>(empty)
+  const [form, setForm]         = useState<any>(EMPTY)
   const [saving, setSaving]     = useState(false)
 
   const load = async () => {
     setLoading(true)
     try {
-      const res = await api.jobs.list({ search })
-      setList(res.data?.jobs || [])
-    } catch (e) { console.error(e) }
+      const res = await api.jobs.list({ search, category: cat, page, limit: 20 })
+      setJobs(res.data?.jobs || [])
+      setTotal(res.data?.total || res.meta?.total || 0)
+    } catch (e: any) { showToast(e.message, 'error') }
     finally { setLoading(false) }
   }
-  useEffect(() => { load() }, [search])
+  useEffect(() => { load() }, [search, cat, page])
 
-  const openNew  = () => { setEditing(null); setForm(empty); setShowModal(true) }
-  const openEdit = (item: any) => {
-    setEditing(item)
-    setForm({ title:item.title, organization:item.organization, category:item.category, totalPosts:item.total_posts, lastDate:item.last_date?.split('T')[0], examDate:item.exam_date?.split('T')[0]||'', ageLimit:item.age_limit, qualification:item.qualification, applicationLink:item.application_link, status:item.status })
+  const openNew  = () => { setEditing(null); setForm(EMPTY); setShowModal(true) }
+  const openEdit = (j: any) => {
+    setEditing(j)
+    setForm({
+      title: j.title, organization: j.organization, category: j.category,
+      totalVacancies: j.total_vacancies||0, location: j.location||'',
+      salary: j.salary_range||'', qualification: j.qualification||'',
+      ageLimit: j.age_limit||'', lastDate: j.last_date?.split('T')[0]||'',
+      applicationUrl: j.application_url||'', isNew: j.is_new||false,
+      description: j.description||'',
+    })
     setShowModal(true)
   }
 
   const save = async () => {
+    if (!form.title || !form.organization) { showToast('Title and organization required', 'error'); return }
     setSaving(true)
     try {
-      if (editing) await api.jobs.update(editing.id, form)
-      else await api.jobs.create(form)
+      const payload = { ...form, totalVacancies: +form.totalVacancies }
+      if (editing) await api.jobs.update(editing.id, payload)
+      else         await api.jobs.create(payload)
       setShowModal(false); load()
-    } catch (e: any) { alert(e.message) }
+      showToast(editing ? '✅ Job updated' : '✅ Job created')
+    } catch (e: any) { showToast(e.message, 'error') }
     finally { setSaving(false) }
   }
 
-  const del = async (id: string) => {
-    if (!confirm('Delete this vacancy?')) return
-    await api.jobs.delete(id); load()
+  const del = async (id: string, title: string) => {
+    if (!confirm(`Delete "${title}"?`)) return
+    try { await api.jobs.delete(id); load(); showToast('Deleted') }
+    catch (e: any) { showToast(e.message, 'error') }
+  }
+
+  const catColor: Record<string,string> = {
+    BPSC:'bg-blue-50 text-blue-700', 'Bihar Govt':'bg-indigo-50 text-indigo-700',
+    'Central Govt':'bg-green-50 text-green-700', Railway:'bg-orange-50 text-orange-700',
+    Banking:'bg-purple-50 text-purple-700', Private:'bg-slate-50 text-slate-700',
   }
 
   return (
     <div className="min-h-screen">
-      <Header title="Job Vacancies" subtitle="Manage government job alerts" />
+      {ToastComponent}
+      <Header title="Job Vacancies" subtitle={`${total} active job listings`} />
       <div className="p-6 space-y-5 animate-fade-in">
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label:'Total', value: list.reduce((a,j)=>a+(j.total_posts||0),0), emoji:'💼' },
-            { label:'Active', value: list.filter(j=>j.status==='active').length, emoji:'✅' },
-            { label:'Upcoming', value: list.filter(j=>j.status==='upcoming').length, emoji:'🔜' },
-            { label:'Expired', value: list.filter(j=>j.status==='expired').length, emoji:'⏰' },
+            { emoji:'💼', label:'Total',       value:total },
+            { emoji:'🏛️', label:'Govt Jobs',   value:jobs.filter(j=>j.category!=='Private'&&j.category!=='Part-time').length },
+            { emoji:'🏢', label:'Private',     value:jobs.filter(j=>j.category==='Private').length },
+            { emoji:'🆕', label:'New This Week',value:jobs.filter(j=>j.is_new).length },
           ].map(s=>(
             <div key={s.label} className="card p-4 flex items-center gap-3">
-              <span className="text-3xl">{s.emoji}</span>
-              <div><p className="text-2xl font-bold text-slate-900">{formatNumber(s.value)}</p><p className="text-xs text-slate-500">{s.label}</p></div>
+              <span className="text-2xl">{s.emoji}</span>
+              <div><p className="text-2xl font-bold text-slate-900">{s.value}</p><p className="text-xs text-slate-500">{s.label}</p></div>
             </div>
           ))}
         </div>
 
-        <div className="card p-4 flex flex-wrap items-center gap-3">
+        <div className="card p-4 flex flex-wrap gap-3 items-center">
           <div className="relative flex-1 min-w-48">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"/>
-            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search vacancies..." className="input pl-9"/>
+            <input value={search} onChange={e=>{setSearch(e.target.value);setPage(1)}} placeholder="Search job title, org..." className="input pl-9"/>
           </div>
+          <select value={cat} onChange={e=>{setCat(e.target.value);setPage(1)}} className="input w-auto">
+            <option value="">All Categories</option>
+            {CATS.map(c=><option key={c}>{c}</option>)}
+          </select>
           <button onClick={load} className="btn-secondary"><RefreshCw size={14}/></button>
-          <button onClick={openNew} className="btn-primary"><Plus size={14}/>Add Vacancy</button>
+          <button onClick={openNew} className="btn-primary"><Plus size={14}/>Add Job</button>
         </div>
 
         {loading ? (
-          <div className="card p-12 flex items-center justify-center"><div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin"/></div>
+          <div className="card p-12 flex items-center justify-center">
+            <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin"/>
+          </div>
         ) : (
           <div className="card overflow-hidden">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50/50">
-                  {['Job Title','Organization','Posts','Last Date','Views','Status','Actions'].map(h=>(
+                  {['Job Title','Category','Vacancies','Last Date','Status','Actions'].map(h=>(
                     <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {list.map(job=>(
-                  <tr key={job.id} className="table-row">
+                {jobs.map(j => (
+                  <tr key={j.id} className="table-row">
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-orange-50 flex items-center justify-center shrink-0"><Briefcase size={16} className="text-orange-600"/></div>
-                        <div>
-                          <p className="font-semibold text-slate-800">{job.title}</p>
-                          <p className="text-xs text-slate-400">{job.age_limit} · {job.qualification}</p>
-                        </div>
+                      <p className="font-semibold text-slate-800">{j.title}</p>
+                      <p className="text-xs text-slate-400">{j.organization}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`badge ${catColor[j.category]||'bg-slate-50 text-slate-700'} border-0`}>{j.category}</span>
+                    </td>
+                    <td className="px-4 py-3 font-semibold text-slate-700">{j.total_vacancies?.toLocaleString()}</td>
+                    <td className="px-4 py-3 text-xs text-slate-500">
+                      {j.last_date ? new Date(j.last_date).toLocaleDateString('en-IN') : '—'}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-1">
+                        {j.is_new && <span className="badge bg-green-50 text-green-700 border-green-100">New</span>}
+                        {j.is_featured && <span className="badge bg-amber-50 text-amber-700 border-amber-100">Featured</span>}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-600 max-w-[140px] truncate">{job.organization}</td>
-                    <td className="px-4 py-3 font-bold text-slate-900">{formatNumber(job.total_posts)}</td>
-                    <td className="px-4 py-3">
-                      <p className="text-sm font-medium text-slate-700">{job.last_date ? new Date(job.last_date).toLocaleDateString() : '—'}</p>
-                      {job.exam_date && <p className="text-xs text-slate-400">Exam: {new Date(job.exam_date).toLocaleDateString()}</p>}
-                    </td>
-                    <td className="px-4 py-3">
-                      <p className="text-sm font-semibold text-slate-800">{formatNumber(job.view_count)}</p>
-                      <p className="text-xs text-slate-400">💾 {formatNumber(job.save_count)}</p>
-                    </td>
-                    <td className="px-4 py-3"><span className={`badge ${getStatusColor(job.status)}`}>{job.status}</span></td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5">
-                        {job.application_link && <a href={job.application_link} target="_blank" rel="noopener noreferrer" className="w-7 h-7 rounded-lg bg-green-50 hover:bg-green-100 flex items-center justify-center transition-colors"><ExternalLink size={13} className="text-green-600"/></a>}
-                        <button onClick={()=>openEdit(job)} className="w-7 h-7 rounded-lg bg-yellow-50 hover:bg-yellow-100 flex items-center justify-center transition-colors"><Edit size={13} className="text-yellow-600"/></button>
-                        <button onClick={()=>del(job.id)} className="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center transition-colors"><Trash2 size={13} className="text-red-600"/></button>
+                        {j.application_url && (
+                          <a href={j.application_url} target="_blank" rel="noopener"
+                            className="w-7 h-7 rounded-lg bg-blue-50 hover:bg-blue-100 flex items-center justify-center">
+                            <ExternalLink size={13} className="text-blue-600"/>
+                          </a>
+                        )}
+                        <button onClick={()=>openEdit(j)} className="w-7 h-7 rounded-lg bg-amber-50 hover:bg-amber-100 flex items-center justify-center">
+                          <Edit size={13} className="text-amber-600"/>
+                        </button>
+                        <button onClick={()=>del(j.id,j.title)} className="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center">
+                          <Trash2 size={13} className="text-red-600"/>
+                        </button>
                       </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            {list.length === 0 && <div className="p-12 text-center text-slate-400">No job vacancies found</div>}
+            {jobs.length === 0 && <div className="p-12 text-center text-slate-400">No jobs found</div>}
+          </div>
+        )}
+
+        {total > 20 && (
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-slate-500">Page {page} · {total} total</p>
+            <div className="flex gap-2">
+              <button disabled={page===1} onClick={()=>setPage(p=>p-1)} className="btn-secondary disabled:opacity-50">← Prev</button>
+              <button disabled={page*20>=total} onClick={()=>setPage(p=>p+1)} className="btn-secondary disabled:opacity-50">Next →</button>
+            </div>
           </div>
         )}
       </div>
 
       {showModal && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={()=>setShowModal(false)}>
-          <div className="bg-white rounded-2xl shadow-modal w-full max-w-lg animate-slide-up overflow-y-auto max-h-[90vh]" onClick={e=>e.stopPropagation()}>
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white">
-              <h3 className="font-bold text-slate-900" style={{fontFamily:'DM Serif Display,serif'}}>{editing?'Edit Vacancy':'Add Vacancy'}</h3>
-              <button onClick={()=>setShowModal(false)} className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500">✕</button>
+          <div className="bg-white rounded-2xl shadow-modal w-full max-w-xl max-h-[90vh] flex flex-col animate-slide-up" onClick={e=>e.stopPropagation()}>
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="font-bold text-slate-900" style={{fontFamily:'DM Serif Display,serif'}}>{editing?'Edit Job':'Add Job Vacancy'}</h3>
+              <button onClick={()=>setShowModal(false)} className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center"><X size={14}/></button>
             </div>
-            <div className="p-5 space-y-3">
-              <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Job Title *</label><input value={form.title} onChange={e=>setForm({...form,title:e.target.value})} className="input" placeholder="e.g. BPSC 70th CCE"/></div>
-              <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Organization *</label><input value={form.organization} onChange={e=>setForm({...form,organization:e.target.value})} className="input" placeholder="Bihar Public Service Commission"/></div>
+            <div className="p-5 space-y-4 overflow-y-auto">
+              <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Job Title *</label>
+                <input value={form.title} onChange={e=>setForm({...form,title:e.target.value})} className="input" placeholder="e.g. BPSC 70th CCE Recruitment"/>
+              </div>
               <div className="grid grid-cols-2 gap-3">
+                <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Organization *</label>
+                  <input value={form.organization} onChange={e=>setForm({...form,organization:e.target.value})} className="input" placeholder="Bihar Public Service Commission"/>
+                </div>
                 <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Category</label>
                   <select value={form.category} onChange={e=>setForm({...form,category:e.target.value})} className="input">
-                    {['BPSC','Bihar State','Central Govt','Railways','Teaching','Defence'].map(c=><option key={c}>{c}</option>)}
+                    {CATS.map(c=><option key={c}>{c}</option>)}
                   </select>
                 </div>
-                <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Total Posts</label><input type="number" value={form.totalPosts} onChange={e=>setForm({...form,totalPosts:e.target.value})} className="input"/></div>
-                <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Last Date *</label><input type="date" value={form.lastDate} onChange={e=>setForm({...form,lastDate:e.target.value})} className="input"/></div>
-                <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Exam Date</label><input type="date" value={form.examDate} onChange={e=>setForm({...form,examDate:e.target.value})} className="input"/></div>
-                <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Age Limit</label><input value={form.ageLimit} onChange={e=>setForm({...form,ageLimit:e.target.value})} className="input" placeholder="21-37 years"/></div>
-                <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Qualification</label><input value={form.qualification} onChange={e=>setForm({...form,qualification:e.target.value})} className="input" placeholder="Graduation"/></div>
               </div>
-              <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Application Link</label><input type="url" value={form.applicationLink} onChange={e=>setForm({...form,applicationLink:e.target.value})} className="input" placeholder="https://..."/></div>
-              <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Status</label>
-                <select value={form.status} onChange={e=>setForm({...form,status:e.target.value})} className="input">
-                  <option value="active">Active</option><option value="upcoming">Upcoming</option><option value="expired">Expired</option>
-                </select>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Total Vacancies</label>
+                  <input type="number" value={form.totalVacancies} onChange={e=>setForm({...form,totalVacancies:e.target.value})} className="input"/>
+                </div>
+                <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Last Date</label>
+                  <input type="date" value={form.lastDate} onChange={e=>setForm({...form,lastDate:e.target.value})} className="input"/>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Salary Range</label>
+                  <input value={form.salary} onChange={e=>setForm({...form,salary:e.target.value})} className="input" placeholder="₹56,100 – ₹2,08,700/month"/>
+                </div>
+                <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Location</label>
+                  <input value={form.location} onChange={e=>setForm({...form,location:e.target.value})} className="input"/>
+                </div>
+              </div>
+              <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Qualification</label>
+                <input value={form.qualification} onChange={e=>setForm({...form,qualification:e.target.value})} className="input" placeholder="Graduation in any discipline"/>
+              </div>
+              <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Application URL</label>
+                <input type="url" value={form.applicationUrl} onChange={e=>setForm({...form,applicationUrl:e.target.value})} className="input" placeholder="https://bpsc.bih.nic.in"/>
+              </div>
+              <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Description</label>
+                <textarea value={form.description} onChange={e=>setForm({...form,description:e.target.value})} className="input h-20 resize-none" placeholder="Job details..."/>
+              </div>
+              <div className="flex items-center gap-3">
+                <input type="checkbox" id="isnew" checked={form.isNew} onChange={e=>setForm({...form,isNew:e.target.checked})} className="w-4 h-4 accent-brand-500"/>
+                <label htmlFor="isnew" className="text-sm text-slate-700">🆕 Mark as New</label>
               </div>
             </div>
             <div className="p-5 border-t border-slate-100 flex justify-end gap-3">
               <button onClick={()=>setShowModal(false)} className="btn-secondary">Cancel</button>
-              <button onClick={save} disabled={saving||!form.title||!form.organization||!form.lastDate} className="btn-primary disabled:opacity-50">{saving?'Saving...':editing?'Update':'Add Vacancy'}</button>
+              <button onClick={save} disabled={saving||!form.title} className="btn-primary disabled:opacity-50">
+                {saving ? 'Saving...' : editing ? 'Update' : 'Create Job'}
+              </button>
             </div>
           </div>
         </div>

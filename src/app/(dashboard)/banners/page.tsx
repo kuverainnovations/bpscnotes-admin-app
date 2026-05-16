@@ -1,138 +1,138 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Header from '@/components/layout/Header'
 import api from '@/lib/api'
-import { useApiData, useMutation } from '@/lib/hooks'
-import { PageLoader, ErrorMessage, useToast } from '@/components/ui/feedback'
-import { Plus, Edit, Trash2, Eye, EyeOff, RefreshCw } from 'lucide-react'
-import { formatNumber } from '@/lib/utils'
+import { useToast } from '@/components/ui/feedback'
+import { Plus, RefreshCw, Edit, Trash2, X, Image, ToggleLeft, ToggleRight } from 'lucide-react'
 
-const BG_GRADIENTS = [
-  'from-blue-600 to-blue-800', 'from-yellow-500 to-orange-500',
-  'from-purple-600 to-purple-800', 'from-green-600 to-teal-600',
-  'from-red-500 to-pink-600', 'from-indigo-500 to-blue-600',
-]
-
-const EMPTY_FORM = {
-  title: '', subtitle: '', actionLink: '', type: 'promotion',
-  target: 'all', bgGradient: BG_GRADIENTS[0], sortOrder: 0,
+const EMPTY = {
+  title:'', subtitle:'', imageUrl:'', ctaLabel:'',
+  ctaRoute:'', bgColor:'#1565C0', isActive:true, sortOrder:0,
 }
+const ROUTES = ['/quizzes','/current-affairs','/study-materials','/wallet','/subscription','/rooms_hub','/jobs']
 
 export default function BannersPage() {
-  const [showModal, setShowModal] = useState(false)
-  const [editing, setEditing]     = useState<any>(null)
-  const [form, setForm]           = useState<any>(EMPTY_FORM)
+  const sp = useSearchParams()
   const { showToast, ToastComponent } = useToast()
+  const [banners, setBanners]   = useState<any[]>([])
+  const [loading, setLoading]   = useState(true)
+  const [showModal, setShowModal] = useState(sp.get('create') === '1')
+  const [editing, setEditing]   = useState<any>(null)
+  const [form, setForm]         = useState<any>(EMPTY)
+  const [saving, setSaving]     = useState(false)
 
-  const { data, loading, error, refetch } = useApiData<any>(
-    () => api.banners.list(), []
-  )
-  const banners: any[] = data?.banners || []
+  const load = async () => {
+    setLoading(true)
+    try {
+      const res = await api.banners.list()
+      setBanners(res.data?.banners || [])
+    } catch (e: any) { showToast(e.message, 'error') }
+    finally { setLoading(false) }
+  }
+  useEffect(() => { load() }, [])
 
-  const { mutate: save, loading: saving } = useMutation(
-    (d: any) => editing ? api.banners.update(editing.id, d) : api.banners.create(d),
-    {
-      onSuccess: () => { setShowModal(false); refetch(); showToast(editing ? 'Banner updated ✅' : 'Banner created — live in app ✅') },
-      onError: (msg) => showToast(msg, 'error'),
-    }
-  )
-
-  const { mutate: remove } = useMutation(
-    (id: string) => api.banners.delete(id),
-    { onSuccess: () => { refetch(); showToast('Banner deleted') }, onError: (m) => showToast(m, 'error') }
-  )
-
-  const { mutate: toggle } = useMutation(
-    (id: string, isActive: boolean) => api.banners.update(id, { isActive }),
-    { onSuccess: () => { refetch(); showToast('Banner toggled ✅') }, onError: (m) => showToast(m, 'error') }
-  )
-
-  const openNew = () => { setEditing(null); setForm(EMPTY_FORM); setShowModal(true) }
+  const openNew  = () => { setEditing(null); setForm(EMPTY); setShowModal(true) }
   const openEdit = (b: any) => {
     setEditing(b)
-    setForm({ title: b.title, subtitle: b.subtitle || '', actionLink: b.action_link || '', type: b.type, target: b.target, bgGradient: b.bg_gradient || BG_GRADIENTS[0], sortOrder: b.sort_order || 0 })
+    setForm({
+      title:b.title, subtitle:b.subtitle||'', imageUrl:b.image_url||'',
+      ctaLabel:b.cta_label||'', ctaRoute:b.cta_route||'',
+      bgColor:b.bg_color||'#1565C0', isActive:b.is_active??true, sortOrder:b.sort_order||0,
+    })
     setShowModal(true)
   }
 
-  const totalImpressions = banners.reduce((a, b) => a + (b.impression_count || 0), 0)
-  const totalClicks = banners.reduce((a, b) => a + (b.click_count || 0), 0)
+  const save = async () => {
+    if (!form.title) { showToast('Title required', 'error'); return }
+    setSaving(true)
+    try {
+      if (editing) await api.banners.update(editing.id, form)
+      else         await api.banners.create(form)
+      setShowModal(false); load()
+      showToast(editing ? '✅ Updated' : '✅ Banner created')
+    } catch (e: any) { showToast(e.message, 'error') }
+    finally { setSaving(false) }
+  }
+
+  const del = async (id: string, title: string) => {
+    if (!confirm(`Delete "${title}"?`)) return
+    try { await api.banners.delete(id); load(); showToast('Deleted') }
+    catch (e: any) { showToast(e.message, 'error') }
+  }
+
+  const toggle = async (b: any) => {
+    try {
+      await api.banners.update(b.id, { isActive: !b.is_active })
+      load(); showToast(b.is_active ? 'Banner deactivated' : '✅ Banner activated')
+    } catch (e: any) { showToast(e.message, 'error') }
+  }
 
   return (
     <div className="min-h-screen">
       {ToastComponent}
-      <Header title="Banners & Promotions" subtitle="Manage home screen banners" />
+      <Header title="Banners & Offers" subtitle="Manage promotional banners shown in the app"/>
       <div className="p-6 space-y-5 animate-fade-in">
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: 'Total Banners', value: banners.length, emoji: '🖼️' },
-            { label: 'Active',        value: banners.filter(b => b.is_active).length, emoji: '✅' },
-            { label: 'Total Views',   value: formatNumber(totalImpressions), emoji: '👁️' },
-            { label: 'Total Clicks',  value: formatNumber(totalClicks), emoji: '👆' },
-          ].map(s => (
-            <div key={s.label} className="card p-4 flex items-center gap-3">
-              <span className="text-3xl">{s.emoji}</span>
-              <div>
-                <p className="text-2xl font-bold text-slate-900">{s.value}</p>
-                <p className="text-xs text-slate-500">{s.label}</p>
-              </div>
-            </div>
-          ))}
+        <div className="card p-4 flex flex-wrap gap-3 items-center">
+          <div className="flex gap-4">
+            <div className="card p-3 flex items-center gap-2 bg-green-50"><span className="text-lg">✅</span><div><p className="text-sm font-bold text-slate-800">{banners.filter(b=>b.is_active).length}</p><p className="text-xs text-slate-500">Active</p></div></div>
+            <div className="card p-3 flex items-center gap-2 bg-slate-50"><span className="text-lg">⏸️</span><div><p className="text-sm font-bold text-slate-800">{banners.filter(b=>!b.is_active).length}</p><p className="text-xs text-slate-500">Inactive</p></div></div>
+          </div>
+          <div className="flex-1"/>
+          <button onClick={load} className="btn-secondary"><RefreshCw size={14}/></button>
+          <button onClick={openNew} className="btn-primary"><Plus size={14}/>Create Banner</button>
         </div>
 
-        <div className="flex justify-end gap-2">
-          <button onClick={refetch} className="btn-secondary"><RefreshCw size={14} /></button>
-          <button onClick={openNew} className="btn-primary"><Plus size={14} />Add Banner</button>
-        </div>
-
-        {loading ? <PageLoader /> : error ? (
-          <ErrorMessage message={error} onRetry={refetch} />
+        {loading ? (
+          <div className="card p-12 flex items-center justify-center">
+            <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin"/>
+          </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {banners.map(banner => {
-              const ctr = banner.impression_count > 0
-                ? ((banner.click_count || 0) / banner.impression_count * 100).toFixed(1) : '0'
-              return (
-                <div key={banner.id} className="card overflow-hidden">
-                  <div className={`bg-gradient-to-br ${banner.bg_gradient || 'from-blue-600 to-blue-800'} p-5 relative`}>
-                    {!banner.is_active && (
-                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                        <span className="badge bg-black/80 text-white border-transparent text-sm">INACTIVE</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {banners.map(b => (
+              <div key={b.id} className={`card p-4 ${!b.is_active ? 'opacity-60' : ''}`}>
+                {/* Preview */}
+                <div className="h-20 rounded-xl mb-3 flex items-center px-4 relative overflow-hidden"
+                  style={{background: b.bg_color||'#1565C0'}}>
+                  {b.image_url && (
+                    <img src={b.image_url} alt="" className="absolute right-0 top-0 h-full w-auto object-cover opacity-30"/>
+                  )}
+                  <div className="relative z-10">
+                    <p className="text-sm font-bold text-white leading-tight">{b.title}</p>
+                    {b.subtitle && <p className="text-xs text-white/80 mt-0.5">{b.subtitle}</p>}
+                    {b.cta_label && (
+                      <div className="mt-1.5 bg-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded-lg w-fit">
+                        {b.cta_label} →
                       </div>
                     )}
-                    <div className="flex items-start justify-between mb-2">
-                      <span className="badge bg-white/80 text-slate-800 border-transparent text-[10px]">{banner.type}</span>
-                      <span className="badge bg-white/20 text-white border-white/20 text-[10px]">📍 {banner.target}</span>
-                    </div>
-                    <h3 className="font-bold text-white text-lg leading-tight">{banner.title}</h3>
-                    {banner.subtitle && <p className="text-white/80 text-sm mt-1">{banner.subtitle}</p>}
-                  </div>
-                  <div className="p-3">
-                    <div className="flex items-center justify-between mb-2 text-xs text-slate-500">
-                      <span>👆 {formatNumber(banner.click_count || 0)} clicks · 👁 {formatNumber(banner.impression_count || 0)} views</span>
-                      <span className="font-bold text-slate-800">CTR: {ctr}%</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => toggle(banner.id, !banner.is_active)}
-                        className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-semibold transition-all ${banner.is_active ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}>
-                        {banner.is_active ? <><EyeOff size={11} />Hide</> : <><Eye size={11} />Show</>}
-                      </button>
-                      <button onClick={() => openEdit(banner)} className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg bg-yellow-50 hover:bg-yellow-100 text-yellow-600 text-xs font-semibold transition-all">
-                        <Edit size={11} />Edit
-                      </button>
-                      <button onClick={() => remove(banner.id)} className="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center shrink-0 transition-colors">
-                        <Trash2 size={13} className="text-red-600" />
-                      </button>
-                    </div>
                   </div>
                 </div>
-              )
-            })}
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-slate-500">Route: <span className="font-mono text-xs">{b.cta_route||'—'}</span></p>
+                    <p className="text-xs text-slate-400 mt-0.5">Order: {b.sort_order||0}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button onClick={()=>toggle(b)} title={b.is_active?'Deactivate':'Activate'}
+                      className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${b.is_active ? 'bg-green-50 hover:bg-green-100' : 'bg-slate-100 hover:bg-slate-200'}`}>
+                      {b.is_active ? <ToggleRight size={13} className="text-green-600"/> : <ToggleLeft size={13} className="text-slate-500"/>}
+                    </button>
+                    <button onClick={()=>openEdit(b)} className="w-7 h-7 rounded-lg bg-amber-50 hover:bg-amber-100 flex items-center justify-center">
+                      <Edit size={13} className="text-amber-600"/>
+                    </button>
+                    <button onClick={()=>del(b.id,b.title)} className="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center">
+                      <Trash2 size={13} className="text-red-600"/>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
             {banners.length === 0 && (
-              <div className="col-span-3 card p-12 text-center">
-                <p className="text-4xl mb-3">🖼️</p>
-                <p className="font-bold text-slate-800">No banners yet</p>
+              <div className="md:col-span-2 card p-12 flex flex-col items-center gap-3 text-slate-400">
+                <Image size={40} className="opacity-30"/>
+                <p className="font-semibold">No banners yet</p>
+                <button onClick={openNew} className="btn-primary"><Plus size={14}/>Create first banner</button>
               </div>
             )}
           </div>
@@ -140,64 +140,65 @@ export default function BannersPage() {
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setShowModal(false)}>
-          <div className="bg-white rounded-2xl shadow-modal w-full max-w-md animate-slide-up overflow-y-auto max-h-[90vh]" onClick={e => e.stopPropagation()}>
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white">
-              <h3 className="font-bold text-slate-900" style={{ fontFamily: 'DM Serif Display,serif' }}>
-                {editing ? 'Edit Banner' : 'Add Banner'}
-              </h3>
-              <button onClick={() => setShowModal(false)} className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500">✕</button>
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={()=>setShowModal(false)}>
+          <div className="bg-white rounded-2xl shadow-modal w-full max-w-lg max-h-[90vh] flex flex-col animate-slide-up" onClick={e=>e.stopPropagation()}>
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="font-bold text-slate-900" style={{fontFamily:'DM Serif Display,serif'}}>{editing?'Edit Banner':'Create Banner'}</h3>
+              <button onClick={()=>setShowModal(false)} className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center"><X size={14}/></button>
             </div>
-            <div className="p-5 space-y-3">
+            <div className="p-5 space-y-4 overflow-y-auto">
               {/* Live preview */}
-              <div className={`bg-gradient-to-br ${form.bgGradient} p-4 rounded-xl`}>
-                <h3 className="font-bold text-white">{form.title || 'Banner Preview'}</h3>
-                <p className="text-white/80 text-sm mt-1">{form.subtitle || 'Subtitle preview'}</p>
+              <div className="h-16 rounded-xl px-4 flex items-center relative overflow-hidden"
+                style={{background:form.bgColor}}>
+                <div>
+                  <p className="text-sm font-bold text-white">{form.title||'Banner Title'}</p>
+                  {form.subtitle && <p className="text-xs text-white/80">{form.subtitle}</p>}
+                </div>
+                {form.ctaLabel && (
+                  <div className="ml-auto bg-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded-lg">{form.ctaLabel} →</div>
+                )}
               </div>
-              <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Headline *</label>
-                <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="input" placeholder="Banner headline" />
+              <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Title *</label>
+                <input value={form.title} onChange={e=>setForm({...form,title:e.target.value})} className="input" placeholder="e.g. 🎯 BPSC 70th CCE — Enroll Now!"/>
               </div>
               <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Subtitle</label>
-                <input value={form.subtitle} onChange={e => setForm({ ...form, subtitle: e.target.value })} className="input" placeholder="Short description" />
+                <input value={form.subtitle} onChange={e=>setForm({...form,subtitle:e.target.value})} className="input" placeholder="Get 30% off on Pro plan"/>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Type</label>
-                  <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} className="input">
-                    <option value="promotion">promotion</option>
-                    <option value="course">course</option>
-                    <option value="quiz">quiz</option>
-                    <option value="job">job</option>
-                    <option value="content">content</option>
-                  </select>
+                <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">CTA Label</label>
+                  <input value={form.ctaLabel} onChange={e=>setForm({...form,ctaLabel:e.target.value})} className="input" placeholder="Enroll Now"/>
                 </div>
-                <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Target</label>
-                  <select value={form.target} onChange={e => setForm({ ...form, target: e.target.value })} className="input">
-                    <option value="all">all</option>
-                    <option value="BPSC 70th CCE">BPSC 70th CCE</option>
-                    <option value="Bihar Police SI">Bihar Police SI</option>
-                    <option value="SSC CGL">SSC CGL</option>
+                <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">CTA Route</label>
+                  <select value={form.ctaRoute} onChange={e=>setForm({...form,ctaRoute:e.target.value})} className="input">
+                    <option value="">Select route...</option>
+                    {ROUTES.map(r=><option key={r} value={r}>{r}</option>)}
                   </select>
                 </div>
               </div>
-              <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Background Gradient</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {BG_GRADIENTS.map(g => (
-                    <button key={g} onClick={() => setForm({ ...form, bgGradient: g })}
-                      className={`h-8 rounded-lg bg-gradient-to-r ${g} border-2 transition-all ${form.bgGradient === g ? 'border-slate-900' : 'border-transparent'}`} />
-                  ))}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">Background Color</label>
+                  <div className="flex gap-2">
+                    <input type="color" value={form.bgColor} onChange={e=>setForm({...form,bgColor:e.target.value})} className="w-10 h-9 rounded-lg cursor-pointer border-0"/>
+                    <input value={form.bgColor} onChange={e=>setForm({...form,bgColor:e.target.value})} className="input flex-1" placeholder="#1565C0"/>
+                  </div>
+                </div>
+                <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Sort Order</label>
+                  <input type="number" value={form.sortOrder} onChange={e=>setForm({...form,sortOrder:+e.target.value})} className="input"/>
                 </div>
               </div>
-              <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Action Link</label>
-                <input value={form.actionLink} onChange={e => setForm({ ...form, actionLink: e.target.value })} className="input" placeholder="/subscription or /courses" />
+              <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Image URL (optional)</label>
+                <input value={form.imageUrl} onChange={e=>setForm({...form,imageUrl:e.target.value})} className="input" placeholder="https://..."/>
               </div>
-              <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Sort Order</label>
-                <input type="number" value={form.sortOrder} onChange={e => setForm({ ...form, sortOrder: Number(e.target.value) })} className="input" />
+              <div className="flex items-center gap-3">
+                <input type="checkbox" id="active" checked={form.isActive} onChange={e=>setForm({...form,isActive:e.target.checked})} className="w-4 h-4 accent-brand-500"/>
+                <label htmlFor="active" className="text-sm text-slate-700">Active (visible in app)</label>
               </div>
             </div>
             <div className="p-5 border-t border-slate-100 flex justify-end gap-3">
-              <button onClick={() => setShowModal(false)} className="btn-secondary">Cancel</button>
-              <button onClick={() => save(form)} disabled={saving || !form.title} className="btn-primary disabled:opacity-50">
-                {saving ? 'Saving...' : editing ? 'Update' : 'Create'}
+              <button onClick={()=>setShowModal(false)} className="btn-secondary">Cancel</button>
+              <button onClick={save} disabled={saving||!form.title} className="btn-primary disabled:opacity-50">
+                {saving ? 'Saving...' : editing ? 'Update' : 'Create Banner'}
               </button>
             </div>
           </div>

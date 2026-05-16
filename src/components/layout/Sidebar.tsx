@@ -1,82 +1,99 @@
 'use client'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/lib/auth-context'
 import {
   LayoutDashboard, Users, BookOpen, FileText, HelpCircle,
-  Briefcase, Newspaper, CreditCard, Bell, Coins, Users2,
+  Briefcase, Newspaper, CreditCard, Bell, Users2,
   Trophy, Radio, Award, Image, Tag, CheckSquare, Settings,
-  Shield, GraduationCap, ChevronRight, LogOut, Zap, Brain, Layers, AlertTriangle
+  Shield, GraduationCap, ChevronRight, ChevronDown, LogOut,
+  Zap, Brain, Layers, AlertTriangle, Plus, Star, LibraryBig,
+  Coins
 } from 'lucide-react'
 
-const nav = [
-  { group: 'Overview',
-    items: [
-      { href: '/dashboard',      icon: LayoutDashboard, label: 'Dashboard' },
-    ]
-  },
-  { group: 'Users',
-    items: [
-      { href: '/users',          icon: Users,           label: 'User Management' },
-      { href: '/roles',          icon: Shield,          label: 'Admin Roles' },
-    ]
-  },
-  { group: 'Content',
-    items: [
-      { href: '/content',        icon: BookOpen,        label: 'Courses' },
-      { href: '/content/notes',  icon: FileText,        label: 'Notes & Library' },
-      { href: '/quizzes',        icon: HelpCircle,      label: 'Quizzes & Mock Tests' },
-      { href: '/current-affairs',icon: Newspaper,       label: 'Current Affairs' },
-      { href: '/flashcards',     icon: Brain,           label: 'Flashcards (Active Recall)' },
-      { href: '/reviews',        icon: CheckSquare,     label: 'Review Uploads' },
-    ]
-  },
-  { group: 'Exams & Jobs',
-    items: [
-      { href: '/exams',          icon: GraduationCap,   label: 'Exam Management' },
-      { href: '/jobs',           icon: Briefcase,       label: 'Job Vacancies' },
-    ]
-  },
-  { group: 'Revenue',
-    items: [
-      { href: '/subscriptions',  icon: CreditCard,      label: 'Subscriptions' },
-      { href: '/coupons',        icon: Tag,             label: 'Coupon Codes' },
-      { href: '/coins',          icon: Coins,           label: 'Coins & Rewards' },
-    ]
-  },
-  { group: 'Engage',
-    items: [
-      { href: '/notifications',  icon: Bell,            label: 'Notifications' },
-      { href: '/study-rooms',    icon: Users2,          label: 'Study Rooms' },
-      { href: '/tier-rooms',         icon: Layers,          label: 'Tier Room System' },
-      { href: '/tier-rooms/flagged', icon: AlertTriangle,   label: 'Anti-Cheat Review' },
-      { href: '/achievements',   icon: Trophy,          label: 'Achievements' },
-      { href: '/challenges',     icon: Zap,             label: 'Weekly Challenges' },
-      { href: '/live-classes',   icon: Radio,           label: 'Live Classes' },
-      { href: '/leaderboard',    icon: Trophy,          label: 'Leaderboard' },
-      { href: '/certificates',   icon: Award,           label: 'Certificates' },
-      { href: '/banners',        icon: Image,           label: 'Banners & Offers' },
-    ]
-  },
-  { group: 'System',
-    items: [
-      { href: '/settings',       icon: Settings,        label: 'App Settings' },
-    ]
-  },
+type NavItem = {
+  href: string; icon: any; label: string
+  addHref?: string; badge?: number
+}
+type NavGroup = { group: string; items: NavItem[]; defaultOpen?: boolean }
+
+const NAV: NavGroup[] = [
+  { group:'Overview',   defaultOpen:true,  items:[
+    { href:'/dashboard',        icon:LayoutDashboard, label:'Dashboard' },
+  ]},
+  { group:'Users',      defaultOpen:true,  items:[
+    { href:'/users',            icon:Users,           label:'User Management' },
+    { href:'/roles',            icon:Shield,          label:'Admin Roles', addHref:'/roles?create=1' },
+  ]},
+  { group:'Content',    defaultOpen:true,  items:[
+    { href:'/content',          icon:BookOpen,        label:'Courses',              addHref:'/content?create=1' },
+    { href:'/content/notes',    icon:FileText,        label:'Notes & Library',      addHref:'/content/notes?create=1' },
+    { href:'/study-materials',  icon:LibraryBig,      label:'Study Materials',      addHref:'/study-materials?tab=pending' },
+    { href:'/quizzes',          icon:HelpCircle,      label:'Quizzes & Mock Tests', addHref:'/quizzes?create=1' },
+    { href:'/current-affairs',  icon:Newspaper,       label:'Current Affairs',      addHref:'/current-affairs?create=1' },
+    { href:'/flashcards',       icon:Brain,           label:'Flashcards',           addHref:'/flashcards?create=1' },
+    { href:'/reviews',          icon:CheckSquare,     label:'Review Uploads' },
+  ]},
+  { group:'Exams & Jobs', items:[
+    { href:'/exams',            icon:GraduationCap,   label:'Exam Management',  addHref:'/exams?create=1' },
+    { href:'/jobs',             icon:Briefcase,       label:'Job Vacancies',    addHref:'/jobs?create=1' },
+  ]},
+  { group:'Revenue', items:[
+    { href:'/subscriptions',    icon:CreditCard,      label:'Subscriptions' },
+    { href:'/coupons',          icon:Tag,             label:'Coupon Codes',     addHref:'/coupons?create=1' },
+    { href:'/coins',            icon:Coins,           label:'Coins & Rewards' },
+  ]},
+  { group:'Engagement', items:[
+    { href:'/notifications',    icon:Bell,            label:'Notifications',    addHref:'/notifications?compose=1' },
+    { href:'/study-rooms',      icon:Users2,          label:'Study Rooms',      addHref:'/study-rooms?create=1' },
+    { href:'/tier-rooms',       icon:Layers,          label:'Tier Room System' },
+    { href:'/tier-rooms/flagged',icon:AlertTriangle,  label:'Anti-Cheat Review' },
+    { href:'/achievements',     icon:Trophy,          label:'Achievements',     addHref:'/achievements?create=1' },
+    { href:'/challenges',       icon:Zap,             label:'Challenges',       addHref:'/challenges?create=1' },
+    { href:'/live-classes',     icon:Radio,           label:'Live Classes',     addHref:'/live-classes?create=1' },
+    { href:'/leaderboard',      icon:Star,            label:'Leaderboard' },
+    { href:'/certificates',     icon:Award,           label:'Certificates' },
+    { href:'/banners',          icon:Image,           label:'Banners & Offers', addHref:'/banners?create=1' },
+  ]},
+  { group:'System', items:[
+    { href:'/settings', icon:Settings, label:'App Settings' },
+  ]},
 ]
 
 export default function Sidebar() {
   const pathname = usePathname()
+  const router   = useRouter()
+  const { admin, logout } = useAuth()
+
+  const [open, setOpen] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(NAV.map(g => [g.group, g.defaultOpen ?? false]))
+  )
+
+  // Auto-open the group with the active route
+  useEffect(() => {
+    NAV.forEach(g => {
+      const active = g.items.some(i =>
+        pathname === i.href || (i.href !== '/dashboard' && pathname.startsWith(i.href))
+      )
+      if (active) setOpen(prev => ({ ...prev, [g.group]: true }))
+    })
+  }, [pathname])
+
+  const initials = admin?.name
+    ? admin.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
+    : 'SA'
 
   return (
     <aside className="fixed top-0 left-0 h-screen bg-white border-r border-slate-100 flex flex-col z-40"
       style={{ width: 'var(--sidebar-w)' }}>
 
       {/* Logo */}
-      <div className="px-5 py-5 border-b border-slate-100">
+      <div className="px-5 py-4 border-b border-slate-100 shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-brand-500 flex items-center justify-center shadow-brand">
-            <span className="text-white font-black text-lg" style={{ fontFamily: 'DM Serif Display, serif' }}>B</span>
+            <span className="text-white font-black text-lg" style={{ fontFamily:'DM Serif Display,serif' }}>B</span>
           </div>
           <div>
             <p className="font-bold text-slate-900 text-sm leading-none">BPSCNotes</p>
@@ -86,34 +103,75 @@ export default function Sidebar() {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto px-3 pb-4">
-        {nav.map(group => (
-          <div key={group.group}>
-            <p className="nav-link-group">{group.group}</p>
-            {group.items.map(item => {
-              const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))
-              return (
-                <Link key={item.href} href={item.href}
-                  className={cn('nav-link', active && 'active')}>
-                  <item.icon size={16} className="shrink-0" />
-                  <span className="flex-1">{item.label}</span>
-                  {active && <ChevronRight size={14} />}
-                </Link>
-              )
-            })}
-          </div>
-        ))}
+      <nav className="flex-1 overflow-y-auto px-3 py-2">
+        {NAV.map(group => {
+          const isOpen   = open[group.group] ?? false
+          const hasActive = group.items.some(i =>
+            pathname === i.href || (i.href !== '/dashboard' && pathname.startsWith(i.href))
+          )
+          return (
+            <div key={group.group}>
+              <button
+                onClick={() => setOpen(prev => ({ ...prev, [group.group]: !prev[group.group] }))}
+                className={cn(
+                  'w-full flex items-center justify-between px-2 py-1.5 mt-3 mb-0.5 rounded-lg transition-colors',
+                  hasActive ? 'text-brand-600' : 'text-slate-400 hover:text-slate-600'
+                )}
+              >
+                <span className="text-[10px] font-bold uppercase tracking-widest">{group.group}</span>
+                <ChevronDown size={11} className={cn('transition-transform', isOpen ? '' : '-rotate-90')} />
+              </button>
+
+              {isOpen && (
+                <div className="space-y-0.5">
+                  {group.items.map(item => {
+                    const active = pathname === item.href ||
+                      (item.href !== '/dashboard' && pathname.startsWith(item.href))
+                    return (
+                      <div key={item.href} className="group relative flex items-center">
+                        <Link href={item.href} className={cn('nav-link flex-1 pr-7', active && 'active')}>
+                          <item.icon size={15} className="shrink-0" />
+                          <span className="flex-1 truncate text-[13px]">{item.label}</span>
+                          {active && <ChevronRight size={12} />}
+                          {item.badge != null && item.badge > 0 && (
+                            <span className="ml-auto bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                              {item.badge > 9 ? '9+' : item.badge}
+                            </span>
+                          )}
+                        </Link>
+                        {item.addHref && (
+                          <Link href={item.addHref}
+                            className="absolute right-1 opacity-0 group-hover:opacity-100 transition-opacity
+                              w-6 h-6 rounded-md bg-brand-50 hover:bg-brand-100 flex items-center justify-center"
+                            title={`Add ${item.label}`}>
+                            <Plus size={11} className="text-brand-600" />
+                          </Link>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )
+        })}
       </nav>
 
-      {/* Admin profile */}
-      <div className="px-3 py-3 border-t border-slate-100">
-        <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors">
-          <div className="w-8 h-8 rounded-full bg-brand-500 flex items-center justify-center text-white text-xs font-bold shrink-0">SA</div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-slate-800 truncate">Super Admin</p>
-            <p className="text-xs text-slate-400 truncate">admin@bpscnotes.com</p>
+      {/* Footer — dynamic admin info */}
+      <div className="px-3 py-3 border-t border-slate-100 shrink-0">
+        <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition-colors group">
+          <div className="w-8 h-8 rounded-full bg-brand-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+            {initials}
           </div>
-          <LogOut size={14} className="text-slate-400 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-slate-800 truncate">{admin?.name || 'Admin'}</p>
+            <p className="text-xs text-slate-400 truncate">{admin?.email || ''}</p>
+          </div>
+          <button onClick={() => { logout(); router.push('/') }}
+            className="shrink-0 w-7 h-7 rounded-lg hover:bg-red-50 flex items-center justify-center transition-colors"
+            title="Log out">
+            <LogOut size={14} className="text-slate-400 hover:text-red-500 transition-colors" />
+          </button>
         </div>
       </div>
     </aside>

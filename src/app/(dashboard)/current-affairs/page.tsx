@@ -1,173 +1,263 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Header from '@/components/layout/Header'
 import api from '@/lib/api'
+import { useToast } from '@/components/ui/feedback'
 import { getStatusColor, formatNumber } from '@/lib/utils'
-import { Search, Plus, Edit, Trash2, Eye, Star, RefreshCw } from 'lucide-react'
+import { Plus, Search, RefreshCw, Edit, Trash2, Eye, X, Bookmark, ChevronDown } from 'lucide-react'
 
-const categoryColors: Record<string,string> = {
-  'Economy':'bg-green-50 text-green-700 border-green-100',
-  'Bihar Affairs':'bg-yellow-50 text-yellow-700 border-yellow-100',
-  'Science & Tech':'bg-blue-50 text-blue-700 border-blue-100',
-  'Polity & Governance':'bg-purple-50 text-purple-700 border-purple-100',
-  'International':'bg-orange-50 text-orange-700 border-orange-100',
-  'Sports':'bg-red-50 text-red-700 border-red-100',
+const EMPTY = {
+  title: '', detail: '', category: 'General', type: 'prelims',
+  examTags: ['BPSC 70th CCE'], isImportant: false, publishDate: '',
 }
-
-const empty = { title:'', summary:'', category:'Bihar Affairs', source:'', date: new Date().toISOString().split('T')[0], isImportant:false, examTags:['BPSC 70th CCE'], status:'published' }
+const CATEGORIES = ['General','Economy','Polity','Science & Tech','Environment','International','Bihar','Sports','Defence','Awards']
+const TYPES      = ['prelims','mains','both']
 
 export default function CurrentAffairsPage() {
+  const searchParams   = useSearchParams()
+  const { showToast, ToastComponent } = useToast()
+
   const [list, setList]         = useState<any[]>([])
   const [loading, setLoading]   = useState(true)
   const [search, setSearch]     = useState('')
-  const [status, setStatus]     = useState('')
-  const [showModal, setShowModal] = useState(false)
+  const [catFilter, setCat]     = useState('')
+  const [typeFilter, setType]   = useState('')
+  const [page, setPage]         = useState(1)
+  const [total, setTotal]       = useState(0)
+  const [showModal, setShowModal] = useState(searchParams.get('create') === '1')
   const [editing, setEditing]   = useState<any>(null)
-  const [form, setForm]         = useState<any>(empty)
+  const [form, setForm]         = useState<any>(EMPTY)
   const [saving, setSaving]     = useState(false)
+  const [preview, setPreview]   = useState<any>(null)
 
   const load = async () => {
     setLoading(true)
     try {
-      const res = await api.currentAffairs.list({ search, status, limit: 30 })
+      const res = await api.currentAffairs.list({ search, category: catFilter, type: typeFilter, page, limit: 20 })
       setList(res.data?.affairs || [])
-    } catch (e) { console.error(e) }
+      setTotal(res.data?.total || res.meta?.total || 0)
+    } catch (e: any) { showToast(e.message, 'error') }
     finally { setLoading(false) }
   }
-  useEffect(() => { load() }, [search, status])
+  useEffect(() => { load() }, [search, catFilter, typeFilter, page])
 
-  const openNew  = () => { setEditing(null); setForm(empty); setShowModal(true) }
-  const openEdit = (item: any) => { setEditing(item); setForm({ title:item.title, summary:item.summary, category:item.category, source:item.source, date:item.date?.split('T')[0], isImportant:item.is_important, examTags:item.exam_tags, status:item.status }); setShowModal(true) }
+  const openNew  = () => { setEditing(null); setForm(EMPTY); setShowModal(true) }
+  const openEdit = (item: any) => {
+    setEditing(item)
+    setForm({ title: item.title, detail: item.detail||'', category: item.category,
+      type: item.type||'prelims', examTags: item.exam_tags||[], isImportant: item.is_important||false,
+      publishDate: item.publish_date?.split('T')[0]||'' })
+    setShowModal(true)
+  }
 
   const save = async () => {
+    if (!form.title) { showToast('Title is required', 'error'); return }
     setSaving(true)
     try {
       if (editing) await api.currentAffairs.update(editing.id, form)
-      else await api.currentAffairs.create(form)
+      else         await api.currentAffairs.create(form)
       setShowModal(false); load()
-    } catch (e: any) { alert(e.message) }
+      showToast(editing ? '✅ Updated' : '✅ Current affair created')
+    } catch (e: any) { showToast(e.message, 'error') }
     finally { setSaving(false) }
   }
 
-  const del = async (id: string) => {
-    if (!confirm('Delete this article?')) return
-    await api.currentAffairs.delete(id); load()
+  const del = async (id: string, title: string) => {
+    if (!confirm(`Delete "${title}"?`)) return
+    try { await api.currentAffairs.delete(id); load(); showToast('Deleted') }
+    catch (e: any) { showToast(e.message, 'error') }
   }
 
   const stats = [
-    { label:'Total', value:list.length, emoji:'📰' },
-    { label:'Published', value:list.filter(c=>c.status==='published').length, emoji:'✅' },
-    { label:'Important', value:list.filter(c=>c.is_important).length, emoji:'⭐' },
-    { label:'Total Views', value:formatNumber(list.reduce((a,c)=>a+c.view_count,0)), emoji:'👁️' },
+    { emoji:'📰', label:'Total',    value: total },
+    { emoji:'🎯', label:'Prelims',  value: list.filter(a=>a.type==='prelims').length },
+    { emoji:'📝', label:'Mains',    value: list.filter(a=>a.type==='mains').length },
+    { emoji:'⭐', label:'Important', value: list.filter(a=>a.is_important).length },
   ]
 
   return (
     <div className="min-h-screen">
-      <Header title="Current Affairs" subtitle="Manage daily current affairs content" />
+      {ToastComponent}
+      <Header title="Current Affairs" subtitle="Manage daily current affairs for Prelims and Mains" />
       <div className="p-6 space-y-5 animate-fade-in">
 
+        {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {stats.map(s => (
             <div key={s.label} className="card p-4 flex items-center gap-3">
-              <span className="text-3xl">{s.emoji}</span>
+              <span className="text-2xl">{s.emoji}</span>
               <div><p className="text-2xl font-bold text-slate-900">{s.value}</p><p className="text-xs text-slate-500">{s.label}</p></div>
             </div>
           ))}
         </div>
 
-        <div className="card p-4 flex flex-wrap items-center gap-3">
+        {/* Filters */}
+        <div className="card p-4 flex flex-wrap gap-3 items-center">
           <div className="relative flex-1 min-w-48">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search articles..." className="input pl-9"/>
+            <input value={search} onChange={e=>{setSearch(e.target.value);setPage(1)}} placeholder="Search headlines..." className="input pl-9" />
           </div>
-          <select value={status} onChange={e=>setStatus(e.target.value)} className="input w-auto">
-            <option value="">All</option><option value="published">Published</option><option value="draft">Draft</option>
+          <select value={catFilter} onChange={e=>{setCat(e.target.value);setPage(1)}} className="input w-auto">
+            <option value="">All Categories</option>
+            {CATEGORIES.map(c=><option key={c}>{c}</option>)}
+          </select>
+          <select value={typeFilter} onChange={e=>{setType(e.target.value);setPage(1)}} className="input w-auto">
+            <option value="">All Types</option>
+            <option value="prelims">Prelims</option>
+            <option value="mains">Mains</option>
           </select>
           <button onClick={load} className="btn-secondary"><RefreshCw size={14}/></button>
-          <button onClick={openNew} className="btn-primary"><Plus size={14}/>Add Article</button>
+          <button onClick={openNew} className="btn-primary"><Plus size={14}/>Add Current Affair</button>
         </div>
 
+        {/* Table */}
         {loading ? (
-          <div className="card p-12 flex items-center justify-center"><div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin"/></div>
+          <div className="card p-12 flex items-center justify-center">
+            <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin"/>
+          </div>
         ) : (
-          <div className="space-y-3">
-            {list.map(ca => (
-              <div key={ca.id} className="card p-4 hover:shadow-md transition-shadow">
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">📰</div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          {ca.is_important && <Star size={13} className="text-yellow-400 fill-yellow-400 shrink-0"/>}
-                          <h3 className="font-bold text-slate-900 text-sm">{ca.title}</h3>
-                        </div>
-                        <p className="text-xs text-slate-500 line-clamp-2">{ca.summary}</p>
-                        <div className="flex flex-wrap items-center gap-2 mt-2">
-                          <span className={`badge text-[10px] ${categoryColors[ca.category]||'bg-slate-100 text-slate-600 border-slate-200'}`}>{ca.category}</span>
-                          <span className="text-xs text-slate-400">{new Date(ca.date).toLocaleDateString()}</span>
-                          <span className="text-xs text-slate-400">👁 {formatNumber(ca.view_count)}</span>
-                          <span className="text-xs text-slate-400">🔖 {formatNumber(ca.bookmark_count)}</span>
-                        </div>
+          <div className="card overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-100 bg-slate-50/50">
+                  {['Headline','Category','Type','Date','Tags','Actions'].map(h=>(
+                    <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {list.map(item => (
+                  <tr key={item.id} className="table-row">
+                    <td className="px-4 py-3 max-w-xs">
+                      <div className="flex items-start gap-2">
+                        {item.is_important && <span className="text-amber-500 mt-0.5 shrink-0">⭐</span>}
+                        <p className="font-semibold text-slate-800 line-clamp-2 leading-snug">{item.title}</p>
                       </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span className={`badge ${getStatusColor(ca.status)}`}>{ca.status}</span>
-                        <button onClick={()=>openEdit(ca)} className="w-7 h-7 rounded-lg bg-yellow-50 hover:bg-yellow-100 flex items-center justify-center transition-colors"><Edit size={13} className="text-yellow-600"/></button>
-                        <button onClick={()=>del(ca.id)} className="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center transition-colors"><Trash2 size={13} className="text-red-600"/></button>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="badge bg-blue-50 text-blue-700 border-blue-100">{item.category}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`badge ${item.type==='mains' ? 'bg-purple-50 text-purple-700 border-purple-100' : 'bg-green-50 text-green-700 border-green-100'}`}>
+                        {item.type}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-500">
+                      {item.publish_date ? new Date(item.publish_date).toLocaleDateString('en-IN') : '—'}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-1 flex-wrap">
+                        {(item.exam_tags||[]).slice(0,2).map((t:string)=>(
+                          <span key={t} className="badge bg-slate-50 text-slate-600 border-slate-200 text-[10px]">{t}</span>
+                        ))}
                       </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-            {list.length === 0 && <div className="card p-12 text-center text-slate-400">No current affairs found</div>}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1.5">
+                        <button onClick={()=>setPreview(item)} className="w-7 h-7 rounded-lg bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition-colors">
+                          <Eye size={13} className="text-blue-600"/>
+                        </button>
+                        <button onClick={()=>openEdit(item)} className="w-7 h-7 rounded-lg bg-amber-50 hover:bg-amber-100 flex items-center justify-center transition-colors">
+                          <Edit size={13} className="text-amber-600"/>
+                        </button>
+                        <button onClick={()=>del(item.id,item.title)} className="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center transition-colors">
+                          <Trash2 size={13} className="text-red-600"/>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {list.length === 0 && <div className="p-12 text-center text-slate-400">No current affairs found</div>}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {total > 20 && (
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-slate-500">Showing {(page-1)*20+1}–{Math.min(page*20,total)} of {total}</p>
+            <div className="flex gap-2">
+              <button disabled={page===1} onClick={()=>setPage(p=>p-1)} className="btn-secondary disabled:opacity-50">← Prev</button>
+              <button disabled={page*20>=total} onClick={()=>setPage(p=>p+1)} className="btn-secondary disabled:opacity-50">Next →</button>
+            </div>
           </div>
         )}
       </div>
 
+      {/* Create / Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={()=>setShowModal(false)}>
-          <div className="bg-white rounded-2xl shadow-modal w-full max-w-lg animate-slide-up overflow-y-auto max-h-[90vh]" onClick={e=>e.stopPropagation()}>
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white">
-              <h3 className="font-bold text-slate-900" style={{fontFamily:'DM Serif Display,serif'}}>{editing?'Edit Article':'Add Article'}</h3>
-              <button onClick={()=>setShowModal(false)} className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500">✕</button>
+          <div className="bg-white rounded-2xl shadow-modal w-full max-w-xl max-h-[90vh] flex flex-col animate-slide-up" onClick={e=>e.stopPropagation()}>
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white rounded-t-2xl">
+              <h3 className="font-bold text-slate-900" style={{fontFamily:'DM Serif Display,serif'}}>
+                {editing ? 'Edit Current Affair' : 'Add Current Affair'}
+              </h3>
+              <button onClick={()=>setShowModal(false)} className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500"><X size={14}/></button>
             </div>
-            <div className="p-5 space-y-3">
-              <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Headline *</label>
-                <input value={form.title} onChange={e=>setForm({...form,title:e.target.value})} className="input" placeholder="Article headline"/>
+            <div className="p-5 space-y-4 overflow-y-auto">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">Headline *</label>
+                <textarea value={form.title} onChange={e=>setForm({...form,title:e.target.value})}
+                  className="input h-20 resize-none" placeholder="Enter headline..." />
               </div>
-              <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Summary *</label>
-                <textarea value={form.summary} onChange={e=>setForm({...form,summary:e.target.value})} className="input h-20 resize-none" placeholder="Brief summary..."/>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">Detailed Explanation</label>
+                <textarea value={form.detail} onChange={e=>setForm({...form,detail:e.target.value})}
+                  className="input h-32 resize-none" placeholder="Detailed analysis for Mains..." />
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Category</label>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">Category</label>
                   <select value={form.category} onChange={e=>setForm({...form,category:e.target.value})} className="input">
-                    {['Bihar Affairs','Economy','Science & Tech','Polity & Governance','International','Sports'].map(c=><option key={c}>{c}</option>)}
+                    {CATEGORIES.map(c=><option key={c}>{c}</option>)}
                   </select>
                 </div>
-                <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Date</label>
-                  <input type="date" value={form.date} onChange={e=>setForm({...form,date:e.target.value})} className="input"/>
-                </div>
-                <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Source</label>
-                  <input value={form.source} onChange={e=>setForm({...form,source:e.target.value})} className="input" placeholder="Ministry / Organization"/>
-                </div>
-                <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Status</label>
-                  <select value={form.status} onChange={e=>setForm({...form,status:e.target.value})} className="input">
-                    <option value="published">Published</option><option value="draft">Draft</option>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">Type</label>
+                  <select value={form.type} onChange={e=>setForm({...form,type:e.target.value})} className="input">
+                    <option value="prelims">Prelims</option>
+                    <option value="mains">Mains</option>
+                    <option value="both">Both</option>
                   </select>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <input type="checkbox" id="imp" checked={form.isImportant} onChange={e=>setForm({...form,isImportant:e.target.checked})} className="rounded"/>
-                <label htmlFor="imp" className="text-sm font-medium text-slate-700">Mark as Important ⭐</label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">Publish Date</label>
+                  <input type="date" value={form.publishDate} onChange={e=>setForm({...form,publishDate:e.target.value})} className="input"/>
+                </div>
+                <div className="flex items-center gap-3 pt-5">
+                  <input type="checkbox" id="imp" checked={form.isImportant} onChange={e=>setForm({...form,isImportant:e.target.checked})} className="w-4 h-4 accent-brand-500"/>
+                  <label htmlFor="imp" className="text-sm text-slate-700 font-medium">⭐ Mark as Important</label>
+                </div>
               </div>
             </div>
-            <div className="p-5 border-t border-slate-100 flex justify-end gap-3">
+            <div className="p-5 border-t border-slate-100 flex justify-end gap-3 sticky bottom-0 bg-white rounded-b-2xl">
               <button onClick={()=>setShowModal(false)} className="btn-secondary">Cancel</button>
-              <button onClick={save} disabled={saving||!form.title||!form.summary} className="btn-primary disabled:opacity-50">
-                {saving?'Saving...': editing?'Update':'Publish'}
+              <button onClick={save} disabled={saving||!form.title} className="btn-primary disabled:opacity-50">
+                {saving ? 'Saving...' : editing ? 'Update' : 'Create'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Preview Modal */}
+      {preview && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={()=>setPreview(null)}>
+          <div className="bg-white rounded-2xl shadow-modal w-full max-w-lg max-h-[80vh] overflow-y-auto animate-slide-up p-6" onClick={e=>e.stopPropagation()}>
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex gap-2 flex-wrap">
+                <span className="badge bg-blue-50 text-blue-700 border-blue-100">{preview.category}</span>
+                <span className={`badge ${preview.type==='mains' ? 'bg-purple-50 text-purple-700 border-purple-100' : 'bg-green-50 text-green-700 border-green-100'}`}>{preview.type}</span>
+                {preview.is_important && <span className="badge bg-amber-50 text-amber-700 border-amber-100">⭐ Important</span>}
+              </div>
+              <button onClick={()=>setPreview(null)} className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center"><X size={14}/></button>
+            </div>
+            <h2 className="text-lg font-bold text-slate-900 mb-3 leading-snug">{preview.title}</h2>
+            {preview.detail && <p className="text-slate-600 text-sm leading-relaxed">{preview.detail}</p>}
           </div>
         </div>
       )}
