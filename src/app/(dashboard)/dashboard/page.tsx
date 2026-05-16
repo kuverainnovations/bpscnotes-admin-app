@@ -57,7 +57,7 @@ export default function DashboardPage() {
       <div className="card p-8 text-center max-w-sm">
         <p className="text-4xl mb-3">⚠️</p>
         <p className="text-red-500 font-semibold mb-2">{error}</p>
-        <p className="text-slate-400 text-sm mb-4">Make sure backend is running at localhost:5000</p>
+        <p className="text-slate-400 text-sm mb-4">Unable to connect to server. Please try again.</p>
         <button onClick={load} className="btn-primary gap-2"><RefreshCw size={14} />Retry</button>
       </div>
     </div>

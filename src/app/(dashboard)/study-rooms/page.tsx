@@ -10,7 +10,6 @@ import { useAuth } from '@/lib/auth-context'
 // ════════════════════════════════════════════════════════════
 // DashboardPage — Production-grade
 //
-// BUG 10 FIX — removed "Make sure backend is running at localhost:5000"
 // BUG 11 FIX — admin available synchronously, no isLoading race
 // BUG 12 FIX — Promise.allSettled() so partial failures don't break everything
 // ════════════════════════════════════════════════════════════
