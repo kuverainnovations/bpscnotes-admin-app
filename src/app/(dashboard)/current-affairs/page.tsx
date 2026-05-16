@@ -1,7 +1,7 @@
 'use client'
 export const dynamic = 'force-dynamic'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Header from '@/components/layout/Header'
 import api from '@/lib/api'
@@ -17,7 +17,15 @@ const CATEGORIES = ['General','Economy','Polity','Science & Tech','Environment',
 const TYPES      = ['prelims','mains','both']
 
 export default function CurrentAffairsPage() {
-  const searchParams   = useSearchParams()
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <CurrentAffairsPageContent />
+    </Suspense>
+  )
+}
+
+function CurrentAffairsPageContent() {
+  const searchParams = useSearchParams()
   const { showToast, ToastComponent } = useToast()
 
   const [list, setList]         = useState<any[]>([])

@@ -2,12 +2,13 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Header from '@/components/layout/Header'
 import api from '@/lib/api'
 import { useToast } from '@/components/ui/feedback'
 import { Plus, RefreshCw, Edit, Trash2, X, Image, ToggleLeft, ToggleRight } from 'lucide-react'
+
 
 const EMPTY = {
   title:'', subtitle:'', imageUrl:'', ctaLabel:'',
@@ -16,6 +17,14 @@ const EMPTY = {
 const ROUTES = ['/quizzes','/current-affairs','/study-materials','/wallet','/subscription','/rooms_hub','/jobs']
 
 export default function BannersPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <BannersPageContent />
+    </Suspense>
+  )
+}
+
+function BannersPageContent() {
   const sp = useSearchParams()
   const { showToast, ToastComponent } = useToast()
   const [banners, setBanners]   = useState<any[]>([])
@@ -210,3 +219,4 @@ export default function BannersPage() {
     </div>
   )
 }
+

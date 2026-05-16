@@ -1,7 +1,7 @@
 'use client'
 
 export const dynamic = 'force-dynamic'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Header from '@/components/layout/Header'
 import api from '@/lib/api'
@@ -16,6 +16,14 @@ const EMPTY = {
 const SUBJECTS = ['Polity','History','Geography','Economy','Science','Environment','Bihar GK','English','Math']
 
 export default function LiveClassesPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LiveClassesPageContent />
+    </Suspense>
+  )
+}
+
+function LiveClassesPageContent() {
   const sp = useSearchParams()
   const { showToast, ToastComponent } = useToast()
 

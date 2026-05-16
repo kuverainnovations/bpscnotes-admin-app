@@ -1,6 +1,6 @@
 'use client'
 export const dynamic = 'force-dynamic'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Header from '@/components/layout/Header'
 import api from '@/lib/api'
@@ -16,6 +16,14 @@ const EMPTY = {
 const CATS = ['BPSC','Bihar Govt','Central Govt','Railway','Banking','SSC','Defence','Private','Part-time']
 
 export default function JobsPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <JobsPageContent />
+    </Suspense>
+  )
+}
+
+function JobsPageContent() {
   const searchParams = useSearchParams()
   const { showToast, ToastComponent } = useToast()
 
