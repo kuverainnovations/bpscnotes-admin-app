@@ -2,7 +2,10 @@
 // BPSCNotes Admin — API Client
 // ════════════════════════════════════════════════════════════
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'
+// const BASE_URL = process.env.NEXT_PUBLIC_API_URL!
+const BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  'https://api.bpscnotes.in/api/v1'
 
 // ── Token helpers ─────────────────────────────────────────────
 export const getToken = (): string | null => {
