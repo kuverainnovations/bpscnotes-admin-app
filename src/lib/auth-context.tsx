@@ -1,36 +1,42 @@
 'use client'
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
-import api, { getToken, clearToken, setToken } from '@/lib/api'
+import api, { getToken, clearToken } from '@/lib/api'
 
 // ════════════════════════════════════════════════════════════
-// Auth Context — Production-grade session handling
+// Auth Context — Production
 //
-// ROOT CAUSE FIXES:
+// BUG 7 FIX: REMOVED FALSE-POSITIVE TOKEN VALIDATION
 //
-// BUG 7 — ASYNC USEEFFECT CAUSES REFRESH RACE CONDITION (CRITICAL)
-//   BEFORE: useState(true) for isLoading → async useEffect reads localStorage
-//   On page refresh the sequence is:
-//     Frame 1: React renders → isLoading=true → dashboard sees isLoading=true → waits
-//     Frame 2: useEffect fires → reads localStorage → setAdmin() → setLoading(false)
-//     Frame 3: Dashboard useEffect sees admin != null → calls load()
-//   The gap between Frame 1-3 is non-deterministic. If the component unmounts
-//   before Frame 3 (e.g. strict mode double-invoke) the load() never fires.
+// The previous version called api.dashboard.getStats() on every
+// page mount to "validate" the token:
 //
-//   FIX: Use synchronous lazy initializer in useState() — reads localStorage
-//   synchronously on first render, eliminating the async gap entirely.
-//   isLoading starts false because there's nothing async happening.
+//   useEffect(() => {
+//     if (admin && getToken()) {
+//       api.dashboard.getStats().catch(() => {
+//         clearToken()        ← clears VALID token on any transient failure
+//         setAdmin(null)
+//         router.replace('/')  ← random logout
+//       })
+//     }
+//   }, [])
 //
-// BUG 8 — NO SERVER-SIDE TOKEN VALIDATION ON REFRESH
-//   Restored session from localStorage only checks if strings exist.
-//   A stored expired token will appear valid until the first API call fails.
-//   FIX: After restoring from localStorage, silently verify token is still valid
-//   by calling /admin/stats (a fast endpoint). If 401 → clear and redirect.
+// WHY THIS CAUSES RANDOM LOGOUTS:
+//   1. Admin navigates to /quizzes
+//   2. Dashboard stats API is slow (DB query, Redis miss, VPS load spike)
+//   3. getStats() times out or gets 503 (transient)
+//   4. catch() fires → clearToken() → redirect to login
+//   5. User sees "Failed to fetch" and gets kicked out
+//   6. Their token was VALID — the stats endpoint just had a blip
 //
-// BUG 9 — DEBUG LOGS LEAKING JWT TOKEN
-//   console.log('LOGIN RESPONSE 👉', res) prints full JWT to browser console
-//   console.log("ERROR 👉", err) in login error handler
-//   FIX: Removed both.
+// FIX: Do NOT call any API to validate the token on mount.
+//   If the token is expired, the FIRST real API call the page makes
+//   will get 401, which api.ts handles by clearing the token and
+//   redirecting to login. That is the correct, non-racy flow.
+//
+// BUG (kept correct): synchronous lazy initializer — no async gap on refresh.
+//   useState(readStoredAdmin) runs synchronously → admin is available
+//   immediately on first render → no isLoading race condition.
 // ════════════════════════════════════════════════════════════
 
 interface AdminUser {
@@ -42,7 +48,7 @@ interface AdminUser {
 
 interface AuthContextType {
   admin:         AdminUser | null
-  isLoading:     boolean
+  isLoading:     boolean   // kept for API compat but always false now
   login:         (email: string, password: string) => Promise<void>
   logout:        () => void
   hasPermission: (perm: string) => boolean
@@ -50,7 +56,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null)
 
-// ── Sync read from localStorage (safe on server = returns null) ──
+// Synchronous read — safe on server (window undefined → null)
 function readStoredAdmin(): AdminUser | null {
   if (typeof window === 'undefined') return null
   try {
@@ -64,38 +70,25 @@ function readStoredAdmin(): AdminUser | null {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  // CRITICAL FIX: synchronous lazy initializer — no async gap on refresh
-  const [admin, setAdmin]     = useState<AdminUser | null>(readStoredAdmin)
-  const [isLoading, setLoading] = useState(false)  // no async init needed
+  // Synchronous lazy init — admin is available on first render, no async gap
+  const [admin, setAdmin] = useState<AdminUser | null>(readStoredAdmin)
   const router = useRouter()
 
-  // Optional: silently revalidate token after hydration
-  // If the stored token is expired, the next API call will 401 and redirect.
-  // This useEffect is intentionally minimal — it does NOT block UI rendering.
-  useEffect(() => {
-    // If we have a stored admin, verify the token is still valid in background.
-    // This catches expired tokens without blocking the page render.
-    if (admin && getToken()) {
-      api.dashboard.getStats().catch(() => {
-        // Token invalid — clear session and redirect to login
-        clearToken()
-        setAdmin(null)
-        router.replace('/')
-      })
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []) // run once on mount only
+  // FIX BUG 7: NO background api call here.
+  // Token expiry is handled by api.ts: 401 → clearToken() → redirect to /
+  // We do NOT call any API here. That was causing random logouts.
 
   const login = async (email: string, password: string) => {
     const res       = await api.auth.login(email, password)
     const token     = res.data?.token
     const adminData = res.data?.admin
 
-    if (!token) throw new Error('Login failed — no token received')
+    if (!token) throw new Error('Login failed — no token received from server')
 
-    // api.auth.login already calls setToken(token) inside api.ts
-    // so we just need to store the user object
-    localStorage.setItem('adminUser', JSON.stringify(adminData))
+    // api.auth.login already called setToken(token) inside api.ts
+    try {
+      localStorage.setItem('adminUser', JSON.stringify(adminData))
+    } catch {}
     setAdmin(adminData)
     router.push('/dashboard')
   }
@@ -108,11 +101,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const hasPermission = (perm: string): boolean => {
     if (!admin) return false
-    return admin.permissions.includes('all') || admin.permissions.includes(perm)
+    const perms = admin.permissions || []
+    return perms.includes('all') || perms.includes(perm)
   }
 
   return (
-    <AuthContext.Provider value={{ admin, isLoading, login, logout, hasPermission }}>
+    <AuthContext.Provider value={{
+      admin,
+      isLoading: false,  // always false — no async init
+      login,
+      logout,
+      hasPermission,
+    }}>
       {children}
     </AuthContext.Provider>
   )

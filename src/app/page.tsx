@@ -18,7 +18,6 @@ export default function LoginPage() {
     try {
       await login(email, password)
     } catch (err: any) {
-      console.log("ERROR 👉", err)
       setError(err?.message || 'Invalid credentials. Please try again123.')
     } finally { setLoading(false) }
   }

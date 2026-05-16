@@ -17,31 +17,32 @@ export default function DashboardPage() {
   const [examDist, setExamDist]   = useState<any[]>([])
   const [loading, setLoading]     = useState(true)
   const [error, setError]         = useState('')
-  const { admin, isLoading } = useAuth()
+  const { admin } = useAuth()
 
   const load = async () => {
     setLoading(true); setError('')
     try {
-      const [s, uc, rc, rp, ed] = await Promise.all([
+      const [s, uc, rc, rp, ed] = await Promise.allSettled([
         api.dashboard.getStats(),
         api.dashboard.getChart('users'),
         api.dashboard.getChart('revenue'),
         api.dashboard.getRevenueBreakdown(),
         api.dashboard.getExamDistribution(),
       ])
-      setStats(s.data)
-      setUserChart(uc.data?.data || [])
-      setRevChart(rc.data?.data || [])
-      setRevPie(rp.data?.data || [])
-      setExamDist(ed.data?.data || [])
+      if (s.status  === 'fulfilled') setStats(s.value.data)
+      if (uc.status === 'fulfilled') setUserChart(uc.value.data?.data || [])
+      if (rc.status === 'fulfilled') setRevChart(rc.value.data?.data || [])
+      if (rp.status === 'fulfilled') setRevPie(rp.value.data?.data || [])
+      if (ed.status === 'fulfilled') setExamDist(ed.value.data?.data || [])
+      if (s.status  === 'rejected')  setError((s.reason as Error)?.message ?? 'Stats failed')
     } catch (e: any) { setError(e.message) }
     finally { setLoading(false) }
   }
   useEffect(() => {
-    if (isLoading || !admin) return
-  
+    if (!admin) return
     load()
-  }, [admin, isLoading])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [admin])
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center">
@@ -52,7 +53,7 @@ export default function DashboardPage() {
     </div>
   )
 
-  if (error) return (
+  if (error && !stats) return (
     <div className="min-h-screen flex items-center justify-center">
       <div className="card p-8 text-center max-w-sm">
         <p className="text-4xl mb-3">⚠️</p>
