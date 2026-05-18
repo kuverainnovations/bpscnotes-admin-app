@@ -330,7 +330,14 @@ export default function ContentPage() {
                     </div>
                     <div>
                       <label className="label">Subject *</label>
-                      <DynamicSelect type="subjects" value={form.subject} onChange={v=>setForm({...form,subject:v})} placeholder="Select subject" required/>
+                      <DynamicSelect type="subjects" value={form.subject} onChange={v=>setForm({...form,subject:v})} placeholder="Select subject"/>
+                      {/* Fallback: allow typing if dropdown has no matching option */}
+                      <input
+                        value={form.subject}
+                        onChange={e=>setForm({...form,subject:e.target.value})}
+                        placeholder="Or type subject name…"
+                        className="input w-full mt-1.5 text-sm"
+                      />
                     </div>
                     <div>
                       <label className="label">Status</label>
@@ -445,7 +452,7 @@ export default function ContentPage() {
 
             <div className="sticky bottom-0 bg-white border-t px-6 py-4 flex gap-3 justify-end rounded-b-2xl">
               <button onClick={()=>setShowModal(false)} className="btn-secondary">Cancel</button>
-              <button onClick={save} disabled={saving||!form.title||!form.subject} className="btn-primary">
+              <button onClick={save} disabled={saving||!form.title.trim()} className="btn-primary">
                 {saving ? 'Saving…' : editing ? 'Save Changes' : 'Create Course'}
               </button>
             </div>
