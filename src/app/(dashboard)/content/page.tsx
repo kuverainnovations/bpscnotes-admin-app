@@ -31,8 +31,14 @@ export default function ContentPage() {
   const [form, setForm]         = useState<any>(EMPTY)
   const [saving, setSaving]     = useState(false)
   const [tab, setTab]           = useState<Tab>('details')
+  const switchTab = (t: Tab) => {
+    setTab(t)
+    if (t === 'curriculum' && editing?.id) {
+      loadModalChapters(editing.id)
+    }
+  }
   const [toast, setToast]       = useState('')
-  // Chapter/lesson management
+  // Chapter/lesson management — table panel
   const [contentCourse, setContentCourse] = useState<any>(null)
   const [chapters, setChapters]           = useState<any[]>([])
   const [loadingCh, setLoadingCh]         = useState(false)
@@ -41,6 +47,14 @@ export default function ContentPage() {
   const [addingLesson, setAddingLesson]   = useState<string|null>(null)
   const [newLesson, setNewLesson]         = useState({ title:'', type:'pdf', durationMins:0, notesUrl:'', videoUrl:'', isFreePreview:false, isLocked:true })
   const [newLearnItem, setNewLearnItem]   = useState('')
+
+  // Chapter/lesson management — modal curriculum tab (uses editing.id)
+  const [modalChapters, setModalChapters]       = useState<any[]>([])
+  const [modalLoadingCh, setModalLoadingCh]     = useState(false)
+  const [modalExpandedCh, setModalExpandedCh]   = useState<string|null>(null)
+  const [modalNewChTitle, setModalNewChTitle]   = useState('')
+  const [modalAddingLesson, setModalAddingLesson] = useState<string|null>(null)
+  const [modalNewLesson, setModalNewLesson]     = useState({ title:'', type:'pdf', durationMins:0, notesUrl:'', videoUrl:'', isFreePreview:false, isLocked:true })
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(()=>setToast(''), 3000) }
 
@@ -62,6 +76,15 @@ export default function ContentPage() {
       setChapters(res.data?.chapters || [])
     } catch { showToast('Failed to load chapters') }
     finally { setLoadingCh(false) }
+  }
+
+  const loadModalChapters = async (courseId: string) => {
+    setModalLoadingCh(true)
+    try {
+      const res = await api.courses.getChapters(courseId)
+      setModalChapters(res.data?.chapters || [])
+    } catch { showToast('Failed to load chapters') }
+    finally { setModalLoadingCh(false) }
   }
 
   const openContent = (c: any) => { setContentCourse(c); loadChapters(c.id) }
@@ -96,9 +119,23 @@ export default function ContentPage() {
   const save = async () => {
     setSaving(true)
     try {
-      if (editing) await api.courses.update(editing.id, form)
-      else await api.courses.create(form)
-      setShowModal(false); load(); showToast(editing ? 'Course updated ✅' : 'Course created ✅')
+      if (editing) {
+        await api.courses.update(editing.id, form)
+        setShowModal(false); load(); showToast('Course updated ✅')
+      } else {
+        const res = await api.courses.create(form)
+        // After creating, open in edit mode on Curriculum tab so admin can add content
+        const newCourse = res.data || res
+        if (newCourse?.id) {
+          setEditing(newCourse)
+          setTab('curriculum')
+          loadModalChapters(newCourse.id)
+          showToast('Course created! Now add chapters and lessons below ✅')
+          load()
+        } else {
+          setShowModal(false); load(); showToast('Course created ✅')
+        }
+      }
     } catch (e: any) { showToast(e.message || 'Save failed') }
     finally { setSaving(false) }
   }
@@ -312,9 +349,9 @@ export default function ContentPage() {
             {/* Tabs */}
             <div className="flex border-b px-6 gap-4">
               {(['details','curriculum','ratings'] as Tab[]).map(t=>(
-                <button key={t} onClick={()=>setTab(t)}
+                <button key={t} onClick={()=>switchTab(t)}
                   className={`py-3 text-sm font-medium border-b-2 transition-colors capitalize -mb-px ${tab===t?'border-blue-500 text-blue-600':'border-transparent text-slate-500 hover:text-slate-700'}`}>
-                  {t}
+                  {t === 'curriculum' ? '📋 Curriculum' : t === 'details' ? '📝 Details' : '⭐ Ratings'}
                 </button>
               ))}
             </div>
@@ -418,14 +455,176 @@ export default function ContentPage() {
               )}
 
               {tab === 'curriculum' && (
-                <div className="py-4 text-center space-y-2">
-                  {editing ? (
-                    <div className="space-y-2">
-                      <p className="text-slate-600 text-sm">Use the <strong className="text-purple-600">📖 icon</strong> in the course table to manage chapters and lessons.</p>
-                      <p className="text-xs text-slate-400">You can also save this form, then click the 📖 icon to add content.</p>
+                <div className="space-y-3 min-h-[300px]">
+                  {!editing ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <span className="text-4xl mb-3">💾</span>
+                      <p className="font-semibold text-slate-700 mb-1">Save the course first</p>
+                      <p className="text-sm text-slate-500">Fill in the Details tab and click <strong>Create Course</strong>. You'll land here automatically to add chapters and lessons.</p>
                     </div>
+                  ) : modalLoadingCh ? (
+                    <div className="py-10 text-center text-slate-400 text-sm">Loading chapters…</div>
                   ) : (
-                    <p className="text-slate-500 text-sm">Save the course first, then use the 📖 icon to add chapters and lessons.</p>
+                    <>
+                      {modalChapters.length === 0 && (
+                        <div className="flex flex-col items-center justify-center py-8 text-center border-2 border-dashed border-slate-200 rounded-xl">
+                          <span className="text-3xl mb-2">📚</span>
+                          <p className="font-medium text-slate-600 mb-1">No chapters yet</p>
+                          <p className="text-xs text-slate-400">Type a chapter title below and press Enter</p>
+                        </div>
+                      )}
+
+                      {/* Chapter list */}
+                      {modalChapters.map((ch: any) => {
+                        const isExpanded = modalExpandedCh === ch.id
+                        const lessons = ch.lessons || []
+                        return (
+                          <div key={ch.id} className="border border-slate-200 rounded-xl overflow-hidden">
+                            {/* Chapter header */}
+                            <div className="flex items-center gap-2 p-3 bg-white hover:bg-slate-50 cursor-pointer"
+                              onClick={() => setModalExpandedCh(isExpanded ? null : ch.id)}>
+                              {isExpanded
+                                ? <ChevronDown size={15} className="text-slate-500 flex-shrink-0"/>
+                                : <ChevronRight size={15} className="text-slate-400 flex-shrink-0"/>
+                              }
+                              <span className="font-semibold text-slate-700 flex-1 text-sm">{ch.title}</span>
+                              <span className="text-xs text-slate-400 mr-2">{lessons.length} lessons</span>
+                              <button
+                                type="button"
+                                onClick={e => {
+                                  e.stopPropagation()
+                                  if (!confirm('Delete this chapter and all its lessons?')) return
+                                  api.courses.deleteChapter(editing.id, ch.id)
+                                    .then(() => loadModalChapters(editing.id))
+                                    .catch(() => showToast('Failed to delete chapter'))
+                                }}
+                                className="p-1 text-red-400 hover:text-red-600 flex-shrink-0"
+                              >
+                                <Trash2 size={12}/>
+                              </button>
+                            </div>
+
+                            {/* Lessons */}
+                            {isExpanded && (
+                              <div className="border-t border-slate-100">
+                                {lessons.map((l: any, idx: number) => (
+                                  <div key={l.id}
+                                    className={`flex items-center gap-2 px-4 py-2.5 ${idx < lessons.length-1 ? 'border-b border-slate-50' : ''} hover:bg-slate-50/50`}>
+                                    <span className="text-sm">{({video:'🎬',quiz:'❓',live:'🔴',pdf:'📄'} as any)[l.type]||'📄'}</span>
+                                    <span className="flex-1 text-sm text-slate-700">{l.title}</span>
+                                    <span className="text-xs text-slate-400">{l.duration_mins}min</span>
+                                    {l.is_free_preview && <span className="px-1.5 py-0.5 bg-green-100 text-green-700 rounded text-xs">Free</span>}
+                                    {l.notes_url && <a href={l.notes_url} target="_blank" rel="noreferrer" className="text-blue-500 text-xs hover:underline">PDF ↗</a>}
+                                    <button type="button"
+                                      onClick={() => api.courses.deleteLesson(editing.id, l.id)
+                                        .then(() => loadModalChapters(editing.id))
+                                        .catch(() => showToast('Failed to delete'))}
+                                      className="p-1 text-red-400 hover:text-red-600 flex-shrink-0">
+                                      <Trash2 size={11}/>
+                                    </button>
+                                  </div>
+                                ))}
+
+                                {/* Add lesson inline */}
+                                {modalAddingLesson === ch.id ? (
+                                  <div className="p-3 bg-blue-50/60 border-t border-blue-100 space-y-2">
+                                    <div className="grid grid-cols-2 gap-2">
+                                      <input value={modalNewLesson.title}
+                                        onChange={e => setModalNewLesson({...modalNewLesson, title: e.target.value})}
+                                        placeholder="Lesson title *" className="input col-span-2 text-sm"/>
+                                      <select value={modalNewLesson.type}
+                                        onChange={e => setModalNewLesson({...modalNewLesson, type: e.target.value})}
+                                        className="input text-sm">
+                                        <option value="pdf">📄 PDF</option>
+                                        <option value="video">🎬 Video</option>
+                                        <option value="quiz">❓ Quiz</option>
+                                        <option value="live">🔴 Live</option>
+                                      </select>
+                                      <input type="number" value={modalNewLesson.durationMins}
+                                        onChange={e => setModalNewLesson({...modalNewLesson, durationMins: Number(e.target.value)})}
+                                        placeholder="Duration (mins)" className="input text-sm"/>
+                                      <input value={modalNewLesson.notesUrl}
+                                        onChange={e => setModalNewLesson({...modalNewLesson, notesUrl: e.target.value})}
+                                        placeholder="PDF / Notes URL" className="input col-span-2 text-sm"/>
+                                      <input value={modalNewLesson.videoUrl}
+                                        onChange={e => setModalNewLesson({...modalNewLesson, videoUrl: e.target.value})}
+                                        placeholder="Video URL (optional)" className="input col-span-2 text-sm"/>
+                                      <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+                                        <input type="checkbox" checked={modalNewLesson.isFreePreview}
+                                          onChange={e => setModalNewLesson({...modalNewLesson, isFreePreview: e.target.checked})} className="rounded"/>
+                                        Free preview
+                                      </label>
+                                      <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+                                        <input type="checkbox" checked={!modalNewLesson.isLocked}
+                                          onChange={e => setModalNewLesson({...modalNewLesson, isLocked: !e.target.checked})} className="rounded"/>
+                                        Unlocked
+                                      </label>
+                                    </div>
+                                    <div className="flex gap-2">
+                                      <button type="button"
+                                        onClick={() => {
+                                          if (!modalNewLesson.title.trim()) return
+                                          api.courses.createLesson(editing.id, ch.id, {
+                                            ...modalNewLesson, durationMins: Number(modalNewLesson.durationMins)
+                                          })
+                                          .then(() => {
+                                            loadModalChapters(editing.id)
+                                            setModalAddingLesson(null)
+                                            setModalNewLesson({ title:'', type:'pdf', durationMins:0, notesUrl:'', videoUrl:'', isFreePreview:false, isLocked:true })
+                                          })
+                                          .catch(() => showToast('Failed to add lesson'))
+                                        }}
+                                        className="btn-primary text-xs py-1.5 px-3 flex items-center gap-1">
+                                        <Check size={12}/> Save Lesson
+                                      </button>
+                                      <button type="button" onClick={() => setModalAddingLesson(null)}
+                                        className="btn-secondary text-xs py-1.5 px-3">Cancel</button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <button type="button"
+                                    onClick={() => setModalAddingLesson(ch.id)}
+                                    className="w-full py-2 text-xs text-blue-500 hover:text-blue-700 hover:bg-blue-50 flex items-center justify-center gap-1 transition-colors">
+                                    <Plus size={12}/> Add Lesson
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+
+                      {/* Add chapter row */}
+                      <div className="flex gap-2 pt-1">
+                        <input
+                          value={modalNewChTitle}
+                          onChange={e => setModalNewChTitle(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key !== 'Enter') return
+                            e.preventDefault()
+                            if (!modalNewChTitle.trim()) return
+                            api.courses.createChapter(editing.id, { title: modalNewChTitle })
+                              .then(() => { setModalNewChTitle(''); loadModalChapters(editing.id) })
+                              .catch(() => showToast('Failed to add chapter'))
+                          }}
+                          placeholder="Chapter title… press Enter to add"
+                          className="input flex-1 text-sm"
+                        />
+                        <button
+                          type="button"
+                          disabled={!modalNewChTitle.trim()}
+                          onClick={() => {
+                            if (!modalNewChTitle.trim()) return
+                            api.courses.createChapter(editing.id, { title: modalNewChTitle })
+                              .then(() => { setModalNewChTitle(''); loadModalChapters(editing.id) })
+                              .catch(() => showToast('Failed to add chapter'))
+                          }}
+                          className="btn-primary flex items-center gap-1 text-sm disabled:opacity-40 flex-shrink-0"
+                        >
+                          <Plus size={14}/> Add Chapter
+                        </button>
+                      </div>
+                    </>
                   )}
                 </div>
               )}
