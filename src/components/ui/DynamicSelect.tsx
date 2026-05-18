@@ -20,10 +20,16 @@ interface Props {
   onChange:     (value: string) => void
   placeholder?: string
   className?:   string
+  required?:    boolean
 }
 
 export default function DynamicSelect({
-  type, value, onChange, placeholder = 'Select...', className = '',
+  type,
+  value,
+  onChange,
+  placeholder = 'Select...',
+  className = '',
+  required = false,
 }: Props) {
   const fallback   = type === 'subjects' ? FALLBACK_SUBJECTS : FALLBACK_CATEGORIES
   const [items,    setItems]   = useState<string[]>(fallback)   // start with fallback
@@ -111,9 +117,11 @@ export default function DynamicSelect({
           </div>
         ) : (
           <select
-            value={value}
-            onChange={e => onChange(e.target.value)}
-            className={`input flex-1 ${className}`}
+  value={value}
+  required={required}
+  onChange={e => onChange(e.target.value)}
+  className={`input flex-1 ${className}`}
+
           >
             <option value="">{placeholder}</option>
             {items.map(name => (
