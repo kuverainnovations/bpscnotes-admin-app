@@ -126,6 +126,25 @@ export const api = {
       fd.append('thumbnail', file)
       return uploadRequest(`/admin/courses/${id}/thumbnail`, fd)
     },
+    // Chapter CRUD
+    getChapters:    (courseId: string) =>
+                      request(`/admin/courses/${courseId}/chapters`),
+    createChapter:  (courseId: string, data: { title: string; sortOrder?: number }) =>
+                      request(`/admin/courses/${courseId}/chapters`, { method: 'POST', body: JSON.stringify(data) }),
+    updateChapter:  (courseId: string, chapterId: string, data: any) =>
+                      request(`/admin/courses/${courseId}/chapters/${chapterId}`, { method: 'PUT', body: JSON.stringify(data) }),
+    deleteChapter:  (courseId: string, chapterId: string) =>
+                      request(`/admin/courses/${courseId}/chapters/${chapterId}`, { method: 'DELETE' }),
+    // Lesson CRUD
+    createLesson:   (courseId: string, chapterId: string, data: any) =>
+                      request(`/admin/courses/${courseId}/chapters/${chapterId}/lessons`, { method: 'POST', body: JSON.stringify(data) }),
+    updateLesson:   (courseId: string, lessonId: string, data: any) =>
+                      request(`/admin/courses/${courseId}/lessons/${lessonId}`, { method: 'PUT', body: JSON.stringify(data) }),
+    deleteLesson:   (courseId: string, lessonId: string) =>
+                      request(`/admin/courses/${courseId}/lessons/${lessonId}`, { method: 'DELETE' }),
+    // Subjects
+    subjects:       () => request('/admin/subjects'),
+    affairCategories: () => request('/admin/affair-categories'),
   },
 
   // ── Library ───────────────────────────────────────────────
@@ -282,6 +301,20 @@ export const api = {
   // ── Certificates ──────────────────────────────────────────
   certificates: {
     list: (params = {}) => request(`/admin/certificates?${qs(params)}`),
+  },
+
+  // ── Subjects (dynamic filter categories) ────────────────
+  subjects: {
+    list:   ()           => request('/admin/subjects'),
+    create: (data: any)  => request('/admin/subjects', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: any) => request(`/admin/subjects/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string) => request(`/admin/subjects/${id}`, { method: 'DELETE' }),
+  },
+
+  affairCategories: {
+    list:   ()           => request('/admin/affair-categories'),
+    create: (data: any)  => request('/admin/affair-categories', { method: 'POST', body: JSON.stringify(data) }),
+    delete: (id: string) => request(`/admin/affair-categories/${id}`, { method: 'DELETE' }),
   },
 
   // ── Settings ──────────────────────────────────────────────
