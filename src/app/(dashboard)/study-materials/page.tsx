@@ -87,8 +87,14 @@ export default function StudyMaterialsAdminPage() {
   const preview = async (id: string) => {
     try {
       const res = await api.studyMaterials.signedUrl(id)
-      setPreviewUrl(res.data?.url ?? null)
+      const url = res.data?.url ?? null
+      if (!url) { flash('❌ No file URL available'); return }
+      setPreviewUrl(url)
     } catch { flash('❌ Preview unavailable') }
+  }
+
+  const openInNewTab = () => {
+    if (previewUrl) window.open(previewUrl, '_blank', 'noopener,noreferrer')
   }
 
   const fmt = (bytes: number) => {
@@ -249,17 +255,43 @@ export default function StudyMaterialsAdminPage() {
         </div>
       )}
 
-      {/* Preview modal */}
+      {/* Preview modal — uses Google Docs viewer for PDF rendering */}
       {previewUrl && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-4xl h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+          onClick={() => setPreviewUrl(null)}>
+          <div className="bg-white rounded-2xl w-full max-w-4xl h-[85vh] flex flex-col shadow-2xl overflow-hidden"
+            onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b border-slate-100">
               <p className="font-semibold text-slate-900">File Preview</p>
-              <button onClick={() => setPreviewUrl(null)} className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center">
-                <X size={14} />
-              </button>
+              <div className="flex items-center gap-2">
+                <button onClick={openInNewTab}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-medium text-slate-700">
+                  ↗ Open in new tab
+                </button>
+                <button onClick={() => setPreviewUrl(null)}
+                  className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center">
+                  <X size={14} />
+                </button>
+              </div>
             </div>
-            <iframe src={previewUrl} className="flex-1 w-full" title="Material Preview" />
+            {/* Google Docs viewer renders PDFs reliably without nginx /uploads/ config */}
+            {previewUrl.toLowerCase().includes('.pdf') ? (
+              <iframe
+                src={`https://docs.google.com/gview?url=${encodeURIComponent(previewUrl)}&embedded=true`}
+                className="flex-1 w-full"
+                title="Material Preview"
+              />
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 text-center">
+                <span className="text-6xl">📄</span>
+                <p className="text-slate-700 font-semibold">Preview not available for this file type</p>
+                <p className="text-sm text-slate-500">Click the button above to open the file directly</p>
+                <button onClick={openInNewTab}
+                  className="px-5 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-semibold hover:bg-brand-600">
+                  Open File ↗
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
