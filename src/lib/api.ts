@@ -174,10 +174,10 @@ export const api = {
       request(`/admin/study-materials?${qs(params)}`),
   
     approve: (id: string) =>
-      request(`/admin/study-materials/${id}/approve`, { method: 'POST' }),
+      request(`/admin/study-materials/${id}/approve`, { method: 'PATCH' }),
   
     reject: (id: string, reason: string) =>
-      request(`/admin/study-materials/${id}/reject`, { method: 'POST', body: JSON.stringify({ reason }) }),
+      request(`/admin/study-materials/${id}/reject`, { method: 'PATCH', body: JSON.stringify({ reason }) }),
   
     toggleFeatured: (id: string) =>
       request(`/admin/study-materials/${id}/toggle-featured`, { method: 'POST' }),
@@ -191,7 +191,7 @@ export const api = {
       }),
   
     signedUrl: (id: string) =>
-      request(`/admin/study-materials/${id}/signed-url`),
+      request(`/admin/study-materials/${id}/url`),
   },
 
   // ── Quizzes ───────────────────────────────────────────────
