@@ -8,6 +8,7 @@ import api from '@/lib/api'
 import { useToast } from '@/components/ui/feedback'
 import { getStatusColor, formatNumber } from '@/lib/utils'
 import { Plus, Search, RefreshCw, Edit, Trash2, Eye, X, Bookmark, ChevronDown } from 'lucide-react'
+import DynamicSelect from '@/components/ui/DynamicSelect'
 
 const EMPTY = {
   title: '', detail: '', category: 'General', type: 'prelims',
@@ -220,9 +221,7 @@ function CurrentAffairsPageContent() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1.5">Category</label>
-                  <select value={form.category} onChange={e=>setForm({...form,category:e.target.value})} className="input">
-                    {CATEGORIES.map(c=><option key={c}>{c}</option>)}
-                  </select>
+                  <DynamicSelect type="affair-categories" value={form.category} onChange={v=>setForm({...form,category:v})} placeholder="Select category…" required />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1.5">Type</label>

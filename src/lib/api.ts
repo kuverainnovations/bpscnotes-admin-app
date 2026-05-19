@@ -311,6 +311,17 @@ export const api = {
     delete: (id: string) => request(`/admin/subjects/${id}`, { method: 'DELETE' }),
   },
 
+  // Exam & Job categories — stored locally (no backend table yet)
+  // These are persisted in localStorage by DynamicSelect component
+  examCategories: {
+    list:   () => Promise.resolve({ data: { categories: [] } }),
+    create: (name: string) => Promise.resolve({ success: true, data: { name } }),
+  },
+  jobCategories: {
+    list:   () => Promise.resolve({ data: { categories: [] } }),
+    create: (name: string) => Promise.resolve({ success: true, data: { name } }),
+  },
+
   affairCategories: {
     list:   ()           => request('/admin/affair-categories'),
     create: (data: any)  => request('/admin/affair-categories', { method: 'POST', body: JSON.stringify(data) }),

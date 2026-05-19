@@ -5,6 +5,7 @@ import api from '@/lib/api'
 import { useApiData, useMutation } from '@/lib/hooks'
 import { PageLoader, ErrorMessage, useToast } from '@/components/ui/feedback'
 import { Plus, Edit, RefreshCw } from 'lucide-react'
+import DynamicSelect from '@/components/ui/DynamicSelect'
 import { formatNumber } from '@/lib/utils'
 
 const EMPTY_FORM = { name: '', fullName: '', category: 'BPSC', emoji: '🎯', sortOrder: 0 }
@@ -141,12 +142,14 @@ export default function ExamsPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Category</label>
-                  <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className="input">
-                    {CATEGORIES.map(c => <option key={c}>{c}</option>)}
-                  </select>
+                  <DynamicSelect type="exam-categories" value={form.category} onChange={v => setForm({ ...form, category: v })} placeholder="Select category…" />
                 </div>
                 <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Emoji</label>
-                  <input value={form.emoji} onChange={e => setForm({ ...form, emoji: e.target.value })} className="input text-2xl" placeholder="🎯" />
+                  <select value={form.emoji} onChange={e => setForm({ ...form, emoji: e.target.value })} className="input text-xl">
+                    {['🎯','📚','⚖️','🏛️','🗺️','💰','🔬','🏔️','📝','🎓','⭐','🏆','📊','🎪','🌿','🛡️','⚡','🎭','🌍','🏛','📋'].map(e => (
+                      <option key={e} value={e}>{e}</option>
+                    ))}
+                  </select>
                 </div>
                 <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Sort Order</label>
                   <input type="number" value={form.sortOrder} onChange={e => setForm({ ...form, sortOrder: Number(e.target.value) })} className="input" />

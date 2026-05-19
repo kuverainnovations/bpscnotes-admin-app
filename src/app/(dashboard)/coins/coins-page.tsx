@@ -4,7 +4,7 @@ import Header from '@/components/layout/Header'
 import api from '@/lib/api'
 import { useApiData, useMutation } from '@/lib/hooks'
 import { PageLoader, ErrorMessage, useToast } from '@/components/ui/feedback'
-import { Edit, Save, X, RefreshCw, TrendingUp, Zap } from 'lucide-react'
+import { Edit, Save, X, RefreshCw, TrendingUp, Zap, Plus } from 'lucide-react'
 import { formatNumber } from '@/lib/utils'
 
 export default function CoinsPage() {
@@ -37,6 +37,35 @@ export default function CoinsPage() {
     (id: string, isActive: boolean) => api.coins.updateRule(id, { isActive }),
     { onSuccess: () => refetchRules(), onError: (m) => showToast(m, 'error') }
   )
+
+  // Create new rule state
+  const [showCreate, setShowCreate] = useState(false)
+  const [newRule, setNewRule] = useState({ action: '', description: '', coinsAwarded: 5, maxPerDay: 1 })
+  const [creating, setCreating] = useState(false)
+
+  const createRule = async () => {
+    if (!newRule.action.trim() || !newRule.description.trim()) {
+      showToast('Action and description are required', 'error'); return
+    }
+    setCreating(true)
+    try {
+      await api.coins.createRule(newRule)
+      showToast('Rule created ✅')
+      setShowCreate(false)
+      setNewRule({ action: '', description: '', coinsAwarded: 5, maxPerDay: 1 })
+      refetchRules()
+    } catch (e: any) { showToast(e.message || 'Failed to create rule', 'error') }
+    finally { setCreating(false) }
+  }
+
+  const deleteRule = async (id: string, desc: string) => {
+    if (!confirm(`Delete rule: "${desc}"?`)) return
+    try {
+      await api.coins.deleteRule(id)
+      showToast('Rule deleted')
+      refetchRules()
+    } catch (e: any) { showToast(e.message || 'Failed to delete', 'error') }
+  }
 
   const startEdit = (rule: any) => {
     setEditing(rule.id)
@@ -108,7 +137,7 @@ export default function CoinsPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-slate-100 bg-slate-50/50">
-                      {['Action', 'Description', 'Coins', 'Max/Day', 'Total Awarded', 'Active', 'Edit'].map(h => (
+                      {['Action', 'Description', 'Coins', 'Max/Day', 'Total Awarded', 'Active', 'Actions'].map(h => (
                         <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{h}</th>
                       ))}
                     </tr>
@@ -161,9 +190,14 @@ export default function CoinsPage() {
                               </button>
                             </div>
                           ) : (
-                            <button onClick={() => startEdit(rule)} className="w-7 h-7 rounded-lg bg-yellow-50 hover:bg-yellow-100 flex items-center justify-center">
-                              <Edit size={12} className="text-yellow-600" />
-                            </button>
+                            <div className="flex items-center gap-1">
+                              <button onClick={() => startEdit(rule)} className="w-7 h-7 rounded-lg bg-yellow-50 hover:bg-yellow-100 flex items-center justify-center" title="Edit">
+                                <Edit size={12} className="text-yellow-600" />
+                              </button>
+                              <button onClick={() => deleteRule(rule.id, rule.description)} className="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center" title="Delete">
+                                <X size={12} className="text-red-500" />
+                              </button>
+                            </div>
                           )}
                         </td>
                       </tr>
@@ -173,6 +207,55 @@ export default function CoinsPage() {
               </div>
             )}
           </div>
+
+          {/* Add New Rule Form */}
+          {showCreate && (
+            <div className="mt-4 card p-5 border-2 border-brand-200 bg-brand-50/30">
+              <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
+                <Plus size={16} className="text-brand-600" /> New Earning Rule
+              </h3>
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Action Key *</label>
+                  <input value={newRule.action} onChange={e => setNewRule(r => ({ ...r, action: e.target.value }))}
+                    placeholder="e.g. daily_quiz" className="input w-full font-mono text-sm" />
+                  <p className="text-[10px] text-slate-400 mt-0.5">snake_case identifier used in code</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Description *</label>
+                  <input value={newRule.description} onChange={e => setNewRule(r => ({ ...r, description: e.target.value }))}
+                    placeholder="e.g. Complete a daily quiz" className="input w-full" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Coins Awarded</label>
+                  <input type="number" value={newRule.coinsAwarded} min={1} max={1000}
+                    onChange={e => setNewRule(r => ({ ...r, coinsAwarded: Number(e.target.value) }))}
+                    className="input w-full" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Max Per Day</label>
+                  <input type="number" value={newRule.maxPerDay} min={1} max={100}
+                    onChange={e => setNewRule(r => ({ ...r, maxPerDay: Number(e.target.value) }))}
+                    className="input w-full" />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={createRule} disabled={creating || !newRule.action.trim() || !newRule.description.trim()}
+                  className="btn-primary text-sm">
+                  {creating ? 'Creating…' : 'Create Rule'}
+                </button>
+                <button onClick={() => setShowCreate(false)} className="btn-secondary text-sm">Cancel</button>
+              </div>
+            </div>
+          )}
+
+          {/* Add Rule button (visible when form hidden) */}
+          {!showCreate && (
+            <button onClick={() => setShowCreate(true)}
+              className="mt-3 flex items-center gap-2 text-sm text-brand-600 hover:text-brand-700 font-semibold">
+              <Plus size={14} /> Add New Earning Rule
+            </button>
+          )}
 
           {/* Top Earners */}
           <div>

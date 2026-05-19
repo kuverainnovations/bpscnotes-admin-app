@@ -6,6 +6,7 @@ import Header from '@/components/layout/Header'
 import api from '@/lib/api'
 import { useToast } from '@/components/ui/feedback'
 import { Plus, Search, RefreshCw, Edit, Trash2, Eye, X, ExternalLink } from 'lucide-react'
+import DynamicSelect from '@/components/ui/DynamicSelect'
 
 const EMPTY = {
   title:'', organization:'', category:'BPSC', totalVacancies:0,
@@ -206,9 +207,7 @@ function JobsPageContent() {
                   <input value={form.organization} onChange={e=>setForm({...form,organization:e.target.value})} className="input" placeholder="Bihar Public Service Commission"/>
                 </div>
                 <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Category</label>
-                  <select value={form.category} onChange={e=>setForm({...form,category:e.target.value})} className="input">
-                    {CATS.map(c=><option key={c}>{c}</option>)}
-                  </select>
+                  <DynamicSelect type="job-categories" value={form.category} onChange={v=>setForm({...form,category:v})} placeholder="Select category…" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">

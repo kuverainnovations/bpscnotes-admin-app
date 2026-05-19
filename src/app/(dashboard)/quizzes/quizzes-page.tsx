@@ -6,6 +6,7 @@ import { useApiData, useMutation } from '@/lib/hooks'
 import { PageLoader, ErrorMessage, EmptyState, useToast } from '@/components/ui/feedback'
 import { getStatusColor, getDifficultyColor, formatNumber } from '@/lib/utils'
 import { Search, Plus, Edit, Trash2, HelpCircle, RefreshCw, ListPlus } from 'lucide-react'
+import DynamicSelect from '@/components/ui/DynamicSelect'
 
 const EMPTY_FORM = {
   title: '', subject: '', type: 'topic', difficulty: 'medium',
@@ -223,12 +224,12 @@ export default function QuizzesPage() {
                   </select>
                 </div>
                 <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Subject</label>
-                  <select value={form.subject} onChange={e => setForm({ ...form, subject: e.target.value })} className="input">
-                    <option value="">Select</option>
-                    {['Polity', 'History', 'Economy', 'Geography', 'Bihar GK', 'Science & Tech', 'General Studies'].map(s => (
-                      <option key={s}>{s}</option>
-                    ))}
-                  </select>
+                  <DynamicSelect
+                    type="subjects"
+                    value={form.subject}
+                    onChange={v => setForm({ ...form, subject: v })}
+                    placeholder="Select subject…"
+                  />
                 </div>
                 <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Difficulty</label>
                   <select value={form.difficulty} onChange={e => setForm({ ...form, difficulty: e.target.value })} className="input">
