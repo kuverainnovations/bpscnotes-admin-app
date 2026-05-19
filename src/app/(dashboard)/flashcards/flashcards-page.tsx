@@ -67,7 +67,7 @@ export default function FlashcardsPage() {
 
   const stats = [
     { label: 'Total Cards',  value: list.length,  emoji: '🃏' },
-    { label: 'Subjects',     value: [...new Set(list.map(c => c.subject))].length, emoji: '📚' },
+    { label: 'Subjects',     value: Array.from(new Set(list.map(c => c.subject))).length, emoji: '📚' },
     { label: 'Image Cards',  value: list.filter(c => c.card_type === 'image').length, emoji: '🖼️' },
     { label: 'Text Cards',   value: list.filter(c => c.card_type !== 'image').length, emoji: '📝' },
   ]

@@ -86,7 +86,7 @@ export default function DynamicSelect({
           const stored = localStorage.getItem(`bpsc_admin_${type}`)
           if (stored) {
             const parsed = JSON.parse(stored) as string[]
-            names = [...new Set([...parsed, ...fallback])]
+            names = Array.from(new Set([...parsed, ...fallback]))
           } else {
             names = fallback
           }
