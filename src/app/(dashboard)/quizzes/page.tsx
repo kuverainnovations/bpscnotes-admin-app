@@ -15,7 +15,12 @@ const EMPTY_FORM = {
 }
 
 const EMPTY_Q = {
-  question: '', optionA: '', optionB: '', optionC: '', optionD: '',
+  question:         '',
+  questionType:     'text',        // 'text' | 'image'
+  questionImageUrl: '',
+  optionType:       'text',        // 'text' | 'image' | 'mixed'
+  optionA: '', optionB: '', optionC: '', optionD: '',
+  optionAImage: '', optionBImage: '', optionCImage: '', optionDImage: '',
   correctOption: 'a', explanation: '', difficulty: 'medium',
 }
 
@@ -83,7 +88,14 @@ export default function QuizzesPage() {
   const removeQ = (i: number) => setQuestions(prev => prev.filter((_, idx) => idx !== i))
 
   const handleSaveQuestions = () => {
-    const valid = questions.filter(q => q.question && q.optionA && q.optionB && q.optionC && q.optionD)
+    const valid = questions.filter(q => {
+      // Image questions: need questionImageUrl OR question text
+      if (q.questionType === 'image' && !q.questionImageUrl && !q.question) return false
+      // Image options: need option images
+      if (q.optionType === 'image') return q.optionAImage && q.optionBImage && q.optionCImage && q.optionDImage
+      // Text options: need option text
+      return q.optionA && q.optionB && q.optionC && q.optionD
+    })
     if (!valid.length) { showToast('Fill at least one complete question', 'error'); return }
     saveQuestions(selectedQuiz.id, valid)
   }
@@ -286,42 +298,135 @@ export default function QuizzesPage() {
             </div>
             <div className="p-5 space-y-4">
               {questions.map((q, i) => (
-                <div key={i} className="bg-slate-50 rounded-2xl p-4 space-y-3">
+                <div key={i} className="bg-slate-50 rounded-2xl p-4 space-y-3 border border-slate-200">
+                  {/* Question header */}
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-500">Question {i + 1}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-slate-500">Question {i + 1}</span>
+                      {/* Question type badge */}
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${q.questionType === 'image' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                        {q.questionType === 'image' ? '🖼️ Image Q' : '📝 Text Q'}
+                      </span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${q.optionType === 'image' ? 'bg-orange-100 text-orange-700' : q.optionType === 'mixed' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'}`}>
+                        {q.optionType === 'image' ? '🖼️ Image Options' : q.optionType === 'mixed' ? '📷 Mixed Options' : '📝 Text Options'}
+                      </span>
+                    </div>
                     {questions.length > 1 && (
                       <button onClick={() => removeQ(i)} className="text-xs text-red-500 hover:text-red-700">Remove</button>
                     )}
                   </div>
+
+                  {/* Question type toggles */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">Question Type</label>
+                      <select value={q.questionType} onChange={e => updateQ(i, 'questionType', e.target.value)} className="input text-xs">
+                        <option value="text">Text Question</option>
+                        <option value="image">Image Question</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">Option Type</label>
+                      <select value={q.optionType} onChange={e => updateQ(i, 'optionType', e.target.value)} className="input text-xs">
+                        <option value="text">Text Options</option>
+                        <option value="image">Image Options (2×2 Grid)</option>
+                        <option value="mixed">Mixed (Text + Image)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Question image URL (shown if questionType = image) */}
+                  {q.questionType === 'image' && (
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-semibold text-slate-600">Question Image URL *</label>
+                      <input
+                        value={q.questionImageUrl}
+                        onChange={e => updateQ(i, 'questionImageUrl', e.target.value)}
+                        className="input text-xs"
+                        placeholder="https://cdn.example.com/question-image.png"
+                      />
+                      {q.questionImageUrl && (
+                        <div className="mt-1 rounded-xl overflow-hidden border border-slate-200 bg-slate-100 flex items-center justify-center h-32">
+                          <img src={q.questionImageUrl} alt="Question preview" className="max-h-full object-contain" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Question text */}
                   <textarea
                     value={q.question}
                     onChange={e => updateQ(i, 'question', e.target.value)}
-                    className="input h-16 resize-none"
-                    placeholder="Question text *"
+                    className="input h-14 resize-none"
+                    placeholder={q.questionType === 'image' ? "Question text (optional for image questions)" : "Question text *"}
                   />
-                  <div className="grid grid-cols-2 gap-2">
-                    {['A', 'B', 'C', 'D'].map(opt => (
-                      <div key={opt} className="flex items-center gap-2">
-                        <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${q.correctOption === opt.toLowerCase() ? 'bg-green-500 text-white' : 'bg-slate-200 text-slate-600'}`}>{opt}</span>
-                        <input
-                          value={q[`option${opt}` as keyof typeof q]}
-                          onChange={e => updateQ(i, `option${opt}`, e.target.value)}
-                          className="input text-xs"
-                          placeholder={`Option ${opt}`}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-600 mb-1">Correct Answer</label>
-                      <select value={q.correctOption} onChange={e => updateQ(i, 'correctOption', e.target.value)} className="input text-xs">
-                        <option value="a">Option A</option>
-                        <option value="b">Option B</option>
-                        <option value="c">Option C</option>
-                        <option value="d">Option D</option>
-                      </select>
+
+                  {/* Options — text or image */}
+                  {q.optionType === 'text' && (
+                    <div className="grid grid-cols-2 gap-2">
+                      {['A', 'B', 'C', 'D'].map(opt => (
+                        <div key={opt} className="flex items-center gap-2">
+                          <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${q.correctOption === opt.toLowerCase() ? 'bg-green-500 text-white' : 'bg-slate-200 text-slate-600'}`}>{opt}</span>
+                          <input
+                            value={q[`option${opt}` as keyof typeof q]}
+                            onChange={e => updateQ(i, `option${opt}`, e.target.value)}
+                            className="input text-xs"
+                            placeholder={`Option ${opt}`}
+                          />
+                        </div>
+                      ))}
                     </div>
+                  )}
+
+                  {/* Image options — 2×2 grid with URL inputs */}
+                  {(q.optionType === 'image' || q.optionType === 'mixed') && (
+                    <div className="grid grid-cols-2 gap-3">
+                      {['A', 'B', 'C', 'D'].map(opt => (
+                        <div key={opt} className={`rounded-xl border p-3 space-y-2 ${q.correctOption === opt.toLowerCase() ? 'border-green-400 bg-green-50' : 'border-slate-200 bg-white'}`}>
+                          <div className="flex items-center justify-between">
+                            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${q.correctOption === opt.toLowerCase() ? 'bg-green-500 text-white' : 'bg-slate-200 text-slate-600'}`}>{opt}</span>
+                            <button onClick={() => updateQ(i, 'correctOption', opt.toLowerCase())}
+                              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full transition-colors ${q.correctOption === opt.toLowerCase() ? 'bg-green-500 text-white' : 'bg-slate-100 text-slate-500 hover:bg-green-100 hover:text-green-700'}`}>
+                              {q.correctOption === opt.toLowerCase() ? '✓ Correct' : 'Mark Correct'}
+                            </button>
+                          </div>
+                          <input
+                            value={q[`option${opt}Image` as keyof typeof q] as string || ''}
+                            onChange={e => updateQ(i, `option${opt}Image`, e.target.value)}
+                            className="input text-xs w-full"
+                            placeholder={`Option ${opt} image URL`}
+                          />
+                          {q[`option${opt}Image` as keyof typeof q] && (
+                            <div className="h-20 rounded-lg bg-slate-50 flex items-center justify-center overflow-hidden">
+                              <img src={q[`option${opt}Image` as keyof typeof q] as string} alt="" className="max-h-full object-contain" />
+                            </div>
+                          )}
+                          {q.optionType === 'mixed' && (
+                            <input
+                              value={q[`option${opt}` as keyof typeof q] as string || ''}
+                              onChange={e => updateQ(i, `option${opt}`, e.target.value)}
+                              className="input text-xs w-full"
+                              placeholder={`Option ${opt} label (optional)`}
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Correct answer + difficulty (only for text options) */}
+                  <div className="grid grid-cols-2 gap-3">
+                    {q.optionType === 'text' && (
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Correct Answer</label>
+                        <select value={q.correctOption} onChange={e => updateQ(i, 'correctOption', e.target.value)} className="input text-xs">
+                          <option value="a">Option A</option>
+                          <option value="b">Option B</option>
+                          <option value="c">Option C</option>
+                          <option value="d">Option D</option>
+                        </select>
+                      </div>
+                    )}
                     <div>
                       <label className="block text-xs font-semibold text-slate-600 mb-1">Difficulty</label>
                       <select value={q.difficulty} onChange={e => updateQ(i, 'difficulty', e.target.value)} className="input text-xs">
@@ -331,6 +436,7 @@ export default function QuizzesPage() {
                       </select>
                     </div>
                   </div>
+
                   <div>
                     <label className="block text-xs font-semibold text-slate-600 mb-1">Explanation (optional)</label>
                     <input value={q.explanation} onChange={e => updateQ(i, 'explanation', e.target.value)} className="input text-xs" placeholder="Brief explanation of the correct answer" />
