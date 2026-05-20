@@ -275,13 +275,25 @@ export default function StudyMaterialsAdminPage() {
               </div>
             </div>
             {/* Google Docs viewer renders PDFs reliably without nginx /uploads/ config */}
-            {previewUrl.toLowerCase().includes('.pdf') ? (
-              <iframe
-                src={`https://docs.google.com/gview?url=${encodeURIComponent(previewUrl)}&embedded=true`}
-                className="flex-1 w-full"
-                title="Material Preview"
-              />
-            ) : (
+            {previewUrl.match(/\.(pdf)$/i) ? (
+
+<iframe
+  src={`https://docs.google.com/gview?url=${encodeURIComponent(previewUrl)}&embedded=true`}
+  className="flex-1 w-full"
+  title="Material Preview"
+/>
+
+) : previewUrl.match(/\.(jpg|jpeg|png|webp|gif)$/i) ? (
+
+<div className="flex-1 bg-black flex items-center justify-center p-4 overflow-auto">
+  <img
+    src={previewUrl}
+    alt="Preview"
+    className="max-w-full max-h-full object-contain rounded-lg"
+  />
+</div>
+
+) : (
               <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 text-center">
                 <span className="text-6xl">📄</span>
                 <p className="text-slate-700 font-semibold">Preview not available for this file type</p>
