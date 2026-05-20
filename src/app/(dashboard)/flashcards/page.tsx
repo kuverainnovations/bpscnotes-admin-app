@@ -204,8 +204,8 @@ export default function FlashcardsPage() {
     setSaving(true)
     try {
       const payload = {
-        front:        form.front.trim()  || ' ',
-        back:         form.back.trim()   || ' ',
+        front:        form.front?.trim() || '',
+        back:         form.back?.trim() || '',
         subject:      form.subject,
         topic:        form.topic.trim()  || form.subject,
         hint:         form.hint.trim(),
