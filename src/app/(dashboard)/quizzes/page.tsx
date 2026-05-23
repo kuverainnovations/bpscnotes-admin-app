@@ -281,11 +281,32 @@ export default function QuizzesPage() {
               )}
             </div>
             <div className="p-5 border-t border-slate-100 flex justify-end gap-3">
-              <button onClick={() => setShowModal(false)} className="btn-secondary">Cancel</button>
-              <button onClick={() => save(form)} disabled={saving || !form.title} className="btn-primary disabled:opacity-50">
-                {saving ? 'Saving...' : editing ? 'Update' : 'Create Quiz'}
-              </button>
-            </div>
+  <button
+    onClick={() => setShowModal(false)}
+    className="btn-secondary"
+  >
+    Cancel
+  </button>
+
+  <button
+    onClick={() =>
+      save({
+        ...form,
+        scheduledFor: form.scheduledFor?.trim()
+          ? form.scheduledFor
+          : null,
+      })
+    }
+    disabled={saving || !form.title}
+    className="btn-primary disabled:opacity-50"
+  >
+    {saving
+      ? 'Saving...'
+      : editing
+      ? 'Update'
+      : 'Create Quiz'}
+  </button>
+</div>
           </div>
         </div>
       )}
