@@ -69,8 +69,8 @@ export default function CoinsPage() {
 
   const startEdit = (rule: any) => {
     setEditing(rule.id)
-    setEditCoins(rule.coins_awarded)
-    setEditMax(rule.max_per_day)
+    setEditCoins(rule.coinsReward)
+    setEditMax(rule.maxPerDay)
   }
 
   return (
@@ -156,24 +156,24 @@ export default function CoinsPage() {
                           {editingId === rule.id ? (
                             <input type="number" value={editCoins} onChange={e => setEditCoins(Number(e.target.value))} className="input w-16 text-center text-xs" />
                           ) : (
-                            <span className="badge bg-yellow-100 text-yellow-700 border-yellow-200">🪙 {rule.coins_awarded}</span>
+                            <span className="badge bg-yellow-100 text-yellow-700 border-yellow-200">🪙 {rule.coinsReward}</span>
                           )}
                         </td>
                         <td className="px-4 py-3">
                           {editingId === rule.id ? (
                             <input type="number" value={editMax} onChange={e => setEditMax(Number(e.target.value))} className="input w-16 text-center text-xs" />
                           ) : (
-                            <span className="text-slate-700 font-semibold">{rule.max_per_day}x</span>
+                            <span className="text-slate-700 font-semibold">{rule.maxPerDay}x</span>
                           )}
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1">
                             <TrendingUp size={12} className="text-green-500" />
-                            <span className="font-semibold text-slate-800">{formatNumber(parseInt(rule.total_awarded || 0))}</span>
+                            <span className="font-semibold text-slate-800">{formatNumber(parseInt(rule.coinsLast7d || 0))}</span>
                           </div>
                         </td>
                         <td className="px-4 py-3">
-                          <button onClick={() => toggleRule(rule.id, !rule.is_active)}
+                          <button onClick={() => toggleRule(rule.id, !rule.isActive)}
                             className={`relative w-10 h-5 rounded-full transition-colors ${rule.is_active ? 'bg-green-500' : 'bg-slate-300'}`}>
                             <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${rule.is_active ? 'translate-x-5' : 'translate-x-0.5'}`} />
                           </button>
@@ -278,8 +278,9 @@ export default function CoinsPage() {
                         <p className="text-sm font-semibold text-slate-800 truncate">{u.name}</p>
                         <p className="text-xs text-slate-400 truncate">{u.primary_exam || '—'}</p>
                       </div>
-                      <span className="badge bg-yellow-100 text-yellow-700 border-yellow-200">🪙 {formatNumber(u.coins)}</span>
-                    </div>
+                      <span className="badge bg-yellow-100 text-yellow-700 border-yellow-200">
+  🪙 {formatNumber(u.currentBalance ?? 0)}
+</span>                    </div>
                   ))}
                   {earners.length === 0 && (
                     <p className="text-center text-slate-400 text-sm py-4">No data yet</p>
