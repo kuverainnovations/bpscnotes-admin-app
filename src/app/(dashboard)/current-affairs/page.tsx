@@ -56,22 +56,49 @@ function CurrentAffairsPageContent() {
   const openNew  = () => { setEditing(null); setForm(EMPTY); setShowModal(true) }
   const openEdit = (item: any) => {
     setEditing(item)
-    setForm({ title: item.title, detail: item.detail||'', category: item.category,
+    setForm({ title: item.title, detail: item.summary || item.full_content || '', category: item.category,
       type: item.type||'prelims', examTags: item.exam_tags||[], isImportant: item.is_important||false,
-      publishDate: item.publish_date?.split('T')[0]||'' })
+      publishDate: item.date?.split('T')[0]||'' })
     setShowModal(true)
   }
 
   const save = async () => {
-    if (!form.title) { showToast('Title is required', 'error'); return }
+    if (!form.title) {
+      showToast('Title is required', 'error')
+      return
+    }
+  
     setSaving(true)
+  
     try {
-      if (editing) await api.currentAffairs.update(editing.id, form)
-      else         await api.currentAffairs.create(form)
-      setShowModal(false); load()
+  
+      const payload = {
+        title: form.title,
+        summary: form.detail,
+        fullContent: form.detail,
+        category: form.category,
+        type: form.type,
+        examTags: form.examTags,
+        isImportant: form.isImportant,
+        date: form.publishDate,
+      }
+  
+      if (editing) {
+        await api.currentAffairs.update(editing.id, payload)
+      } else {
+        await api.currentAffairs.create(payload)
+      }
+  
+      setShowModal(false)
+      load()
+  
       showToast(editing ? '✅ Updated' : '✅ Current affair created')
-    } catch (e: any) { showToast(e.message, 'error') }
-    finally { setSaving(false) }
+  
+    } catch (e: any) {
+      showToast(e.message, 'error')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const del = async (id: string, title: string) => {
@@ -155,7 +182,7 @@ function CurrentAffairsPageContent() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-xs text-slate-500">
-                      {item.publish_date ? new Date(item.publish_date).toLocaleDateString('en-IN') : '—'}
+                      {item.date ? new Date(item.date).toLocaleDateString('en-IN') : '—'}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1 flex-wrap">
