@@ -271,8 +271,13 @@ export default function QuizzesPage() {
               </div>
               {form.type === 'daily' && (
                 <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Scheduled For</label>
-                  <input type="date" value={form.scheduledFor} onChange={e => setForm({ ...form, scheduledFor: e.target.value })} className="input" />
-                </div>
+                  <input
+  type="date"
+  value={form.scheduledFor || ''}
+  onChange={e => setForm({ ...form, scheduledFor: e.target.value })}
+  className="input"
+/>
+ </div>
               )}
             </div>
             <div className="p-5 border-t border-slate-100 flex justify-end gap-3">
