@@ -9,7 +9,7 @@ import {
   Briefcase, Newspaper, CreditCard, Bell, Users2,
   Trophy, Radio, Award, Image, Tag, CheckSquare, Settings,
   Shield, GraduationCap, ChevronRight, ChevronDown, LogOut,
-  Zap, Brain, Layers, AlertTriangle, Plus, Star, LibraryBig,
+  Zap, Brain, Layers, AlertTriangle, Star, LibraryBig,
   Coins
 } from 'lucide-react'
 
@@ -25,37 +25,37 @@ const NAV: NavGroup[] = [
   ]},
   { group:'Users',      defaultOpen:true,  items:[
     { href:'/users',            icon:Users,           label:'User Management' },
-    { href:'/roles',            icon:Shield,          label:'Admin Roles', addHref:'/roles?create=1' },
+    { href:'/roles',            icon:Shield,          label:'Admin Roles' },
   ]},
   { group:'Content',    defaultOpen:true,  items:[
-    { href:'/content',          icon:BookOpen,        label:'Courses',              addHref:'/content?create=1' },
-    { href:'/content/notes',    icon:FileText,        label:'Notes & Library',      addHref:'/content/notes?create=1' },
-    { href:'/study-materials',  icon:LibraryBig,      label:'Study Materials',      addHref:'/study-materials?tab=pending' },
-    { href:'/quizzes',          icon:HelpCircle,      label:'Quizzes & Mock Tests', addHref:'/quizzes?create=1' },
-    { href:'/current-affairs',  icon:Newspaper,       label:'Current Affairs',      addHref:'/current-affairs?create=1' },
-    { href:'/flashcards',       icon:Brain,           label:'Flashcards',           addHref:'/flashcards?create=1' },
+    { href:'/content',          icon:BookOpen,        label:'Courses' },
+    { href:'/content/notes',    icon:FileText,        label:'Notes & Library' },
+    { href:'/study-materials',  icon:LibraryBig,      label:'Study Materials' },
+    { href:'/quizzes',          icon:HelpCircle,      label:'Quizzes & Mock Tests' },
+    { href:'/current-affairs',  icon:Newspaper,       label:'Current Affairs' },
+    { href:'/flashcards',       icon:Brain,           label:'Flashcards' },
     { href:'/reviews',          icon:CheckSquare,     label:'Review Uploads' },
   ]},
   { group:'Exams & Jobs', items:[
-    { href:'/exams',            icon:GraduationCap,   label:'Exam Management',  addHref:'/exams?create=1' },
-    { href:'/jobs',             icon:Briefcase,       label:'Job Vacancies',    addHref:'/jobs?create=1' },
+    { href:'/exams',            icon:GraduationCap,   label:'Exam Management' },
+    { href:'/jobs',             icon:Briefcase,       label:'Job Vacancies' },
   ]},
   { group:'Revenue', items:[
     { href:'/subscriptions',    icon:CreditCard,      label:'Subscriptions' },
-    { href:'/coupons',          icon:Tag,             label:'Coupon Codes',     addHref:'/coupons?create=1' },
+    { href:'/coupons',          icon:Tag,             label:'Coupon Codes' },
     { href:'/coins',            icon:Coins,           label:'Coins & Rewards' },
   ]},
   { group:'Engagement', items:[
-    { href:'/notifications',    icon:Bell,            label:'Notifications',    addHref:'/notifications?compose=1' },
-    { href:'/study-rooms',      icon:Users2,          label:'Study Rooms',      addHref:'/study-rooms?create=1' },
+    { href:'/notifications',    icon:Bell,            label:'Notifications' },
+    { href:'/study-rooms',      icon:Users2,          label:'Study Rooms' },
     { href:'/tier-rooms',       icon:Layers,          label:'Tier Room System' },
     { href:'/tier-rooms/flagged',icon:AlertTriangle,  label:'Anti-Cheat Review' },
-    { href:'/achievements',     icon:Trophy,          label:'Achievements',     addHref:'/achievements?create=1' },
-    { href:'/challenges',       icon:Zap,             label:'Challenges',       addHref:'/challenges?create=1' },
-    { href:'/live-classes',     icon:Radio,           label:'Live Classes',     addHref:'/live-classes?create=1' },
+    { href:'/achievements',     icon:Trophy,          label:'Achievements' },
+    { href:'/challenges',       icon:Zap,             label:'Challenges' },
+    { href:'/live-classes',     icon:Radio,           label:'Live Classes' },
     { href:'/leaderboard',      icon:Star,            label:'Leaderboard' },
     { href:'/certificates',     icon:Award,           label:'Certificates' },
-    { href:'/banners',          icon:Image,           label:'Banners & Offers', addHref:'/banners?create=1' },
+    { href:'/banners',          icon:Image,           label:'Banners & Offers' },
   ]},
   { group:'System', items:[
     { href:'/settings', icon:Settings, label:'App Settings' },
@@ -139,14 +139,7 @@ export default function Sidebar() {
                             </span>
                           )}
                         </Link>
-                        {item.addHref && (
-                          <Link href={item.addHref}
-                            className="absolute right-1 opacity-0 group-hover:opacity-100 transition-opacity
-                              w-6 h-6 rounded-md bg-brand-50 hover:bg-brand-100 flex items-center justify-center"
-                            title={`Add ${item.label}`}>
-                            <Plus size={11} className="text-brand-600" />
-                          </Link>
-                        )}
+{/* + quick-add button removed */}
                       </div>
                     )
                   })}

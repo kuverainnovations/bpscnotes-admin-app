@@ -9,7 +9,7 @@ import { Search, Plus, Edit, Trash2, HelpCircle, RefreshCw, ListPlus } from 'luc
 import DynamicSelect from '@/components/ui/DynamicSelect'
 
 const EMPTY_FORM = {
-  title: '', subject: '', type: 'topic', difficulty: 'medium',
+  title: '', subject: '', type: 'topic',
   totalQuestions: 10, durationMins: 15, passingScore: 60,
   coinsReward: 10, examTags: ['BPSC 70th CCE'], status: 'published', scheduledFor: '',
 }
@@ -21,7 +21,7 @@ const EMPTY_Q = {
   optionType:       'text',        // 'text' | 'image' | 'mixed'
   optionA: '', optionB: '', optionC: '', optionD: '',
   optionAImage: '', optionBImage: '', optionCImage: '', optionDImage: '',
-  correctOption: 'a', explanation: '', difficulty: 'medium',
+  correctOption: 'a', explanation: '',
 }
 
 export default function QuizzesPage() {
@@ -68,7 +68,7 @@ export default function QuizzesPage() {
   const openEdit = (q: any) => {
     setEditing(q)
     setForm({
-      title: q.title, subject: q.subject, type: q.type, difficulty: q.difficulty,
+      title: q.title, subject: q.subject, type: q.type,
       totalQuestions: q.total_questions, durationMins: q.duration_mins,
       passingScore: q.passing_score, coinsReward: q.coins_reward,
       examTags: q.exam_tags || [], status: q.status,
@@ -151,7 +151,7 @@ export default function QuizzesPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50/50">
-                  {['Quiz', 'Type', 'Subject', 'Questions', 'Difficulty', 'Attempts', 'Avg Score', 'Status', 'Actions'].map(h => (
+                  {['Quiz', 'Type', 'Subject', 'Questions', 'Attempts', 'Avg Score', 'Status', 'Actions'].map(h => (
                     <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
@@ -175,9 +175,7 @@ export default function QuizzesPage() {
                     <td className="px-4 py-3 text-sm text-slate-600">{quiz.subject}</td>
                     <td className="px-4 py-3 font-semibold text-slate-800">{quiz.total_questions}</td>
                     <td className="px-4 py-3">
-                      <span className={`badge ${getDifficultyColor ? getDifficultyColor(quiz.difficulty) : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
-                        {quiz.difficulty}
-                      </span>
+
                     </td>
                     <td className="px-4 py-3 font-semibold text-slate-800">{formatNumber(quiz.attempt_count || 0)}</td>
                     <td className="px-4 py-3">
@@ -454,13 +452,7 @@ export default function QuizzesPage() {
                       </div>
                     )}
                     <div>
-                      <label className="block text-xs font-semibold text-slate-600 mb-1">Difficulty</label>
-                      <select value={q.difficulty} onChange={e => updateQ(i, 'difficulty', e.target.value)} className="input text-xs">
-                        <option value="easy">Easy</option>
-                        <option value="medium">Medium</option>
-                        <option value="hard">Hard</option>
-                      </select>
-                    </div>
+/* question difficulty removed */                    </div>
                   </div>
 
                   <div>
