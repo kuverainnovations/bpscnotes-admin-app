@@ -67,7 +67,7 @@ function CurrentAffairsPageContent() {
     setMcqLoading(true)
     setMcqs([])
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/admin/current-affairs/${item.id}/mcqs`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/current-affairs/${item.id}/mcqs`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` }
       })
       const data = await res.json()
@@ -81,8 +81,8 @@ function CurrentAffairsPageContent() {
     setMcqSaving(true)
     try {
       const url = editingMcq
-        ? `${process.env.NEXT_PUBLIC_API_URL}/api/v1/admin/current-affairs/mcqs/${editingMcq.id}`
-        : `${process.env.NEXT_PUBLIC_API_URL}/api/v1/admin/current-affairs/${mcqAffair.id}/mcqs`
+        ? `${process.env.NEXT_PUBLIC_API_URL}/admin/current-affairs/mcqs/${editingMcq.id}`
+        : `${process.env.NEXT_PUBLIC_API_URL}/admin/current-affairs/${mcqAffair.id}/mcqs`
       const method = editingMcq ? 'PUT' : 'POST'
       await fetch(url, { method, headers: { 'Content-Type':'application/json', Authorization:`Bearer ${localStorage.getItem('adminToken')}` }, body: JSON.stringify(mcqForm) })
       await openMcqs(mcqAffair)
@@ -94,7 +94,7 @@ function CurrentAffairsPageContent() {
 
   const deleteMcq = async (mcqId: string) => {
     if (!confirm('Delete this MCQ?')) return
-    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/admin/current-affairs/mcqs/${mcqId}`, {
+    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/current-affairs/mcqs/${mcqId}`, {
       method: 'DELETE', headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` }
     })
     setMcqs((prev: any[]) => prev.filter((m: any) => m.id !== mcqId))
