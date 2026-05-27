@@ -18,6 +18,45 @@ const CATEGORIES = ['General','Economy','Polity','Science & Tech','Environment',
 const TYPES      = ['prelims','mains','both']
 
 export default function CurrentAffairsPage() {
+  const openMcqs = async (item: any) => {
+    setMcqAffair(item)
+    setShowMcqModal(true)
+    setMcqLoading(true)
+    setMcqs([])
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/admin/current-affairs/${item.id}/mcqs`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` }
+      })
+      const data = await res.json()
+      setMcqs(data.data?.mcqs || [])
+    } catch { setMcqs([]) }
+    setMcqLoading(false)
+  }
+
+  const saveMcq = async () => {
+    if (!mcqForm.question || !mcqForm.optionA || !mcqForm.optionB || !mcqForm.optionC || !mcqForm.optionD) return
+    setMcqSaving(true)
+    try {
+      const url = editingMcq
+        ? `${process.env.NEXT_PUBLIC_API_URL}/api/v1/admin/current-affairs/mcqs/${editingMcq.id}`
+        : `${process.env.NEXT_PUBLIC_API_URL}/api/v1/admin/current-affairs/${mcqAffair.id}/mcqs`
+      const method = editingMcq ? 'PUT' : 'POST'
+      await fetch(url, { method, headers: { 'Content-Type':'application/json', Authorization:`Bearer ${localStorage.getItem('adminToken')}` }, body: JSON.stringify(mcqForm) })
+      await openMcqs(mcqAffair)
+      setMcqForm({ question:'', optionA:'', optionB:'', optionC:'', optionD:'', correct:'a', explanation:'', difficulty:'medium' })
+      setEditingMcq(null)
+    } catch {}
+    setMcqSaving(false)
+  }
+
+  const deleteMcq = async (mcqId: string) => {
+    if (!confirm('Delete this MCQ?')) return
+    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/admin/current-affairs/mcqs/${mcqId}`, {
+      method: 'DELETE', headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` }
+    })
+    setMcqs(prev => prev.filter(m => m.id !== mcqId))
+  }
+
   return (
     <Suspense fallback={<div>Loading...</div>}>
       <CurrentAffairsPageContent />
@@ -38,6 +77,13 @@ function CurrentAffairsPageContent() {
   const [total, setTotal]       = useState(0)
   const [showModal, setShowModal] = useState(searchParams.get('create') === '1')
   const [editing, setEditing]   = useState<any>(null)
+  const [showMcqModal, setShowMcqModal] = useState(false)
+  const [mcqAffair, setMcqAffair]       = useState<any>(null)
+  const [mcqs, setMcqs]                 = useState<any[]>([])
+  const [mcqLoading, setMcqLoading]     = useState(false)
+  const [mcqForm, setMcqForm]           = useState({ question:'', optionA:'', optionB:'', optionC:'', optionD:'', correct:'a', explanation:'', difficulty:'medium' })
+  const [editingMcq, setEditingMcq]     = useState<any>(null)
+  const [mcqSaving, setMcqSaving]       = useState(false)
   const [form, setForm]         = useState<any>(EMPTY)
   const [saving, setSaving]     = useState(false)
   const [preview, setPreview]   = useState<any>(null)
@@ -196,6 +242,9 @@ function CurrentAffairsPageContent() {
                         <button onClick={()=>setPreview(item)} className="w-7 h-7 rounded-lg bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition-colors">
                           <Eye size={13} className="text-blue-600"/>
                         </button>
+                        <button onClick={()=>openMcqs(item)} title="Manage MCQs" className="w-7 h-7 rounded-lg bg-purple-50 hover:bg-purple-100 flex items-center justify-center transition-colors">
+                          <span className="text-purple-600 text-xs font-bold">Q</span>
+                        </button>
                         <button onClick={()=>openEdit(item)} className="w-7 h-7 rounded-lg bg-amber-50 hover:bg-amber-100 flex items-center justify-center transition-colors">
                           <Edit size={13} className="text-amber-600"/>
                         </button>
@@ -297,6 +346,118 @@ function CurrentAffairsPageContent() {
           </div>
         </div>
       )}
+    </div>
+
+    {/* MCQ Management Modal */}
+    {showMcqModal && mcqAffair && (
+      <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={()=>setShowMcqModal(false)}>
+        <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col" onClick={e=>e.stopPropagation()}>
+          {/* Header */}
+          <div className="flex items-center justify-between p-5 border-b border-gray-100">
+            <div>
+              <h2 className="font-bold text-gray-900 text-lg">MCQ Questions</h2>
+              <p className="text-sm text-gray-500 mt-0.5 line-clamp-1">{mcqAffair.title}</p>
+            </div>
+            <button onClick={()=>setShowMcqModal(false)} className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center">
+              <X size={16}/>
+            </button>
+          </div>
+
+          <div className="flex flex-col flex-1 overflow-hidden p-5 gap-4">
+            {/* Add / Edit form */}
+            <div className="bg-purple-50 rounded-xl p-4 space-y-3">
+              <h3 className="font-semibold text-purple-900 text-sm">{editingMcq ? '✏️ Edit MCQ' : '➕ Add New MCQ'}</h3>
+              <textarea
+                placeholder="Question text *"
+                value={mcqForm.question}
+                onChange={e=>setMcqForm(p=>({...p,question:e.target.value}))}
+                className="w-full border border-purple-200 rounded-lg p-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-purple-400"
+                rows={2}
+              />
+              <div className="grid grid-cols-2 gap-2">
+                {(['A','B','C','D'] as const).map(l=>(
+                  <input key={l}
+                    placeholder={`Option ${l} *`}
+                    value={mcqForm[`option${l}` as keyof typeof mcqForm]}
+                    onChange={e=>setMcqForm(p=>({...p,[`option${l}`]:e.target.value}))}
+                    className="border border-purple-200 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  />
+                ))}
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="text-xs text-gray-600 mb-1 block">Correct Answer</label>
+                  <select value={mcqForm.correct} onChange={e=>setMcqForm(p=>({...p,correct:e.target.value}))}
+                    className="w-full border border-purple-200 rounded-lg p-2 text-sm focus:outline-none">
+                    {['a','b','c','d'].map(v=><option key={v} value={v}>Option {v.toUpperCase()}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-600 mb-1 block">Difficulty</label>
+                  <select value={mcqForm.difficulty} onChange={e=>setMcqForm(p=>({...p,difficulty:e.target.value}))}
+                    className="w-full border border-purple-200 rounded-lg p-2 text-sm focus:outline-none">
+                    {['easy','medium','hard'].map(v=><option key={v} value={v}>{v.charAt(0).toUpperCase()+v.slice(1)}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-600 mb-1 block">Explanation</label>
+                  <input placeholder="(optional)" value={mcqForm.explanation}
+                    onChange={e=>setMcqForm(p=>({...p,explanation:e.target.value}))}
+                    className="w-full border border-purple-200 rounded-lg p-2 text-sm focus:outline-none"/>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={saveMcq} disabled={mcqSaving || !mcqForm.question}
+                  className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
+                  {mcqSaving ? 'Saving…' : editingMcq ? 'Update MCQ' : 'Add MCQ'}
+                </button>
+                {editingMcq && (
+                  <button onClick={()=>{setEditingMcq(null);setMcqForm({question:'',optionA:'',optionB:'',optionC:'',optionD:'',correct:'a',explanation:'',difficulty:'medium'})}}
+                    className="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-lg text-sm font-semibold">Cancel</button>
+                )}
+              </div>
+            </div>
+
+            {/* Existing MCQs list */}
+            <div className="flex-1 overflow-y-auto space-y-2">
+              {mcqLoading ? (
+                <div className="text-center py-8 text-gray-400">Loading MCQs…</div>
+              ) : mcqs.length === 0 ? (
+                <div className="text-center py-8 text-gray-400">
+                  <p className="text-2xl mb-2">❓</p>
+                  <p className="text-sm">No MCQs yet. Add your first question above.</p>
+                </div>
+              ) : mcqs.map((mcq,i)=>(
+                <div key={mcq.id} className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-gray-800">{i+1}. {mcq.question}</p>
+                      <div className="grid grid-cols-2 gap-1 mt-1.5">
+                        {['a','b','c','d'].map(l=>(
+                          <p key={l} className={`text-xs px-2 py-1 rounded ${mcq.correct===l ? 'bg-green-100 text-green-700 font-bold' : 'text-gray-600'}`}>
+                            {l.toUpperCase()}) {mcq[`option_${l}`]}
+                          </p>
+                        ))}
+                      </div>
+                      {mcq.explanation && <p className="text-xs text-blue-600 mt-1">💡 {mcq.explanation}</p>}
+                    </div>
+                    <div className="flex gap-1 shrink-0">
+                      <button onClick={()=>{setEditingMcq(mcq);setMcqForm({question:mcq.question,optionA:mcq.option_a,optionB:mcq.option_b,optionC:mcq.option_c,optionD:mcq.option_d,correct:mcq.correct,explanation:mcq.explanation||'',difficulty:mcq.difficulty||'medium'})}}
+                        className="w-7 h-7 rounded-lg bg-amber-50 hover:bg-amber-100 flex items-center justify-center">
+                        <Edit size={12} className="text-amber-600"/>
+                      </button>
+                      <button onClick={()=>deleteMcq(mcq.id)} className="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center">
+                        <Trash2 size={12} className="text-red-600"/>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
     </div>
   )
 }
