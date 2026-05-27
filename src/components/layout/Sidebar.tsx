@@ -10,7 +10,8 @@ import {
   Trophy, Radio, Award, Image, Tag, CheckSquare, Settings,
   Shield, GraduationCap, ChevronRight, ChevronDown, LogOut,
   Zap, Brain, Layers, AlertTriangle, Star, LibraryBig,
-  Coins
+  Coins,
+  TrendingUp
 } from 'lucide-react'
 
 type NavItem = {
