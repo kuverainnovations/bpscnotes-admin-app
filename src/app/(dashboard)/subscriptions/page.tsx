@@ -22,6 +22,48 @@ export default function SubscriptionsPage() {
   const [page, setPage]       = useState(1)
   const { showToast, ToastComponent } = useToast()
 
+  // Payment settings
+  const [showSettings, setShowSettings] = useState(false)
+  const [settings, setSettings] = useState({
+    razorpayKeyId:     '',
+    razorpayKeySecret: '',
+    razorpayWebhookSecret: '',
+    razorpayMode:      'test',
+    upiDisplayName:    'BPSCNotes',
+    paymentEnabled:    true,
+  })
+  const [settingsSaving, setSettingsSaving] = useState(false)
+
+  const savePaymentSettings = async () => {
+    setSettingsSaving(true)
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/settings/payment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('adminToken')}` },
+        body: JSON.stringify(settings)
+      })
+      showToast('Payment settings saved ✅', 'success')
+      setShowSettings(false)
+    } catch {
+      showToast('Failed to save settings', 'error')
+    }
+    setSettingsSaving(false)
+  }
+
+  const refundPayment = async (subId: string) => {
+    if (!confirm('Refund this payment? This will cancel the subscription and initiate a refund.')) return
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/subscriptions/${subId}/refund`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` }
+      })
+      showToast('Refund initiated ✅', 'success')
+      refetch()
+    } catch {
+      showToast('Refund failed', 'error')
+    }
+  }
+
   const { data, meta: pageMeta, loading, error, refetch } = useApiData<any>(
     () => api.subscriptions.list({ search, plan: planFilter, status: statusFilter, page, limit: 20 }),
     [search, planFilter, statusFilter, page]
@@ -46,6 +88,76 @@ export default function SubscriptionsPage() {
       {ToastComponent}
       <Header title="Subscriptions & Payments" subtitle="Manage all subscriptions and revenue" />
       <div className="p-6 space-y-5 animate-fade-in">
+
+        {/* Razorpay Settings Modal */}
+        {showSettings && (
+          <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={() => setShowSettings(false)}>
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between p-5 border-b">
+                <div>
+                  <h2 className="font-bold text-gray-900 text-lg">💳 Payment Gateway Settings</h2>
+                  <p className="text-sm text-gray-500">Razorpay configuration</p>
+                </div>
+                <button onClick={() => setShowSettings(false)} className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500">✕</button>
+              </div>
+              <div className="p-5 space-y-4">
+                <div className="flex items-center gap-3 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                  <span>⚠️</span>
+                  <p className="text-sm text-amber-800">Keep Key Secret and Webhook Secret secure. Never share them.</p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-600 mb-1 block">Mode</label>
+                    <select value={settings.razorpayMode} onChange={e => setSettings(p => ({...p, razorpayMode: e.target.value}))}
+                      className="w-full border border-gray-200 rounded-lg p-2 text-sm">
+                      <option value="test">🧪 Test Mode</option>
+                      <option value="live">🟢 Live Mode</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-600 mb-1 block">UPI Display Name</label>
+                    <input value={settings.upiDisplayName} onChange={e => setSettings(p => ({...p, upiDisplayName: e.target.value}))}
+                      className="w-full border border-gray-200 rounded-lg p-2 text-sm" placeholder="BPSCNotes"/>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 mb-1 block">Razorpay Key ID (rzp_test_... or rzp_live_...)</label>
+                  <input value={settings.razorpayKeyId} onChange={e => setSettings(p => ({...p, razorpayKeyId: e.target.value}))}
+                    className="w-full border border-gray-200 rounded-lg p-2.5 text-sm font-mono" placeholder="rzp_test_xxxxxxxxxxxx"/>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 mb-1 block">Razorpay Key Secret</label>
+                  <input type="password" value={settings.razorpayKeySecret} onChange={e => setSettings(p => ({...p, razorpayKeySecret: e.target.value}))}
+                    className="w-full border border-gray-200 rounded-lg p-2.5 text-sm font-mono" placeholder="••••••••••••••••••••"/>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 mb-1 block">Webhook Secret (from Razorpay dashboard)</label>
+                  <input type="password" value={settings.razorpayWebhookSecret} onChange={e => setSettings(p => ({...p, razorpayWebhookSecret: e.target.value}))}
+                    className="w-full border border-gray-200 rounded-lg p-2.5 text-sm font-mono" placeholder="••••••••••••••••••••"/>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-800">Payment Enabled</p>
+                    <p className="text-xs text-gray-500">Disable to block all new payments</p>
+                  </div>
+                  <button onClick={() => setSettings(p => ({...p, paymentEnabled: !p.paymentEnabled}))}
+                    className={`w-11 h-6 rounded-full transition-colors ${settings.paymentEnabled ? 'bg-green-500' : 'bg-gray-300'}`}>
+                    <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform mx-0.5 ${settings.paymentEnabled ? 'translate-x-5' : 'translate-x-0'}`}/>
+                  </button>
+                </div>
+                <div className="p-3 bg-blue-50 rounded-xl text-xs text-blue-700">
+                  <strong>Webhook URL to configure in Razorpay Dashboard:</strong><br/>
+                  <code className="bg-blue-100 px-1 rounded">{process.env.NEXT_PUBLIC_API_URL}/webhooks/razorpay</code><br/>
+                  Events: <code>payment.captured</code>, <code>payment.failed</code>
+                </div>
+                <button onClick={savePaymentSettings} disabled={settingsSaving}
+                  className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-2.5 rounded-xl font-semibold text-sm">
+                  {settingsSaving ? 'Saving…' : 'Save Settings'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
@@ -100,6 +212,13 @@ export default function SubscriptionsPage() {
               ))}
             </div>
           </div>
+        </div>
+
+        <div className="flex justify-end">
+          <button onClick={() => setShowSettings(true)}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold">
+            <CreditCard size={14}/> Payment Gateway Settings
+          </button>
         </div>
 
         {/* Filters */}
