@@ -346,7 +346,6 @@ function CurrentAffairsPageContent() {
           </div>
         </div>
       )}
-    </div>
 
     {/* MCQ Management Modal */}
     {showMcqModal && mcqAffair && (
