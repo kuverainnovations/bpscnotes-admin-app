@@ -18,45 +18,6 @@ const CATEGORIES = ['General','Economy','Polity','Science & Tech','Environment',
 const TYPES      = ['prelims','mains','both']
 
 export default function CurrentAffairsPage() {
-  const openMcqs = async (item: any) => {
-    setMcqAffair(item)
-    setShowMcqModal(true)
-    setMcqLoading(true)
-    setMcqs([])
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/admin/current-affairs/${item.id}/mcqs`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` }
-      })
-      const data = await res.json()
-      setMcqs(data.data?.mcqs || [])
-    } catch { setMcqs([]) }
-    setMcqLoading(false)
-  }
-
-  const saveMcq = async () => {
-    if (!mcqForm.question || !mcqForm.optionA || !mcqForm.optionB || !mcqForm.optionC || !mcqForm.optionD) return
-    setMcqSaving(true)
-    try {
-      const url = editingMcq
-        ? `${process.env.NEXT_PUBLIC_API_URL}/api/v1/admin/current-affairs/mcqs/${editingMcq.id}`
-        : `${process.env.NEXT_PUBLIC_API_URL}/api/v1/admin/current-affairs/${mcqAffair.id}/mcqs`
-      const method = editingMcq ? 'PUT' : 'POST'
-      await fetch(url, { method, headers: { 'Content-Type':'application/json', Authorization:`Bearer ${localStorage.getItem('adminToken')}` }, body: JSON.stringify(mcqForm) })
-      await openMcqs(mcqAffair)
-      setMcqForm({ question:'', optionA:'', optionB:'', optionC:'', optionD:'', correct:'a', explanation:'', difficulty:'medium' })
-      setEditingMcq(null)
-    } catch {}
-    setMcqSaving(false)
-  }
-
-  const deleteMcq = async (mcqId: string) => {
-    if (!confirm('Delete this MCQ?')) return
-    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/admin/current-affairs/mcqs/${mcqId}`, {
-      method: 'DELETE', headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` }
-    })
-    setMcqs(prev => prev.filter(m => m.id !== mcqId))
-  }
-
   return (
     <Suspense fallback={<div>Loading...</div>}>
       <CurrentAffairsPageContent />
@@ -98,6 +59,46 @@ function CurrentAffairsPageContent() {
     finally { setLoading(false) }
   }
   useEffect(() => { load() }, [search, catFilter, typeFilter, page])
+
+  // ── MCQ helpers (defined after useState so setters are in scope) ──
+  const openMcqs = async (item: any) => {
+    setMcqAffair(item)
+    setShowMcqModal(true)
+    setMcqLoading(true)
+    setMcqs([])
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/admin/current-affairs/${item.id}/mcqs`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` }
+      })
+      const data = await res.json()
+      setMcqs(data.data?.mcqs || [])
+    } catch { setMcqs([]) }
+    setMcqLoading(false)
+  }
+
+  const saveMcq = async () => {
+    if (!mcqForm.question || !mcqForm.optionA || !mcqForm.optionB || !mcqForm.optionC || !mcqForm.optionD) return
+    setMcqSaving(true)
+    try {
+      const url = editingMcq
+        ? `${process.env.NEXT_PUBLIC_API_URL}/api/v1/admin/current-affairs/mcqs/${editingMcq.id}`
+        : `${process.env.NEXT_PUBLIC_API_URL}/api/v1/admin/current-affairs/${mcqAffair.id}/mcqs`
+      const method = editingMcq ? 'PUT' : 'POST'
+      await fetch(url, { method, headers: { 'Content-Type':'application/json', Authorization:`Bearer ${localStorage.getItem('adminToken')}` }, body: JSON.stringify(mcqForm) })
+      await openMcqs(mcqAffair)
+      setMcqForm({ question:'', optionA:'', optionB:'', optionC:'', optionD:'', correct:'a', explanation:'', difficulty:'medium' })
+      setEditingMcq(null)
+    } catch {}
+    setMcqSaving(false)
+  }
+
+  const deleteMcq = async (mcqId: string) => {
+    if (!confirm('Delete this MCQ?')) return
+    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/admin/current-affairs/mcqs/${mcqId}`, {
+      method: 'DELETE', headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` }
+    })
+    setMcqs((prev: any[]) => prev.filter((m: any) => m.id !== mcqId))
+  }
 
   const openNew  = () => { setEditing(null); setForm(EMPTY); setShowModal(true) }
   const openEdit = (item: any) => {
