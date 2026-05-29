@@ -1,696 +1,324 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import Header from '@/components/layout/Header'
-import { PageLoader, PageError } from '@/components/ui/PageComponents'
 import api from '@/lib/api'
+import { useToast } from '@/components/ui/feedback'
 import {
-  RefreshCw, Edit, Users, Trophy, BarChart3,
-  CheckCircle, AlertTriangle, ChevronDown, ChevronUp,
-  X, Crown, Zap, ArrowUp, ArrowDown,
+  RefreshCw, Edit, Users, Trophy, BarChart3, CheckCircle,
+  AlertTriangle, X, Crown, Zap, ArrowUp, Save, Loader2,
+  Shield, Star, Target,
 } from 'lucide-react'
+import { formatNumber } from '@/lib/utils'
+import Link from 'next/link'
 
-// ─────────────────────────────────────────────────────────────
-// FILE: admin/src/app/(dashboard)/tier-rooms/page.tsx
-//
-// Sections:
-//   1. Stats bar (members per tier, active sessions)
-//   2. Tier Cards — edit coin_multiplier, xp_multiplier, perks
-//   3. Progression Rules — edit thresholds for each transition
-//   4. Distribution chart (% users per tier)
-//   5. Manual promote/demote a user
-// ─────────────────────────────────────────────────────────────
+// Issue 3: New tier names
+const TIER_META: Record<string,{label:string;emoji:string;color:string;bg:string;border:string;gradient:string}> = {
+  starter:    { label:'Starter',    emoji:'🌱', color:'text-slate-700',  bg:'bg-slate-50',   border:'border-slate-200', gradient:'from-slate-400 to-slate-500' },
+  serious:    { label:'Serious',    emoji:'⚡', color:'text-amber-800',  bg:'bg-amber-50',   border:'border-amber-200', gradient:'from-amber-400 to-amber-500' },
+  consistent: { label:'Consistent', emoji:'💎', color:'text-purple-800', bg:'bg-purple-50',  border:'border-purple-200',gradient:'from-purple-500 to-purple-600' },
+  achiever:   { label:'Achiever',   emoji:'🏆', color:'text-cyan-800',   bg:'bg-cyan-50',    border:'border-cyan-200',  gradient:'from-cyan-500 to-cyan-600' },
+}
 
-const TIER_COLORS: Record<string, { bg: string; border: string; text: string; badge: string }> = {
-  silver:  { bg: 'bg-slate-50',   border: 'border-slate-300', text: 'text-slate-700', badge: 'bg-slate-100 text-slate-700' },
-  gold:    { bg: 'bg-yellow-50',  border: 'border-yellow-300',text: 'text-yellow-800',badge: 'bg-yellow-100 text-yellow-800' },
-  premium: { bg: 'bg-purple-50',  border: 'border-purple-300',text: 'text-purple-800',badge: 'bg-purple-100 text-purple-800' },
-  diamond: { bg: 'bg-cyan-50',    border: 'border-cyan-300',  text: 'text-cyan-800',  badge: 'bg-cyan-100 text-cyan-800' },
+function NumInput({ value, onChange, placeholder='', min=0 }: any) {
+  const [raw, setRaw] = useState(value===0?'':String(value))
+  useEffect(() => { setRaw(value===0?'':String(value)) }, [value])
+  return (
+    <input type="number" className="input w-full" value={raw} placeholder={placeholder} min={min}
+      onChange={e => { setRaw(e.target.value); const n=parseFloat(e.target.value); if(!isNaN(n)) onChange(n) }}
+      onBlur={() => { if(!raw.trim()) { setRaw(''); onChange(0) } }}/>
+  )
 }
 
 export default function TierRoomsPage() {
-  const [tiers, setTiers]             = useState<any[]>([])
-  const [rules, setRules]             = useState<any[]>([])
-  const [distribution, setDist]       = useState<any[]>([])
-  const [loading, setLoading]         = useState(true)
-  const [error, setError]             = useState('')
-  const [activeTab, setActiveTab]     = useState<'tiers' | 'rules' | 'distribution' | 'promote'>('tiers')
-
-  // Modal states
-  const [editTier, setEditTier]       = useState<any>(null)
-  const [editRule, setEditRule]       = useState<any>(null)
-  const [showPromote, setShowPromote] = useState(false)
-  const [saving, setSaving]           = useState(false)
-  const [saveMsg, setSaveMsg]         = useState('')
-
-  // Promote form
-  const [promoteUserId, setPromoteUserId]   = useState('')
-  const [promoteTarget, setPromoteTarget]   = useState('gold')
+  const { showToast, ToastComponent } = useToast()
+  const [tiers, setTiers]       = useState<any[]>([])
+  const [rules, setRules]       = useState<any[]>([])
+  const [dist, setDist]         = useState<any[]>([])
+  const [loading, setLoading]   = useState(true)
+  const [activeTab, setActiveTab] = useState<'tiers'|'rules'|'promote'>('tiers')
+  const [editTier, setEditTier] = useState<any>(null)
+  const [editRule, setEditRule] = useState<any>(null)
+  const [saving, setSaving]     = useState(false)
+  const [promoteUserId, setPromoteUserId] = useState('')
+  const [promoteTarget, setPromoteTarget] = useState('serious')
 
   const loadAll = useCallback(async () => {
-    setLoading(true); setError('')
+    setLoading(true)
     try {
-      const [tiersRes, rulesRes, distRes] = await Promise.all([
-        api.tierRooms.getAllTiers(),
-        api.tierRooms.getRules(),
-        api.tierRooms.getDistribution(),
+      const [tr, rr, dr] = await Promise.all([
+        api.tierRooms.getAllTiers(), api.tierRooms.getRules(), api.tierRooms.getDistribution()
       ])
-      setTiers(tiersRes.data?.tiers || [])
-      setRules(rulesRes.data?.rules || [])
-      setDist(distRes.data?.distribution || [])
-    } catch (e: any) {
-      setError(e.message || 'Failed to load tier rooms data')
-    } finally {
-      setLoading(false)
-    }
+      setTiers(tr.data?.tiers||[]); setRules(rr.data?.rules||[]); setDist(dr.data?.distribution||[])
+    } catch (e: any) { showToast(e.message||'Failed to load', 'error') }
+    finally { setLoading(false) }
   }, [])
-
   useEffect(() => { loadAll() }, [loadAll])
 
-  const flash = (msg: string) => {
-    setSaveMsg(msg); setTimeout(() => setSaveMsg(''), 3000)
-  }
-
-  // ── Save tier edits ──────────────────────────────────────
   const saveTier = async () => {
     if (!editTier) return
     setSaving(true)
     try {
       await api.tierRooms.updateTier(editTier.id, {
-        name:            editTier.name,
-        description:     editTier.description,
+        name: editTier.name, description: editTier.description,
         coin_multiplier: parseFloat(editTier.coin_multiplier),
         xp_multiplier:   parseFloat(editTier.xp_multiplier),
         max_members:     parseInt(editTier.max_members),
-        perks:           editTier.perks,
-        is_active:       editTier.is_active,
+        perks: editTier.perks, is_active: editTier.is_active,
       })
-      setEditTier(null)
-      flash('✅ Tier updated successfully')
-      loadAll()
-    } catch (e: any) {
-      flash('❌ ' + (e.message || 'Failed to update tier'))
-    } finally {
-      setSaving(false)
-    }
+      setEditTier(null); showToast('Tier updated ✅'); loadAll()
+    } catch (e: any) { showToast(e.message||'Failed', 'error') }
+    finally { setSaving(false) }
   }
 
-  // ── Save rule edits ──────────────────────────────────────
   const saveRule = async () => {
     if (!editRule) return
     setSaving(true)
     try {
       await api.tierRooms.updateRule(editRule.id, {
-        min_total_study_hours:  parseFloat(editRule.min_total_study_hours),
-        min_streak_days:        parseInt(editRule.min_streak_days),
-        min_quizzes_completed:  parseInt(editRule.min_quizzes_completed),
-        min_accuracy_pct:       parseFloat(editRule.min_accuracy_pct),
-        evaluation_window_days: parseInt(editRule.evaluation_window_days),
-        demotion_threshold_pct: parseFloat(editRule.demotion_threshold_pct),
-        demotion_grace_days:    parseInt(editRule.demotion_grace_days),
-        is_active:              editRule.is_active,
+        min_study_hours:     parseFloat(editRule.min_study_hours),
+        min_quizzes_completed: parseInt(editRule.min_quizzes_completed),
+        min_streak_days:     parseInt(editRule.min_streak_days),
+        evaluation_period:   editRule.evaluation_period,
       })
-      setEditRule(null)
-      flash('✅ Rule updated successfully')
-      loadAll()
-    } catch (e: any) {
-      flash('❌ ' + (e.message || 'Failed to update rule'))
-    } finally {
-      setSaving(false)
-    }
+      setEditRule(null); showToast('Rule updated ✅'); loadAll()
+    } catch (e: any) { showToast(e.message||'Failed', 'error') }
+    finally { setSaving(false) }
   }
 
-  // ── Manual promote ───────────────────────────────────────
-  const handlePromote = async () => {
-    if (!promoteUserId.trim()) { flash('❌ User ID is required'); return }
-    setSaving(true)
+  const promote = async () => {
+    if (!promoteUserId.trim()) { showToast('Enter a user ID', 'error'); return }
     try {
-      await api.tierRooms.promoteUser({ userId: promoteUserId.trim(), targetTierKey: promoteTarget })
-      setShowPromote(false)
+      await api.tierRooms.promoteUser(promoteUserId)
+      showToast(`User promoted to ${TIER_META[promoteTarget]?.label||promoteTarget} ✅`)
       setPromoteUserId('')
-      flash(`✅ User promoted to ${promoteTarget}`)
-    } catch (e: any) {
-      flash('❌ ' + (e.message || 'Promotion failed'))
-    } finally {
-      setSaving(false)
-    }
+    } catch (e: any) { showToast(e.message||'Failed', 'error') }
   }
 
-  if (loading) return <PageLoader />
-  if (error && !tiers.length) return <PageError message={error} onRetry={loadAll} />
-
-  // ── Stats bar ────────────────────────────────────────────
-  const totalMembers  = tiers.reduce((s, t) => s + (t.total_members || 0), 0)
-  const totalActive   = tiers.reduce((s, t) => s + (t.active_sessions || 0), 0)
+  const totalUsers = dist.reduce((a:number,d:any)=>a+parseInt(d.users||0),0)||1
 
   return (
     <div className="min-h-screen">
-      <Header
-        title="Tier Room System"
-        subtitle="Configure study tiers, progression rules, and rewards"
-      />
+      {ToastComponent}
+      <Header title="Tier Rooms" subtitle="Manage study tiers, progression rules and user distribution" />
 
-      <div className="p-6 space-y-5">
+      <div className="p-6 space-y-5 animate-fade-in">
 
-        {/* ── Save message toast ───────────────────────────── */}
-        {saveMsg && (
-          <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-lg text-sm font-medium ${saveMsg.startsWith('✅') ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
-            {saveMsg}
+        {/* Tier distribution strip */}
+        {dist.length > 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {dist.map((d:any) => {
+              const meta = TIER_META[d.tier_key] || TIER_META.starter
+              const pct  = Math.round(parseInt(d.users||0)/totalUsers*100)
+              return (
+                <div key={d.tier_key} className={`card p-4 flex items-center gap-3 ${meta.bg} border ${meta.border}`}>
+                  <span className="text-2xl">{meta.emoji}</span>
+                  <div>
+                    <p className={`text-xl font-black ${meta.color}`}>{formatNumber(d.users)}</p>
+                    <p className="text-xs text-slate-500 font-medium">{meta.label} · {pct}%</p>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         )}
 
-        {/* ── Top Stats ───────────────────────────────────── */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { emoji: '👥', label: 'Total Members', value: totalMembers.toLocaleString() },
-            { emoji: '🟢', label: 'Active Sessions', value: totalActive },
-            { emoji: '🏆', label: 'Tier Levels',    value: tiers.length },
-            { emoji: '⚙️', label: 'Active Rules',   value: rules.filter(r => r.is_active).length },
-          ].map(s => (
-            <div key={s.label} className="card p-4 flex items-center gap-3">
-              <span className="text-3xl">{s.emoji}</span>
-              <div>
-                <p className="text-2xl font-bold text-slate-900">{s.value}</p>
-                <p className="text-xs text-slate-500">{s.label}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* ── Tab Bar ─────────────────────────────────────── */}
-        <div className="card p-1 flex gap-1">
-          {([
-            { key: 'tiers',        label: '⚙️ Tier Settings',     icon: Crown },
-            { key: 'rules',        label: '📈 Progression Rules', icon: ArrowUp },
-            { key: 'distribution', label: '📊 Distribution',      icon: BarChart3 },
-            { key: 'promote',      label: '🚀 Promote User',      icon: Zap },
-          ] as const).map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`flex-1 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                activeTab === tab.key
-                  ? 'bg-brand-500 text-white shadow-sm'
-                  : 'text-slate-600 hover:bg-slate-100'
-              }`}
-            >
-              {tab.label}
+        {/* Tabs */}
+        <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-2xl w-fit">
+          {(['tiers','rules','promote'] as const).map(t => (
+            <button key={t} onClick={() => setActiveTab(t)}
+              className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all capitalize
+                ${activeTab===t?'bg-white shadow-sm text-brand-700':'text-slate-500 hover:text-slate-700'}`}>
+              {t === 'tiers' ? '🏷️ Tier Config' : t === 'rules' ? '📋 Progression Rules' : '⬆️ Promote User'}
             </button>
           ))}
+          <div className="ml-2">
+            <button onClick={loadAll} className="btn-secondary px-3 py-2"><RefreshCw size={13}/></button>
+          </div>
+          <Link href="/tier-rooms/flagged" className="btn-secondary px-3 py-2 text-xs flex items-center gap-1.5 ml-1">
+            <AlertTriangle size={12} className="text-amber-500"/> Anti-Cheat
+          </Link>
         </div>
 
-        {/* ════════════════════════════════════════════════ */}
-        {/* TAB 1: Tier Settings                            */}
-        {/* ════════════════════════════════════════════════ */}
-        {activeTab === 'tiers' && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-semibold text-slate-900">Room Tier Configuration</p>
-                <p className="text-xs text-slate-500 mt-0.5">Edit coin multipliers, XP rates, and perks. Changes reflect immediately in the Android app.</p>
-              </div>
-              <button onClick={loadAll} className="btn-secondary"><RefreshCw size={14} /> Refresh</button>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-4">
-              {tiers.map(tier => {
-                const colors = TIER_COLORS[tier.tier_key] || TIER_COLORS.silver
-                return (
-                  <div key={tier.id} className={`card p-5 border-2 ${colors.border} ${colors.bg}`}>
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <span className="text-3xl">{tier.icon_emoji}</span>
-                        <div>
-                          <p className={`font-bold text-lg ${colors.text}`}>{tier.name}</p>
-                          <p className="text-xs text-slate-500">{tier.description}</p>
-                        </div>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className={`text-xs font-semibold px-2 py-1 rounded-full ${colors.badge}`}>
-                          {tier.is_active ? 'Active' : 'Inactive'}
-                        </span>
-                        <button
-                          onClick={() => setEditTier({ ...tier, perks: tier.perks || [] })}
-                          className="btn-secondary text-xs py-1 px-3"
-                        >
-                          <Edit size={12} /> Edit
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div className="bg-white/60 rounded-xl p-3 text-center">
-                        <p className="text-2xl font-bold text-slate-900">{tier.coin_multiplier}×</p>
-                        <p className="text-xs text-slate-500">Coin/hour rate</p>
-                      </div>
-                      <div className="bg-white/60 rounded-xl p-3 text-center">
-                        <p className="text-2xl font-bold text-slate-900">{tier.xp_multiplier}×</p>
-                        <p className="text-xs text-slate-500">XP multiplier</p>
-                      </div>
-                      <div className="bg-white/60 rounded-xl p-3 text-center">
-                        <p className="text-2xl font-bold text-slate-900">{(tier.total_members || 0).toLocaleString()}</p>
-                        <p className="text-xs text-slate-500">Members</p>
-                      </div>
-                      <div className="bg-white/60 rounded-xl p-3 text-center">
-                        <p className={`text-2xl font-bold ${tier.active_sessions > 0 ? 'text-green-600' : 'text-slate-400'}`}>
-                          {tier.active_sessions || 0}
-                        </p>
-                        <p className="text-xs text-slate-500">Active now</p>
-                      </div>
-                    </div>
-
-                    {/* Perks */}
-                    {tier.perks?.length > 0 && (
-                      <div className="mt-3 space-y-1">
-                        <p className="text-xs font-semibold text-slate-600">Perks shown in app:</p>
-                        {tier.perks.map((p: string, i: number) => (
-                          <div key={i} className="flex items-center gap-2">
-                            <CheckCircle size={11} className="text-green-500 shrink-0" />
-                            <p className="text-xs text-slate-600">{p}</p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* ════════════════════════════════════════════════ */}
-        {/* TAB 2: Progression Rules                        */}
-        {/* ════════════════════════════════════════════════ */}
-        {activeTab === 'rules' && (
-          <div className="space-y-4">
-            <div>
-              <p className="font-semibold text-slate-900">Tier Progression Rules</p>
-              <p className="text-xs text-slate-500 mt-0.5">
-                All non-zero conditions must be met (AND logic) for a user to be promoted.
-                The cron job evaluates these daily at 00:05 UTC.
-              </p>
-            </div>
-
-            <div className="card overflow-hidden">
-              <div className="bg-slate-50 px-5 py-3 border-b border-slate-100">
-                <div className="grid grid-cols-7 gap-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                  <div className="col-span-2">Transition</div>
-                  <div>Study Hours</div>
-                  <div>Streak Days</div>
-                  <div>Quizzes</div>
-                  <div>Accuracy %</div>
-                  <div>Actions</div>
-                </div>
-              </div>
-
-              {rules.map(rule => (
-                <div key={rule.id} className="px-5 py-4 border-b border-slate-50 hover:bg-slate-50 transition-colors">
-                  <div className="grid grid-cols-7 gap-2 items-center text-sm">
-                    <div className="col-span-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-base">
-                          {tiers.find(t => t.tier_key === rule.from_key)?.icon_emoji || '🔘'}
-                        </span>
-                        <ArrowUp size={14} className="text-green-500 shrink-0" />
-                        <span className="text-base">
-                          {tiers.find(t => t.tier_key === rule.to_key)?.icon_emoji || '🔘'}
-                        </span>
-                        <div>
-                          <p className="font-semibold text-slate-800 text-xs">{rule.from_name} → {rule.to_name}</p>
-                          <div className="flex gap-1 mt-0.5">
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${rule.is_active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
-                              {rule.is_active ? 'Active' : 'Paused'}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-slate-700 font-medium">{rule.min_total_study_hours > 0 ? `${rule.min_total_study_hours}h` : '—'}</div>
-                    <div className="text-slate-700 font-medium">{rule.min_streak_days > 0 ? `${rule.min_streak_days}d` : '—'}</div>
-                    <div className="text-slate-700 font-medium">{rule.min_quizzes_completed > 0 ? rule.min_quizzes_completed : '—'}</div>
-                    <div className="text-slate-700 font-medium">{rule.min_accuracy_pct > 0 ? `${rule.min_accuracy_pct}%` : '—'}</div>
-                    <div>
-                      <button
-                        onClick={() => setEditRule({ ...rule })}
-                        className="btn-secondary text-xs py-1 px-3"
-                      >
-                        <Edit size={12} /> Edit
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Demotion info */}
-                  <div className="mt-2 ml-0 flex items-center gap-4 text-xs text-slate-400">
-                    <span>⬇️ Demote if below {rule.demotion_threshold_pct}% for {rule.demotion_grace_days} days</span>
-                    <span>📅 Eval window: {rule.evaluation_window_days} days</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="card p-4 bg-amber-50 border border-amber-200">
-              <div className="flex gap-3">
-                <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5" />
-                <div className="text-sm text-amber-800">
-                  <p className="font-semibold">How promotion works</p>
-                  <p className="mt-1 text-xs leading-relaxed">
-                    Every day at 00:05 UTC, the cron job scans all users in each tier.
-                    If a user meets <strong>all non-zero conditions</strong> (AND logic),
-                    they are promoted. If their score falls below the demotion threshold
-                    for the configured grace period, they are demoted.
-                    A 3-day grace period is always applied after promotion before demotion
-                    can happen.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ════════════════════════════════════════════════ */}
-        {/* TAB 3: Distribution Chart                       */}
-        {/* ════════════════════════════════════════════════ */}
-        {activeTab === 'distribution' && (
-          <div className="space-y-4">
-            <p className="font-semibold text-slate-900">User Distribution Across Tiers</p>
-
-            <div className="card p-6">
-              {/* Bar chart */}
-              <div className="space-y-4">
-                {distribution.map((d: any) => {
-                  const pct = parseFloat(d.percentage) || 0
-                  const colors = TIER_COLORS[d.tier_key] || TIER_COLORS.silver
+        {loading ? (
+          <div className="card p-16 flex items-center justify-center"><Loader2 size={28} className="animate-spin text-brand-400"/></div>
+        ) : (
+          <>
+            {/* TIERS TAB */}
+            {activeTab === 'tiers' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                {tiers.map(tier => {
+                  const meta = TIER_META[tier.key||tier.name?.toLowerCase()] || TIER_META.starter
+                  const isEditing = editTier?.id === tier.id
                   return (
-                    <div key={d.tier_key} className="space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xl">{d.icon_emoji}</span>
-                          <span className="font-semibold text-slate-800">{d.name}</span>
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${colors.badge}`}>
-                            {d.member_count.toLocaleString()} members
-                          </span>
+                    <div key={tier.id} className={`card overflow-hidden border ${meta.border}`}>
+                      {/* Gradient header */}
+                      <div className={`bg-gradient-to-br ${meta.gradient} p-4 text-white`}>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-3xl">{meta.emoji}</span>
+                          <span className={`badge bg-white/20 text-white border-white/20 text-xs`}>{tier.is_active?'Active':'Off'}</span>
                         </div>
-                        <span className="font-bold text-slate-700">{pct}%</span>
+                        <p className="font-black text-lg">{meta.label}</p>
+                        <p className="text-white/70 text-xs mt-0.5">{tier.description}</p>
                       </div>
-                      <div className="w-full h-4 bg-slate-100 rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all duration-700"
-                          style={{
-                            width: `${pct}%`,
-                            backgroundColor: d.color_hex,
-                          }}
-                        />
+
+                      <div className="p-4 space-y-3">
+                        {isEditing ? (
+                          <div className="space-y-2">
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 mb-1">Description</label>
+                              <input value={editTier.description} onChange={e => setEditTier({...editTier,description:e.target.value})} className="input text-xs w-full"/>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <label className="block text-[10px] font-bold text-slate-500 mb-1">Coin ×</label>
+                                <NumInput value={editTier.coin_multiplier} onChange={(v:number)=>setEditTier({...editTier,coin_multiplier:v})} placeholder="1.0"/>
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-bold text-slate-500 mb-1">XP ×</label>
+                                <NumInput value={editTier.xp_multiplier} onChange={(v:number)=>setEditTier({...editTier,xp_multiplier:v})} placeholder="1.0"/>
+                              </div>
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 mb-1">Max Members</label>
+                              <NumInput value={editTier.max_members} onChange={(v:number)=>setEditTier({...editTier,max_members:v})} placeholder="50"/>
+                            </div>
+                            <div className="flex gap-2">
+                              <button onClick={saveTier} disabled={saving} className="btn-primary text-xs flex-1">
+                                {saving?<Loader2 size={12} className="animate-spin mx-auto"/>:<><Save size={12}/> Save</>}
+                              </button>
+                              <button onClick={() => setEditTier(null)} className="btn-secondary text-xs px-3"><X size={12}/></button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="grid grid-cols-2 gap-2">
+                              {[
+                                { label:'Coin ×',    value:`${tier.coin_multiplier||1}×` },
+                                { label:'XP ×',      value:`${tier.xp_multiplier||1}×` },
+                                { label:'Max Members',value:tier.max_members||50 },
+                                { label:'Members',   value:formatNumber(tier.member_count||0) },
+                              ].map(s => (
+                                <div key={s.label} className={`${meta.bg} rounded-xl p-2.5 text-center border ${meta.border}`}>
+                                  <p className={`text-sm font-black ${meta.color}`}>{s.value}</p>
+                                  <p className="text-[9px] text-slate-400">{s.label}</p>
+                                </div>
+                              ))}
+                            </div>
+                            {(tier.perks||[]).length > 0 && (
+                              <div>
+                                <p className="text-[10px] font-bold text-slate-400 mb-1">Perks</p>
+                                {(tier.perks||[]).slice(0,3).map((p:string,i:number) => (
+                                  <p key={i} className="text-xs text-slate-600 flex items-start gap-1"><CheckCircle size={10} className="mt-0.5 text-green-500 shrink-0"/>{p}</p>
+                                ))}
+                              </div>
+                            )}
+                            <button onClick={() => setEditTier({...tier})} className="btn-secondary text-xs w-full flex items-center justify-center gap-1.5">
+                              <Edit size={12}/> Edit Config
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
                   )
                 })}
               </div>
+            )}
 
-              {/* Insight */}
-              <div className="mt-6 grid grid-cols-2 gap-4">
-                {distribution.map((d: any) => (
-                  <div key={d.tier_key} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
-                    <span className="text-2xl">{d.icon_emoji}</span>
-                    <div>
-                      <p className="text-lg font-bold text-slate-900">{d.member_count.toLocaleString()}</p>
-                      <p className="text-xs text-slate-500">{d.name} members</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="card p-4 bg-blue-50 border border-blue-200">
-              <p className="text-sm text-blue-800">
-                <span className="font-semibold">💡 Healthy distribution target:</span>{' '}
-                ~60% Silver, ~25% Gold, ~12% Premium, ~3% Diamond.
-                If Silver is over 80%, consider lowering the Silver→Gold threshold.
-                If Diamond is over 10%, the Diamond tier may feel less exclusive.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* ════════════════════════════════════════════════ */}
-        {/* TAB 4: Manual Promote/Demote                    */}
-        {/* ════════════════════════════════════════════════ */}
-        {activeTab === 'promote' && (
-          <div className="max-w-lg space-y-4">
-            <div>
-              <p className="font-semibold text-slate-900">Manual Tier Override</p>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Manually promote or demote a user to any tier. Use for contest winners,
-                special events, or correcting wrong placements.
-              </p>
-            </div>
-
-            <div className="card p-6 space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">User ID *</label>
-                <input
-                  type="text"
-                  placeholder="Paste the user UUID from the Users page"
-                  value={promoteUserId}
-                  onChange={e => setPromoteUserId(e.target.value)}
-                  className="input"
-                />
-                <p className="text-xs text-slate-400 mt-1">
-                  Find user IDs in the <a href="/users" className="text-brand-600 underline">User Management</a> page.
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-2">Target Tier *</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {tiers.map(tier => {
-                    const colors = TIER_COLORS[tier.tier_key] || TIER_COLORS.silver
-                    return (
-                      <button
-                        key={tier.tier_key}
-                        onClick={() => setPromoteTarget(tier.tier_key)}
-                        className={`flex items-center gap-2 p-3 rounded-xl border-2 transition-all ${
-                          promoteTarget === tier.tier_key
-                            ? `${colors.border} ${colors.bg}`
-                            : 'border-slate-200 hover:border-slate-300'
-                        }`}
-                      >
-                        <span className="text-xl">{tier.icon_emoji}</span>
-                        <div className="text-left">
-                          <p className={`text-sm font-bold ${promoteTarget === tier.tier_key ? colors.text : 'text-slate-700'}`}>
-                            {tier.name}
-                          </p>
-                          <p className="text-xs text-slate-400">{tier.coin_multiplier}× coins</p>
+            {/* RULES TAB */}
+            {activeTab === 'rules' && (
+              <div className="space-y-3">
+                {rules.map(rule => {
+                  const fromMeta = TIER_META[rule.from_tier] || TIER_META.starter
+                  const toMeta   = TIER_META[rule.to_tier]   || TIER_META.serious
+                  const isEditing = editRule?.id === rule.id
+                  return (
+                    <div key={rule.id} className="card p-5">
+                      <div className="flex items-center gap-3 mb-3 flex-wrap">
+                        <span className="text-xl">{fromMeta.emoji}</span>
+                        <span className="font-bold text-slate-500 text-sm">{fromMeta.label}</span>
+                        <ArrowUp size={16} className="text-brand-500"/>
+                        <span className="text-xl">{toMeta.emoji}</span>
+                        <span className="font-bold text-slate-800 text-sm">{toMeta.label}</span>
+                        {!isEditing && (
+                          <button onClick={() => setEditRule({...rule})} className="ml-auto btn-secondary text-xs flex items-center gap-1.5">
+                            <Edit size={12}/> Edit
+                          </button>
+                        )}
+                      </div>
+                      {isEditing ? (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          <div>
+                            <label className="block text-xs font-bold text-slate-600 mb-1.5">Study Hours</label>
+                            <NumInput value={editRule.min_study_hours} onChange={(v:number)=>setEditRule({...editRule,min_study_hours:v})} placeholder="10"/>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold text-slate-600 mb-1.5">Quizzes Done</label>
+                            <NumInput value={editRule.min_quizzes_completed} onChange={(v:number)=>setEditRule({...editRule,min_quizzes_completed:v})} placeholder="5"/>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold text-slate-600 mb-1.5">Streak Days</label>
+                            <NumInput value={editRule.min_streak_days} onChange={(v:number)=>setEditRule({...editRule,min_streak_days:v})} placeholder="3"/>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold text-slate-600 mb-1.5">Period</label>
+                            <input value={editRule.evaluation_period} onChange={e=>setEditRule({...editRule,evaluation_period:e.target.value})} className="input w-full" placeholder="7d"/>
+                          </div>
+                          <div className="col-span-2 md:col-span-4 flex gap-2">
+                            <button onClick={saveRule} disabled={saving} className="btn-primary text-sm"><Save size={13}/> {saving?'Saving…':'Save Rule'}</button>
+                            <button onClick={() => setEditRule(null)} className="btn-secondary text-sm">Cancel</button>
+                          </div>
                         </div>
-                      </button>
-                    )
-                  })}
-                </div>
+                      ) : (
+                        <div className="flex gap-4 flex-wrap text-sm">
+                          {[
+                            { label:'Study Hours', value:`≥ ${rule.min_study_hours||0}h`, icon:'⏱️' },
+                            { label:'Quizzes',     value:`≥ ${rule.min_quizzes_completed||0}`,icon:'📝' },
+                            { label:'Streak',      value:`≥ ${rule.min_streak_days||0} days`,icon:'🔥' },
+                            { label:'Period',      value:rule.evaluation_period||'7d',      icon:'📅' },
+                          ].map(s => (
+                            <div key={s.label} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-200">
+                              <span className="text-sm">{s.icon}</span>
+                              <span className="text-xs font-bold text-slate-700">{s.value}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
+            )}
 
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800">
-                <p className="font-semibold mb-1">⚠️ Manual overrides bypass progression rules</p>
-                <p>The user's next-tier progress will be reset to 0. A 3-day demotion grace period will apply.</p>
-              </div>
-
-              <button
-                onClick={handlePromote}
-                disabled={saving || !promoteUserId.trim()}
-                className="btn-primary w-full justify-center"
-              >
-                {saving ? 'Promoting...' : `Promote to ${tiers.find(t => t.tier_key === promoteTarget)?.name || promoteTarget}`}
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ════════════════════════════════════════════════ */}
-      {/* EDIT TIER MODAL                                  */}
-      {/* ════════════════════════════════════════════════ */}
-      {editTier && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6 border-b border-slate-100">
-              <div>
-                <p className="font-bold text-slate-900 text-lg">Edit {editTier.name}</p>
-                <p className="text-xs text-slate-500">Changes reflect immediately in the Android app</p>
-              </div>
-              <button onClick={() => setEditTier(null)} className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center">
-                <X size={14} className="text-slate-500" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Display Name</label>
-                <input type="text" value={editTier.name} onChange={e => setEditTier({ ...editTier, name: e.target.value })} className="input" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Description</label>
-                <textarea rows={2} value={editTier.description || ''} onChange={e => setEditTier({ ...editTier, description: e.target.value })} className="input" />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Coin Multiplier
-                    <span className="text-slate-400 font-normal ml-1">(base 6 coins/hr × this)</span>
-                  </label>
-                  <input type="number" step="0.25" min="0.5" max="5" value={editTier.coin_multiplier}
-                    onChange={e => setEditTier({ ...editTier, coin_multiplier: e.target.value })} className="input" />
-                  <p className="text-xs text-slate-400 mt-1">
-                    = {(6 * parseFloat(editTier.coin_multiplier || 1)).toFixed(0)} coins/hour
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    XP Multiplier
-                    <span className="text-slate-400 font-normal ml-1">(base 1 XP/min × this)</span>
-                  </label>
-                  <input type="number" step="0.25" min="0.5" max="5" value={editTier.xp_multiplier}
-                    onChange={e => setEditTier({ ...editTier, xp_multiplier: e.target.value })} className="input" />
-                  <p className="text-xs text-slate-400 mt-1">
-                    = {(60 * parseFloat(editTier.xp_multiplier || 1)).toFixed(0)} XP/hour
-                  </p>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Max Members</label>
-                <input type="number" min="10" value={editTier.max_members}
-                  onChange={e => setEditTier({ ...editTier, max_members: e.target.value })} className="input" />
-              </div>
-
-              {/* Perks editor */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-2">
-                  Perks (shown in Android app)
-                </label>
-                {(editTier.perks || []).map((perk: string, i: number) => (
-                  <div key={i} className="flex gap-2 mb-2">
-                    <input
-                      type="text"
-                      value={perk}
-                      onChange={e => {
-                        const p = [...editTier.perks]; p[i] = e.target.value
-                        setEditTier({ ...editTier, perks: p })
-                      }}
-                      className="input flex-1"
-                      placeholder="e.g. 9 coins/hour study"
-                    />
-                    <button
-                      onClick={() => {
-                        const p = editTier.perks.filter((_: any, idx: number) => idx !== i)
-                        setEditTier({ ...editTier, perks: p })
-                      }}
-                      className="w-8 h-10 bg-red-50 hover:bg-red-100 text-red-500 rounded-lg flex items-center justify-center"
-                    >
-                      <X size={12} />
-                    </button>
+            {/* PROMOTE TAB */}
+            {activeTab === 'promote' && (
+              <div className="card p-6 max-w-md space-y-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-2xl bg-brand-50 flex items-center justify-center"><ArrowUp size={20} className="text-brand-600"/></div>
+                  <div>
+                    <h3 className="font-bold text-slate-900">Manually Promote User</h3>
+                    <p className="text-xs text-slate-500">Override automatic tier assignment</p>
                   </div>
-                ))}
-                <button
-                  onClick={() => setEditTier({ ...editTier, perks: [...(editTier.perks || []), ''] })}
-                  className="btn-secondary text-xs"
-                >
-                  + Add Perk
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">User ID</label>
+                  <input value={promoteUserId} onChange={e => setPromoteUserId(e.target.value)} className="input w-full" placeholder="Paste user UUID…"/>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">Promote To</label>
+                  <div className="flex items-center gap-1.5 px-3 py-2.5 bg-slate-50 rounded-xl border border-slate-200">
+                    <select value={promoteTarget} onChange={e => setPromoteTarget(e.target.value)} className="text-sm bg-transparent outline-none text-slate-700 w-full">
+                      {Object.entries(TIER_META).map(([k,v]) => <option key={k} value={k}>{v.emoji} {v.label}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <button onClick={promote} disabled={!promoteUserId.trim()} className="btn-primary w-full disabled:opacity-40">
+                  <ArrowUp size={14}/> Promote User
                 </button>
               </div>
-
-              <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
-                <input type="checkbox" id="tierActive" checked={editTier.is_active}
-                  onChange={e => setEditTier({ ...editTier, is_active: e.target.checked })}
-                  className="w-4 h-4 accent-brand-500" />
-                <label htmlFor="tierActive" className="text-sm text-slate-700 font-medium cursor-pointer">
-                  Tier is visible and active
-                </label>
-              </div>
-            </div>
-
-            <div className="flex gap-3 p-6 border-t border-slate-100">
-              <button onClick={() => setEditTier(null)} className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50">Cancel</button>
-              <button onClick={saveTier} disabled={saving} className="flex-1 btn-primary">
-                {saving ? 'Saving…' : 'Save Tier'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ════════════════════════════════════════════════ */}
-      {/* EDIT RULE MODAL                                  */}
-      {/* ════════════════════════════════════════════════ */}
-      {editRule && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6 border-b border-slate-100">
-              <div>
-                <p className="font-bold text-slate-900 text-lg">Edit Progression Rule</p>
-                <p className="text-xs text-slate-500">{editRule.from_name} → {editRule.to_name}</p>
-              </div>
-              <button onClick={() => setEditRule(null)} className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center">
-                <X size={14} className="text-slate-500" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-3">
-                ⚠️ Set a field to <strong>0</strong> to ignore that condition.
-                Users must meet <strong>ALL non-zero conditions</strong> to be promoted.
-              </p>
-
-              <div className="grid grid-cols-2 gap-4">
-                {[
-                  { key: 'min_total_study_hours', label: 'Min Total Study Hours', step: '0.5', hint: '0 = ignore' },
-                  { key: 'min_streak_days', label: 'Min Streak Days', step: '1', hint: '0 = ignore' },
-                  { key: 'min_quizzes_completed', label: 'Min Quizzes', step: '1', hint: '0 = ignore' },
-                  { key: 'min_accuracy_pct', label: 'Min Accuracy %', step: '1', hint: '0 = ignore' },
-                ].map(f => (
-                  <div key={f.key}>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">{f.label}</label>
-                    <input type="number" step={f.step} min="0" value={editRule[f.key]}
-                      onChange={e => setEditRule({ ...editRule, [f.key]: e.target.value })} className="input" />
-                    <p className="text-xs text-slate-400 mt-0.5">{f.hint}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="border-t border-slate-100 pt-4">
-                <p className="text-xs font-semibold text-slate-700 mb-3">Demotion Settings</p>
-                <div className="grid grid-cols-3 gap-4">
-                  {[
-                    { key: 'evaluation_window_days', label: 'Eval Window (days)', hint: 'Rolling window for weekly stats' },
-                    { key: 'demotion_threshold_pct', label: 'Demotion Threshold %', hint: 'Below this = at risk' },
-                    { key: 'demotion_grace_days', label: 'Grace Days', hint: 'Days before demotion' },
-                  ].map(f => (
-                    <div key={f.key}>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">{f.label}</label>
-                      <input type="number" step="1" min="1" value={editRule[f.key]}
-                        onChange={e => setEditRule({ ...editRule, [f.key]: e.target.value })} className="input" />
-                      <p className="text-xs text-slate-400 mt-0.5">{f.hint}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
-                <input type="checkbox" id="ruleActive" checked={editRule.is_active}
-                  onChange={e => setEditRule({ ...editRule, is_active: e.target.checked })}
-                  className="w-4 h-4 accent-brand-500" />
-                <label htmlFor="ruleActive" className="text-sm text-slate-700 font-medium cursor-pointer">
-                  Rule is active (uncheck to pause promotion for this tier transition)
-                </label>
-              </div>
-            </div>
-
-            <div className="flex gap-3 p-6 border-t border-slate-100">
-              <button onClick={() => setEditRule(null)} className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50">Cancel</button>
-              <button onClick={saveRule} disabled={saving} className="flex-1 btn-primary">
-                {saving ? 'Saving…' : 'Save Rule'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+            )}
+          </>
+        )}
+      </div>
     </div>
   )
 }
