@@ -153,66 +153,6 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* Ad Reward Settings */}
-          <div className="card p-5 border-2 border-purple-200 bg-purple-50/30">
-            <div className="flex items-center gap-2 mb-4">
-              <span className="text-xl">📺</span>
-              <div>
-                <h2 className="section-title mb-0">Ad Reward Settings</h2>
-                <p className="text-xs text-slate-500 mt-0.5">Configure how many coins users earn per watched ad</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-                  Coins Per Ad Watch 🪙
-                </label>
-                <input
-                  type="number" min="1" max="500"
-                  value={settings.ad_reward_coins || '10'}
-                  onChange={e => set('ad_reward_coins', e.target.value)}
-                  className="input"
-                />
-                <p className="text-[10px] text-slate-400 mt-1">
-                  Users earn this many coins for each completed ad
-                </p>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-                  Min Ads Per Session 📺
-                </label>
-                <input
-                  type="number" min="1" max="10"
-                  value={settings.ad_min_per_session || '2'}
-                  onChange={e => set('ad_min_per_session', e.target.value)}
-                  className="input"
-                />
-                <p className="text-[10px] text-slate-400 mt-1">
-                  Minimum ads shown back-to-back per watch session
-                </p>
-              </div>
-              <div className="bg-white rounded-xl p-4 border border-purple-200">
-                <p className="text-xs font-semibold text-slate-600 mb-2">💡 Estimated Revenue</p>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-slate-500">Coins per session</span>
-                    <span className="font-bold text-purple-700">
-                      🪙 {(parseInt(settings.ad_reward_coins || '10') * parseInt(settings.ad_min_per_session || '2'))}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-slate-500">Ads per session</span>
-                    <span className="font-bold text-purple-700">{settings.ad_min_per_session || '2'} ads</span>
-                  </div>
-                  <div className="flex justify-between text-xs border-t border-slate-100 pt-1 mt-1">
-                    <span className="text-slate-500">User incentive</span>
-                    <span className="font-bold text-green-600">Unlimited sessions</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
           {/* All Settings — raw view */}
           <div className="card p-5">
             <div className="flex items-center gap-2 mb-4">

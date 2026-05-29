@@ -10,8 +10,7 @@ import {
   Trophy, Radio, Award, Image, Tag, CheckSquare, Settings,
   Shield, GraduationCap, ChevronRight, ChevronDown, LogOut,
   Zap, Brain, Layers, AlertTriangle, Star, LibraryBig,
-  Coins,
-  TrendingUp
+  Coins
 } from 'lucide-react'
 
 type NavItem = {
@@ -47,7 +46,6 @@ const NAV: NavGroup[] = [
     { href:'/coins',            icon:Coins,           label:'Coins & Rewards' },
   ]},
   { group:'Engagement', items:[
-    { href:'/analytics',        icon:TrendingUp,      label:'Analytics & Notifs' },
     { href:'/notifications',    icon:Bell,            label:'Notifications' },
     { href:'/study-rooms',      icon:Users2,          label:'Study Rooms' },
     { href:'/tier-rooms',       icon:Layers,          label:'Tier Room System' },
