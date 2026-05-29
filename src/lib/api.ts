@@ -366,10 +366,14 @@ export const api = {
   },
 
   adminUsers: {
-    list:   () => request('/admin/users/admin-accounts/list'),
-    create: (data: any) => request('/admin/users/admin-accounts', { method: 'POST', body: JSON.stringify(data) }),
-    update: (id: string, data: any) => request(`/admin/users/admin-accounts/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-    delete: (id: string) => request(`/admin/users/admin-accounts/${id}`, { method: 'DELETE' }),
+    list:                 ()             => request('/admin/users/admin-accounts/list'),
+    create:               (data: any)    => request('/admin/users/admin-accounts', { method: 'POST', body: JSON.stringify(data) }),
+    update:               (id: string, data: any) => request(`/admin/users/admin-accounts/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete:               (id: string)   => request(`/admin/users/admin-accounts/${id}`, { method: 'DELETE' }),
+    // ── Email verification ─────────────────────────────────────
+    resendVerification:   (id: string)   => request(`/admin/users/admin-accounts/${id}/resend-verification`, { method: 'POST' }),
+    approve:              (id: string)   => request(`/admin/users/admin-accounts/${id}/approve`, { method: 'POST' }),
+    verifyToken:          (token: string)=> request(`/admin/verify-email?token=${token}`),
   },
 
   // ── Flashcards (Active Recall) ────────────────────────────
