@@ -318,7 +318,7 @@ export default function UsersPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-100 bg-slate-50/60">
-                    {['User', 'Mobile', 'Exam', 'Streak', 'Coins', 'Plan', 'Accuracy', 'Status', 'Actions'].map(h => (
+                    {['User', 'Mobile', 'Streak', 'Coins', 'Plan', 'Accuracy', 'Status', 'Actions'].map(h => (
                       <th key={h} className="text-left px-4 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
@@ -344,8 +344,6 @@ export default function UsersPage() {
                       </td>
 
                       <td className="px-4 py-3.5 text-sm text-slate-600 whitespace-nowrap">{u.mobile || '—'}</td>
-                      <td className="px-4 py-3.5 text-xs text-slate-600 max-w-[120px] truncate">{u.primary_exam || '—'}</td>
-
                       {/* Issue 2: padding fix in badges */}
                       <td className="px-4 py-3.5">
                         <StatBadge icon="🔥" value={`${u.streak ?? 0}d`} color="bg-orange-50 text-orange-700 border-orange-100" />
