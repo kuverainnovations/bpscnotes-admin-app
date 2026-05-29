@@ -262,26 +262,34 @@ export default function StudyMaterialsAdminPage() {
                         {m.isTrending  && <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-orange-50 text-orange-700 border border-orange-200">🔥 Trending</span>}
                       </div>
 
-                      {/* Issue 2: metadata row — always visible */}
-                      <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-slate-500">
-                        {m.subject && <span className="flex items-center gap-1"><FileText size={11} className="text-slate-400" /> {m.subject}</span>}
+                      {/* Metadata row */}
+                      <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-slate-500 mt-1.5">
+                        {(m.subject || m.exam_tag) && (
+                          <span className="flex items-center gap-1 font-medium text-slate-600">
+                            <FileText size={11} className="text-slate-400" />
+                            {m.subject || m.exam_tag}
+                          </span>
+                        )}
                         <span className="flex items-center gap-1">
                           <Users size={11} className="text-slate-400" />
-                          {m.uploaderName || m.uploader_name || '—'}
+                          {m.uploaderName || m.uploader_name || m.uploaded_by_name || '—'}
                         </span>
-                        <span className="flex items-center gap-1">
-                          <HardDrive size={11} className="text-slate-400" />
-                          {fmt(m.fileSizeBytes || m.file_size_bytes)}
-                        </span>
+                        {(m.fileSizeBytes || m.file_size_bytes) ? (
+                          <span className="flex items-center gap-1">
+                            <HardDrive size={11} className="text-slate-400" />
+                            {fmt(m.fileSizeBytes || m.file_size_bytes)}
+                          </span>
+                        ) : null}
                         <span className="flex items-center gap-1">
                           <Download size={11} className="text-slate-400" />
                           {(m.downloadCount ?? m.download_count ?? 0).toLocaleString()} downloads
                         </span>
                         <span className="flex items-center gap-1">
                           <Calendar size={11} className="text-slate-400" />
-                          {m.createdAt || m.created_at
-                            ? new Date(m.createdAt || m.created_at).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })
-                            : '—'}
+                          {(() => {
+                            const d = m.createdAt || m.created_at
+                            return d ? new Date(d).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) : '—'
+                          })()}
                         </span>
                       </div>
 

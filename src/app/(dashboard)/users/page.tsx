@@ -62,7 +62,11 @@ function UserDetailModal({ user, onClose, onUpdateStatus, onVerify }:
           <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
           <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
 
-          <button onClick={onClose} className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors">
+          {/* Close button — above overflow-hidden layer via z-index */}
+          <button
+            onClick={e => { e.stopPropagation(); onClose() }}
+            className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+          >
             <X size={14} className="text-white" />
           </button>
 
@@ -318,7 +322,7 @@ export default function UsersPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-100 bg-slate-50/60">
-                    {['User', 'Mobile', 'Streak', 'Coins', 'Plan', 'Accuracy', 'Status', 'Actions'].map(h => (
+                    {['User', 'Streak', 'Coins', 'Plan', 'Status', 'Actions'].map(h => (
                       <th key={h} className="text-left px-4 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
@@ -343,7 +347,6 @@ export default function UsersPage() {
                         </div>
                       </td>
 
-                      <td className="px-4 py-3.5 text-sm text-slate-600 whitespace-nowrap">{u.mobile || '—'}</td>
                       {/* Issue 2: padding fix in badges */}
                       <td className="px-4 py-3.5">
                         <StatBadge icon="🔥" value={`${u.streak ?? 0}d`} color="bg-orange-50 text-orange-700 border-orange-100" />
@@ -357,14 +360,7 @@ export default function UsersPage() {
                         </span>
                       </td>
 
-                      <td className="px-4 py-3.5">
-                        <div className="flex items-center gap-2">
-                          <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                            <div className="h-full rounded-full bg-brand-500" style={{ width: `${u.accuracy || 0}%` }} />
-                          </div>
-                          <span className="text-xs font-bold text-slate-700 w-8">{parseFloat(u.accuracy || 0).toFixed(0)}%</span>
-                        </div>
-                      </td>
+
 
                       <td className="px-4 py-3.5">
                         <span className={`badge ${

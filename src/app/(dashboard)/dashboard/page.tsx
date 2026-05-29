@@ -8,40 +8,61 @@ import {
   CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
 } from 'recharts'
 import {
-  TrendingUp, TrendingDown, RefreshCw, Users, DollarSign,
-  Crown, Target, Coins, Activity, BookOpen, FileText,
-  HelpCircle, Newspaper, Briefcase, ArrowRight, Plus,
+  TrendingUp, TrendingDown, RefreshCw, Users, IndianRupee,
+  Crown, Target, Activity, BookOpen, FileText,
+  HelpCircle, Newspaper, Briefcase, ArrowRight,
+  Zap, BarChart2, BookMarked, Award,
 } from 'lucide-react'
 import { useAuth } from '@/lib/auth-context'
+import Link from 'next/link'
 
-const PIE_COLORS = ['#1565C0', '#9B59B6', '#2ECC71', '#F39C12']
+const CHART_COLORS = ['#1565C0', '#9B59B6', '#2ECC71', '#F39C12', '#E74C3C', '#1ABC9C']
 
-// ── Stat Card ────────────────────────────────────────────────
-function StatCard({ icon, label, value, sub, growth, gradient }:
-  { icon: React.ReactNode; label: string; value: string; sub: string; growth?: number; gradient: string }) {
-  const isPositive = !growth || growth >= 0
+// ── Stat card ────────────────────────────────────────────────
+function StatCard({ icon, label, value, sub, trend, trendLabel, color }:
+  { icon: React.ReactNode; label: string; value: string; sub?: string
+    trend?: number; trendLabel?: string; color: string }) {
+  const up = !trend || trend >= 0
   return (
-    <div className={`card p-5 overflow-hidden relative bg-gradient-to-br ${gradient}`}>
-      {/* bg decoration */}
-      <div className="absolute -right-4 -top-4 w-20 h-20 rounded-full bg-white/10" />
-      <div className="relative">
-        <div className="flex items-center justify-between mb-3">
-          <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center text-white">
-            {icon}
-          </div>
-          {growth !== undefined && (
-            <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold
-              ${isPositive ? 'bg-green-400/20 text-green-100' : 'bg-red-400/20 text-red-100'}`}>
-              {isPositive ? <TrendingUp size={9}/> : <TrendingDown size={9}/>}
-              {Math.abs(growth)}%
-            </span>
-          )}
+    <div className="card p-5 relative overflow-hidden group hover:shadow-md transition-shadow">
+      <div className={`absolute inset-y-0 left-0 w-1 ${color}`} />
+      <div className="flex items-start justify-between mb-3 pl-2">
+        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${color.replace('bg-','bg-').replace('-500','-100').replace('-600','-100')} `}
+          style={{background: 'var(--icon-bg)'}}>
+          <div className={color.replace('bg-','text-')}>{icon}</div>
         </div>
-        <p className="text-2xl font-black text-white">{value}</p>
-        <p className="text-white/80 text-xs font-semibold mt-0.5">{label}</p>
-        <p className="text-white/50 text-[10px] mt-0.5">{sub}</p>
+        {trend !== undefined && (
+          <span className={`flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-xl
+            ${up ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
+            {up ? <TrendingUp size={9}/> : <TrendingDown size={9}/>}
+            {Math.abs(trend)}%
+          </span>
+        )}
+      </div>
+      <div className="pl-2">
+        <p className="text-2xl font-black text-slate-900 leading-none">{value}</p>
+        <p className="text-xs font-bold text-slate-600 mt-1">{label}</p>
+        {sub && <p className="text-[10px] text-slate-400 mt-0.5">{sub}</p>}
       </div>
     </div>
+  )
+}
+
+// ── Content stat mini card ────────────────────────────────────
+function ContentCard({ icon, label, value, href, color }:
+  { icon: React.ReactNode; label: string; value: number; href: string; color: string }) {
+  return (
+    <Link href={href}
+      className={`card p-4 flex items-center gap-3 hover:shadow-md transition-all group ${color}`}>
+      <div className="w-9 h-9 rounded-xl bg-white/70 flex items-center justify-center shadow-sm shrink-0 group-hover:scale-110 transition-transform">
+        {icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-xl font-black text-slate-900">{value.toLocaleString()}</p>
+        <p className="text-xs font-medium text-slate-600 truncate">{label}</p>
+      </div>
+      <ArrowRight size={14} className="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+    </Link>
   )
 }
 
@@ -54,6 +75,9 @@ export default function DashboardPage() {
   const [loading, setLoading]     = useState(true)
   const [error, setError]         = useState('')
   const { admin } = useAuth()
+
+  const hr   = new Date().getHours()
+  const greeting = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening'
 
   const load = async () => {
     setLoading(true); setError('')
@@ -78,7 +102,7 @@ export default function DashboardPage() {
   useEffect(() => { if (!admin) return; load() }, [admin])
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
+    <div className="min-h-screen flex items-center justify-center">
       <div className="text-center">
         <div className="w-12 h-12 border-4 border-brand-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
         <p className="text-slate-500 font-medium">Loading dashboard…</p>
@@ -91,7 +115,7 @@ export default function DashboardPage() {
       <div className="card p-8 text-center max-w-sm">
         <p className="text-4xl mb-3">⚠️</p>
         <p className="text-red-500 font-bold mb-2">{error}</p>
-        <p className="text-slate-400 text-sm mb-5">Unable to connect to the server.</p>
+        <p className="text-slate-400 text-sm mb-5">Unable to connect to the server</p>
         <button onClick={load} className="btn-primary"><RefreshCw size={14}/> Retry</button>
       </div>
     </div>
@@ -100,72 +124,114 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen">
       <Header
-        title={`Good ${new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'}, ${admin?.name?.split(' ')[0] ?? 'Admin'} 👋`}
-        subtitle="Here's what's happening with BPSCNotes today."
+        title={`${greeting}, ${admin?.name?.split(' ')[0] ?? 'Admin'} 👋`}
+        subtitle="Here's BPSCNotes at a glance today"
       />
-      <div className="p-6 space-y-6 animate-fade-in">
 
-        {/* ── Primary stat cards ───────────────────────────── */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <StatCard icon={<Users size={18}/>}       label="Total Users"      value={formatNumber(stats?.totalUsers||0)}            sub={`+${formatNumber(stats?.newThisWeek||0)} this week`}             growth={stats?.newThisWeek > 0 ? 5 : 0} gradient="from-blue-600 to-blue-700" />
-          <StatCard icon={<DollarSign size={18}/>}  label="Revenue (Month)"  value={`₹${formatNumber(stats?.revenueThisMonth||0)}`} sub={`vs ₹${formatNumber(stats?.revenueLastMonth||0)} last month`}  growth={stats?.revenueGrowthPct} gradient="from-emerald-500 to-emerald-700" />
-          <StatCard icon={<Crown size={18}/>}       label="Active Subs"      value={formatNumber(stats?.activeSubscriptions||0)}    sub="Currently active"                                               gradient="from-purple-600 to-purple-700" />
-          <StatCard icon={<Target size={18}/>}      label="Avg Accuracy"     value={`${parseFloat(stats?.avgAccuracy||0).toFixed(1)}%`}  sub="Quiz performance"                                          gradient="from-orange-500 to-orange-600" />
-          <StatCard icon={<Activity size={18}/>}    label="Active Today"     value={formatNumber(stats?.activeToday||0)}            sub="Users active today"                                             gradient="from-red-500 to-red-600" />
-          <StatCard icon={<span className="text-lg">🪙</span>} label="Coins" value={formatNumber(stats?.coinCirculation||0)}       sub="Total coins earned"                                             gradient="from-amber-500 to-amber-600" />
+      <div className="p-6 space-y-6 animate-fade-in max-w-7xl mx-auto">
+
+        {/* ── Hero welcome strip ──────────────────────────── */}
+        <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-brand-700 via-brand-600 to-brand-500 p-6 md:p-8">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/3 translate-x-1/3 pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-40 h-40 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2 pointer-events-none" />
+          <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+              <p className="text-white/70 text-sm font-medium mb-1">Overview · Today</p>
+              <h2 className="text-2xl md:text-3xl font-black text-white leading-tight">
+                {formatNumber(stats?.totalUsers || 0)} learners
+              </h2>
+              <p className="text-white/60 text-sm mt-1">
+                {formatNumber(stats?.activeToday || 0)} active today ·
+                +{formatNumber(stats?.newThisWeek || 0)} this week
+              </p>
+            </div>
+            <div className="flex items-center gap-3 flex-wrap">
+              {[
+                { label: 'Active Subs',  value: stats?.activeSubscriptions || 0, icon: '👑' },
+                { label: 'Study Rooms', value: stats?.activeStudyRooms || 0,    icon: '🏫' },
+                { label: 'Quiz Attempts',value: stats?.quizAttempts || 0,       icon: '📝' },
+              ].map(s => (
+                <div key={s.label} className="bg-white/15 rounded-2xl px-4 py-3 text-center min-w-[90px]">
+                  <p className="text-lg font-black text-white">{formatNumber(s.value)}</p>
+                  <p className="text-white/60 text-[10px] font-medium mt-0.5">{s.label}</p>
+                </div>
+              ))}
+              <button onClick={load}
+                className="w-10 h-10 rounded-2xl bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors"
+                title="Refresh">
+                <RefreshCw size={16}/>
+              </button>
+            </div>
+          </div>
         </div>
 
-        {/* ── Charts row ────────────────────────────────────── */}
+        {/* ── Primary stat cards ──────────────────────────── */}
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+          {[
+            { icon:<Users size={18}/>,          label:'Total Users',    value:formatNumber(stats?.totalUsers||0),             sub:`${formatNumber(stats?.newThisMonth||0)} this month`,  trend:5,                          color:'bg-blue-500' },
+            { icon:<IndianRupee size={18}/>,    label:'Revenue/Month',  value:`₹${formatNumber(stats?.revenueThisMonth||0)}`,  sub:`Last: ₹${formatNumber(stats?.revenueLastMonth||0)}`, trend:stats?.revenueGrowthPct,    color:'bg-emerald-500' },
+            { icon:<Crown size={18}/>,          label:'Active Subs',    value:formatNumber(stats?.activeSubscriptions||0),     sub:'Currently active',                                    color:'bg-purple-500' },
+            { icon:<Target size={18}/>,         label:'Avg Accuracy',   value:`${parseFloat(stats?.avgAccuracy||0).toFixed(1)}%`, sub:'Quiz performance',                                color:'bg-orange-500' },
+            { icon:<Activity size={18}/>,       label:'Active Today',   value:formatNumber(stats?.activeToday||0),            sub:'Unique users',                                         color:'bg-red-500' },
+            { icon:<span className="text-base">🪙</span>, label:'Coins', value:formatNumber(stats?.coinCirculation||0), sub:'Total earned',                                              color:'bg-amber-500' },
+          ].map(s => (
+            <StatCard key={s.label} {...s} />
+          ))}
+        </div>
+
+        {/* ── Charts ──────────────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          {/* User Growth */}
+
+          {/* User growth area chart */}
           <div className="card p-5 lg:col-span-2">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-5">
               <div>
                 <h2 className="font-bold text-slate-900">User Growth</h2>
-                <p className="text-xs text-slate-400 mt-0.5">New registrations over last 12 months</p>
+                <p className="text-xs text-slate-400 mt-0.5">New registrations — last 12 months</p>
               </div>
-              <span className="flex items-center gap-1.5 text-xs font-semibold text-green-600 bg-green-50 px-2.5 py-1 rounded-xl">
-                <TrendingUp size={11}/> +{stats?.newThisMonth || 0} this month
+              <span className="flex items-center gap-1.5 text-xs font-semibold text-green-600 bg-green-50 px-2.5 py-1.5 rounded-xl border border-green-100">
+                <TrendingUp size={11}/> +{formatNumber(stats?.newThisMonth || 0)} this month
               </span>
             </div>
-            <ResponsiveContainer width="100%" height={210}>
-              <AreaChart data={userChart} margin={{top:5, right:5, bottom:0, left:-10}}>
+            <ResponsiveContainer width="100%" height={200}>
+              <AreaChart data={userChart} margin={{top:5, right:5, bottom:0, left:-15}}>
                 <defs>
                   <linearGradient id="ug" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#1565C0" stopOpacity={0.2}/>
+                    <stop offset="5%"  stopColor="#1565C0" stopOpacity={0.15}/>
                     <stop offset="95%" stopColor="#1565C0" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis dataKey="date" tick={{fontSize:11,fill:'#94a3b8'}} axisLine={false} tickLine={false} />
-                <YAxis tick={{fontSize:11,fill:'#94a3b8'}} axisLine={false} tickLine={false} tickFormatter={v=>formatNumber(v)} />
-                <Tooltip formatter={(v:number)=>[formatNumber(v),'Users']} contentStyle={{borderRadius:12,fontSize:12,border:'1px solid #e2e8f0'}} />
-                <Area type="monotone" dataKey="value" stroke="#1565C0" strokeWidth={2.5} fill="url(#ug)" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false}/>
+                <XAxis dataKey="date" tick={{fontSize:11,fill:'#94a3b8'}} axisLine={false} tickLine={false}/>
+                <YAxis tick={{fontSize:11,fill:'#94a3b8'}} axisLine={false} tickLine={false} tickFormatter={v=>formatNumber(v)}/>
+                <Tooltip
+                  formatter={(v:number) => [formatNumber(v), 'Users']}
+                  contentStyle={{borderRadius:12, fontSize:12, border:'1px solid #e2e8f0', boxShadow:'0 4px 16px rgba(0,0,0,.06)'}}
+                />
+                <Area type="monotone" dataKey="value" stroke="#1565C0" strokeWidth={2.5} fill="url(#ug)" dot={false}/>
               </AreaChart>
             </ResponsiveContainer>
           </div>
 
-          {/* Revenue split */}
+          {/* Revenue pie */}
           <div className="card p-5">
-            <div className="mb-4">
-              <h2 className="font-bold text-slate-900">Revenue Split</h2>
-              <p className="text-xs text-slate-400 mt-0.5">By subscription plan</p>
-            </div>
+            <h2 className="font-bold text-slate-900 mb-1">Revenue Split</h2>
+            <p className="text-xs text-slate-400 mb-4">By subscription plan</p>
             {revPie.length > 0 ? (
               <>
-                <ResponsiveContainer width="100%" height={150}>
+                <ResponsiveContainer width="100%" height={140}>
                   <PieChart>
-                    <Pie data={revPie} cx="50%" cy="50%" innerRadius={40} outerRadius={65} paddingAngle={3} dataKey="amount">
-                      {revPie.map((_:any, i:number) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]}/>)}
+                    <Pie data={revPie} cx="50%" cy="50%" innerRadius={38} outerRadius={60} paddingAngle={3} dataKey="amount">
+                      {revPie.map((_:any, i:number) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]}/>)}
                     </Pie>
-                    <Tooltip formatter={(v:number)=>[`₹${formatNumber(v)}`,'Revenue']} contentStyle={{borderRadius:12,fontSize:12}} />
+                    <Tooltip formatter={(v:number) => [`₹${formatNumber(v)}`, 'Revenue']} contentStyle={{borderRadius:12, fontSize:12}}/>
                   </PieChart>
                 </ResponsiveContainer>
-                <div className="space-y-2 mt-2">
+                <div className="space-y-2 mt-3">
                   {revPie.map((r:any, i:number) => (
                     <div key={i} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{background:PIE_COLORS[i%PIE_COLORS.length]}}/>
+                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{background:CHART_COLORS[i%CHART_COLORS.length]}}/>
                         <span className="text-xs text-slate-600 capitalize">{r.plan}</span>
                       </div>
                       <div className="text-right">
@@ -177,108 +243,103 @@ export default function DashboardPage() {
                 </div>
               </>
             ) : (
-              <div className="flex items-center justify-center h-32 text-slate-300 text-sm">No data yet</div>
+              <div className="flex items-center justify-center h-40 text-slate-300 text-sm flex-col gap-2">
+                <BarChart2 size={32} className="text-slate-200"/>
+                No data yet
+              </div>
             )}
           </div>
         </div>
 
-        {/* ── Second row ───────────────────────────────────── */}
+        {/* ── Revenue bar + Exam distribution ─────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          {/* Monthly Revenue */}
           <div className="card p-5">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="font-bold text-slate-900">Monthly Revenue</h2>
-                <p className="text-xs text-slate-400 mt-0.5">₹ earned per month</p>
-              </div>
-            </div>
+            <h2 className="font-bold text-slate-900 mb-1">Monthly Revenue</h2>
+            <p className="text-xs text-slate-400 mb-4">₹ earned per month</p>
             <ResponsiveContainer width="100%" height={180}>
-              <BarChart data={revChart} margin={{top:5, right:5, bottom:0, left:-10}}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis dataKey="date" tick={{fontSize:11,fill:'#94a3b8'}} axisLine={false} tickLine={false} />
-                <YAxis tick={{fontSize:11,fill:'#94a3b8'}} axisLine={false} tickLine={false} tickFormatter={v=>`₹${v/1000}k`} />
-                <Tooltip formatter={(v:number)=>[`₹${formatNumber(v)}`,'Revenue']} contentStyle={{borderRadius:12,fontSize:12}} />
-                <Bar dataKey="value" fill="#1565C0" radius={[6,6,0,0]} />
+              <BarChart data={revChart} margin={{top:5, right:5, bottom:0, left:-15}}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false}/>
+                <XAxis dataKey="date" tick={{fontSize:11,fill:'#94a3b8'}} axisLine={false} tickLine={false}/>
+                <YAxis tick={{fontSize:11,fill:'#94a3b8'}} axisLine={false} tickLine={false} tickFormatter={v=>`₹${v/1000}k`}/>
+                <Tooltip formatter={(v:number) => [`₹${formatNumber(v)}`, 'Revenue']} contentStyle={{borderRadius:12, fontSize:12}}/>
+                <Bar dataKey="value" fill="#1565C0" radius={[6,6,0,0]} maxBarSize={40}/>
               </BarChart>
             </ResponsiveContainer>
           </div>
 
-          {/* Exam distribution */}
           <div className="card p-5">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="font-bold text-slate-900">Exam Distribution</h2>
-                <p className="text-xs text-slate-400 mt-0.5">Which exams users are preparing for</p>
-              </div>
-            </div>
+            <h2 className="font-bold text-slate-900 mb-1">Exam Distribution</h2>
+            <p className="text-xs text-slate-400 mb-4">Which exams users are preparing for</p>
             <div className="space-y-3">
-              {examDist.slice(0, 6).map((e:any, i:number) => {
-                const total = examDist.reduce((a:number,x:any) => a + parseInt(x.users||0), 0) || 1
-                const pct   = Math.round(parseInt(e.users||0) / total * 100)
-                return (
-                  <div key={e.exam} className="flex items-center gap-3">
-                    <span className="text-xs text-slate-400 w-4 font-bold shrink-0">{i+1}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between mb-1">
-                        <span className="text-xs font-semibold text-slate-700 truncate">{e.exam}</span>
-                        <span className="text-xs font-bold text-slate-500 shrink-0 ml-2">{formatNumber(e.users)}</span>
+              {examDist.length === 0
+                ? <div className="h-40 flex items-center justify-center text-slate-300 text-sm flex-col gap-2"><Target size={32} className="text-slate-200"/>No data yet</div>
+                : examDist.slice(0, 6).map((e:any, i:number) => {
+                    const total = examDist.reduce((a:number,x:any) => a + parseInt(x.users||0), 0) || 1
+                    const pct   = Math.round(parseInt(e.users||0) / total * 100)
+                    return (
+                      <div key={e.exam} className="flex items-center gap-3">
+                        <span className="text-[10px] font-black text-slate-400 w-4 shrink-0">{i+1}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between mb-1">
+                            <span className="text-xs font-semibold text-slate-700 truncate">{e.exam}</span>
+                            <span className="text-xs font-bold text-slate-500 shrink-0 ml-2">{formatNumber(e.users)}</span>
+                          </div>
+                          <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                            <div className="h-full rounded-full transition-all" style={{width:`${pct}%`, background:CHART_COLORS[i%CHART_COLORS.length]}}/>
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-400 w-8 text-right shrink-0">{pct}%</span>
                       </div>
-                      <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                        <div className="h-full rounded-full transition-all" style={{width:`${pct}%`, background: PIE_COLORS[i % PIE_COLORS.length]}}/>
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-bold text-slate-400 w-8 text-right shrink-0">{pct}%</span>
-                  </div>
-                )
-              })}
+                    )
+                  })
+              }
             </div>
           </div>
         </div>
 
-        {/* ── Content counters ─────────────────────────────── */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          {[
-            { label:'Courses',    value:stats?.totalCourses||0, icon:<BookOpen size={18}/>,    gradient:'from-blue-500 to-blue-600' },
-            { label:'Notes',      value:stats?.totalNotes||0,   icon:<FileText size={18}/>,    gradient:'from-teal-500 to-teal-600' },
-            { label:'Quizzes',    value:stats?.totalQuizzes||0, icon:<HelpCircle size={18}/>,  gradient:'from-purple-500 to-purple-600' },
-            { label:'Affairs',    value:stats?.totalAffairs||0, icon:<Newspaper size={18}/>,   gradient:'from-orange-500 to-orange-600' },
-            { label:'Active Jobs',value:stats?.activeJobs||0,   icon:<Briefcase size={18}/>,   gradient:'from-green-500 to-green-600' },
-          ].map(s => (
-            <div key={s.label} className={`card p-4 bg-gradient-to-br ${s.gradient} relative overflow-hidden`}>
-              <div className="absolute -right-3 -bottom-3 w-16 h-16 rounded-full bg-white/10" />
-              <div className="relative flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center text-white shrink-0">{s.icon}</div>
-                <div>
-                  <p className="text-xl font-black text-white">{s.value}</p>
-                  <p className="text-white/70 text-xs font-medium">{s.label}</p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+        {/* ── Content counters + Quick actions ─────────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
-        {/* ── Quick Actions ─────────────────────────────────── */}
-        <div className="card p-5">
-          <div className="flex items-center justify-between mb-4">
+          {/* Content grid */}
+          <div className="lg:col-span-2 space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="font-bold text-slate-900">Content Library</h2>
+              <span className="text-xs text-slate-400">Click to manage</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {[
+                { label:'Courses',     value:stats?.totalCourses||0,  icon:<BookOpen size={16} className="text-blue-600"/>,    href:'/content',          color:'bg-blue-50/60' },
+                { label:'Notes',       value:stats?.totalNotes||0,    icon:<FileText size={16} className="text-teal-600"/>,    href:'/content/notes',    color:'bg-teal-50/60' },
+                { label:'Quizzes',     value:stats?.totalQuizzes||0,  icon:<HelpCircle size={16} className="text-purple-600"/>,href:'/quizzes',          color:'bg-purple-50/60' },
+                { label:'Flashcards',  value:stats?.totalFlashcards||0,icon:<Zap size={16} className="text-yellow-600"/>,      href:'/flashcards',       color:'bg-yellow-50/60' },
+                { label:'Affairs',     value:stats?.totalAffairs||0,  icon:<Newspaper size={16} className="text-orange-600"/>, href:'/current-affairs',  color:'bg-orange-50/60' },
+                { label:'Active Jobs', value:stats?.activeJobs||0,    icon:<Briefcase size={16} className="text-green-600"/>,  href:'/jobs',             color:'bg-green-50/60' },
+              ].map(s => (
+                <ContentCard key={s.label} {...s}/>
+              ))}
+            </div>
+          </div>
+
+          {/* Quick actions */}
+          <div className="space-y-3">
             <h2 className="font-bold text-slate-900">Quick Actions</h2>
-            <p className="text-xs text-slate-400">Jump to common tasks</p>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {[
-              { label:'Add Current Affairs', href:'/current-affairs', icon:<Newspaper size={18}/>,  bg:'bg-blue-50',   text:'text-blue-700',   hover:'hover:bg-blue-100' },
-              { label:'Create Quiz',         href:'/quizzes',         icon:<HelpCircle size={18}/>, bg:'bg-purple-50', text:'text-purple-700', hover:'hover:bg-purple-100' },
-              { label:'Upload Notes',        href:'/content/notes',   icon:<FileText size={18}/>,   bg:'bg-green-50',  text:'text-green-700',  hover:'hover:bg-green-100' },
-              { label:'Send Notification',   href:'/notifications',   icon:<Activity size={18}/>,   bg:'bg-orange-50', text:'text-orange-700', hover:'hover:bg-orange-100' },
-            ].map(a => (
-              <a key={a.label} href={a.href}
-                className={`flex items-center gap-3 p-4 rounded-2xl transition-all ${a.bg} ${a.hover} group`}>
-                <div className={`w-9 h-9 rounded-xl bg-white flex items-center justify-center shadow-sm ${a.text} shrink-0`}>
-                  {a.icon}
-                </div>
-                <span className={`text-sm font-semibold ${a.text} flex-1 leading-tight`}>{a.label}</span>
-                <ArrowRight size={14} className={`${a.text} opacity-0 group-hover:opacity-100 transition-opacity shrink-0`} />
-              </a>
-            ))}
+            <div className="space-y-2">
+              {[
+                { label:'Add Current Affairs', href:'/current-affairs',  icon:<Newspaper size={15}/>, color:'text-blue-600',   bg:'bg-blue-50',   hover:'hover:bg-blue-100' },
+                { label:'Create New Quiz',      href:'/quizzes',         icon:<HelpCircle size={15}/>,color:'text-purple-600', bg:'bg-purple-50', hover:'hover:bg-purple-100' },
+                { label:'Send Notification',    href:'/notifications',   icon:<Activity size={15}/>,  color:'text-orange-600', bg:'bg-orange-50', hover:'hover:bg-orange-100' },
+                { label:'Manage Users',         href:'/users',           icon:<Users size={15}/>,     color:'text-green-600',  bg:'bg-green-50',  hover:'hover:bg-green-100' },
+                { label:'View Leaderboard',     href:'/leaderboard',     icon:<Award size={15}/>,     color:'text-amber-600',  bg:'bg-amber-50',  hover:'hover:bg-amber-100' },
+                { label:'App Settings',         href:'/settings',        icon:<BookMarked size={15}/>,color:'text-slate-600',  bg:'bg-slate-50',  hover:'hover:bg-slate-100' },
+              ].map(a => (
+                <Link key={a.label} href={a.href}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition-all ${a.bg} ${a.hover} group`}>
+                  <span className={`${a.color} shrink-0`}>{a.icon}</span>
+                  <span className={`text-sm font-semibold ${a.color} flex-1`}>{a.label}</span>
+                  <ArrowRight size={13} className={`${a.color} opacity-0 group-hover:opacity-100 transition-opacity shrink-0`}/>
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
 
