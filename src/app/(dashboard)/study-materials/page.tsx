@@ -84,18 +84,36 @@ function PreviewModal({ url, title, type, onClose }: { url:string; title:string;
               src={`https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`}
               className="w-full h-full border-0"
               title="PDF Preview"
+              onError={() => {/* google viewer failed */}}
             />
           )}
           {isImage && (
-            <div className="w-full h-full flex items-center justify-center p-6 overflow-auto">
-              <img src={url} alt={title} className="max-w-full max-h-full object-contain rounded-xl shadow-lg" />
+            <div className="w-full h-full flex items-center justify-center p-6 overflow-auto bg-slate-100">
+              <img
+                src={url}
+                alt={title}
+                className="max-w-full max-h-full object-contain rounded-xl shadow-lg"
+                onError={e => {
+                  const el = e.target as HTMLImageElement
+                  el.style.display = 'none'
+                  const msg = el.nextSibling as HTMLElement
+                  if (msg) msg.style.display = 'flex'
+                }}
+              />
+              <div style={{display:'none'}} className="flex-col items-center gap-3 text-center">
+                <span className="text-5xl">🖼️</span>
+                <p className="font-bold text-slate-600">Image could not load</p>
+                <a href={url} target="_blank" rel="noreferrer"
+                  className="text-sm text-blue-600 underline">Open image URL directly ↗</a>
+              </div>
             </div>
           )}
           {!isVideo && !isPdf && !isImage && (
             <div className="flex flex-col items-center justify-center h-full gap-4 text-center p-8">
               <span className="text-6xl">📄</span>
               <p className="font-bold text-slate-700">Preview not available for this file type</p>
-              <p className="text-sm text-slate-400">Click "Open in new tab" to view the file</p>
+              <a href={url} target="_blank" rel="noreferrer"
+                className="text-sm text-blue-600 underline">Open in new tab ↗</a>
             </div>
           )}
         </div>

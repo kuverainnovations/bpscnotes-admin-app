@@ -7,7 +7,7 @@ import {
   Search, Plus, Edit, Trash2, BookOpen, RefreshCw, X, Check,
   ChevronDown, ChevronRight, GripVertical, Star, Users, Clock,
   Globe, Award, Tag, Eye, EyeOff, Layers, Video, FileText,
-  AlertTriangle, CheckCircle, BookMarked, Zap, Crown,
+  AlertTriangle, CheckCircle, BookMarked, Zap, Crown, ChevronsLeft,ChevronLeft,ChevronsRight,
 } from 'lucide-react'
 import DynamicSelect from '@/components/ui/DynamicSelect'
 
@@ -56,16 +56,21 @@ export default function ContentPage() {
   const [form, setForm]           = useState<any>(EMPTY)
   const [saving, setSaving]       = useState(false)
   const [newLearnItem, setNewLearnItem] = useState('')
+  const [page, setPage]           = useState(1)
+  const [total, setTotal]         = useState(0)
+  const LIMIT = 12
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await api.courses.list({ search, status })
+      const res = await api.courses.list({ search, status, page, limit: 12 })
       setList(res.data?.courses || [])
+      setTotal(res.meta?.total ?? res.data?.total ?? res.data?.courses?.length ?? 0)
     } catch (e: any) { showToast(e.message || 'Failed to load', 'error') }
     finally { setLoading(false) }
-  }, [search, status])
+  }, [search, status, page])
 
+  useEffect(() => { setPage(1) }, [search, status])
   useEffect(() => { load() }, [load])
 
   // Issue 5: scroll to chapter panel automatically
@@ -271,11 +276,12 @@ export default function ContentPage() {
                   </div>
 
                   {/* Stats row */}
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-4 gap-1.5">
                     {[
-                      { icon: <BookMarked size={12}/>, label: 'Lessons',  value: c.total_lessons || 0 },
-                      { icon: <Clock size={12}/>,      label: 'Hours',    value: `${c.total_hours || 0}h` },
-                      { icon: <Users size={12}/>,      label: 'Enrolled', value: c.enrollment_count || 0 },
+                      { icon: <BookMarked size={11}/>, label: 'Lessons',  value: c.total_lessons || 0 },
+                      { icon: <Clock size={11}/>,      label: 'Hours',    value: `${c.total_hours || 0}h` },
+                      { icon: <Users size={11}/>,      label: 'Enrolled', value: c.enrollment_count || 0 },
+                      { icon: <span className="text-[11px]">🪙</span>, label: 'Coins', value: c.coins_reward || 0 },
                     ].map(s => (
                       <div key={s.label} className="flex flex-col items-center py-2 bg-slate-50 rounded-xl">
                         <span className="text-slate-400 mb-0.5">{s.icon}</span>
@@ -322,6 +328,26 @@ export default function ContentPage() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {total > LIMIT && (
+          <div className="card px-5 py-4 flex items-center justify-between flex-wrap gap-3">
+            <p className="text-sm text-slate-500">
+              Showing <span className="font-semibold text-slate-700">{Math.min((page-1)*LIMIT+1, total)}</span>–<span className="font-semibold text-slate-700">{Math.min(page*LIMIT, total)}</span> of <span className="font-semibold text-slate-700">{total}</span>
+            </p>
+            <div className="flex items-center gap-1.5">
+              <button disabled={page===1} onClick={()=>setPage(1)} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-slate-100 disabled:opacity-30 transition-colors"><ChevronsLeft size={14}/></button>
+              <button disabled={page===1} onClick={()=>setPage(p=>p-1)} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-slate-100 disabled:opacity-30 transition-colors"><ChevronLeft size={14}/></button>
+              {Array.from({length: Math.min(Math.ceil(total/LIMIT), 7)}, (_,i)=>{
+                const totalPgs = Math.ceil(total/LIMIT)
+                const p = totalPgs<=7 ? i+1 : page<=4 ? i+1 : page>=totalPgs-3 ? totalPgs-6+i : page-3+i
+                return <button key={p} onClick={()=>setPage(p)} className={`w-8 h-8 rounded-lg text-sm font-semibold transition-all ${p===page?'bg-brand-500 text-white':'text-slate-500 hover:bg-slate-100'}`}>{p}</button>
+              })}
+              <button disabled={page>=Math.ceil(total/LIMIT)} onClick={()=>setPage(p=>p+1)} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-slate-100 disabled:opacity-30 transition-colors"><ChevronRight size={14}/></button>
+              <button disabled={page>=Math.ceil(total/LIMIT)} onClick={()=>setPage(Math.ceil(total/LIMIT))} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-slate-100 disabled:opacity-30 transition-colors"><ChevronsRight size={14}/></button>
+            </div>
           </div>
         )}
 

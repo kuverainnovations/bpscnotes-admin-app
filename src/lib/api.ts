@@ -199,8 +199,10 @@ export const api = {
     list:         (params = {}) => request(`/admin/quizzes?${qs(params)}`),
     create:       (data: any) => request('/admin/quizzes', { method: 'POST', body: JSON.stringify(data) }),
     update:       (id: string, data: any) => request(`/admin/quizzes/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete:       (id: string) => request(`/admin/quizzes/${id}`, { method: 'DELETE' }),
     addQuestions: (quizId: string, questions: any[]) =>
                     request(`/admin/quizzes/${quizId}/questions`, { method: 'POST', body: JSON.stringify({ questions }) }),
+    getQuestions: (quizId: string) => request(`/admin/quizzes/${quizId}/questions`),
   },
 
   // ── Current Affairs ───────────────────────────────────────

@@ -19,31 +19,27 @@ import Link from 'next/link'
 const CHART_COLORS = ['#1565C0', '#9B59B6', '#2ECC71', '#F39C12', '#E74C3C', '#1ABC9C']
 
 // ── Stat card ────────────────────────────────────────────────
-function StatCard({ icon, label, value, sub, trend, trendLabel, color }:
+function StatCard({ icon, label, value, sub, trend, color, iconBg, iconText }:
   { icon: React.ReactNode; label: string; value: string; sub?: string
-    trend?: number; trendLabel?: string; color: string }) {
+    trend?: number; color: string; iconBg: string; iconText: string }) {
   const up = !trend || trend >= 0
   return (
-    <div className="card p-5 relative overflow-hidden group hover:shadow-md transition-shadow">
-      <div className={`absolute inset-y-0 left-0 w-1 ${color}`} />
-      <div className="flex items-start justify-between mb-3 pl-2">
-        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${color.replace('bg-','bg-').replace('-500','-100').replace('-600','-100')} `}
-          style={{background: 'var(--icon-bg)'}}>
-          <div className={color.replace('bg-','text-')}>{icon}</div>
+    <div className="card p-4 hover:shadow-md transition-shadow group">
+      <div className="flex items-center justify-between mb-3">
+        <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${iconBg}`}>
+          <span className={iconText}>{icon}</span>
         </div>
         {trend !== undefined && (
-          <span className={`flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-xl
+          <span className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full
             ${up ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
             {up ? <TrendingUp size={9}/> : <TrendingDown size={9}/>}
             {Math.abs(trend)}%
           </span>
         )}
       </div>
-      <div className="pl-2">
-        <p className="text-2xl font-black text-slate-900 leading-none">{value}</p>
-        <p className="text-xs font-bold text-slate-600 mt-1">{label}</p>
-        {sub && <p className="text-[10px] text-slate-400 mt-0.5">{sub}</p>}
-      </div>
+      <p className="text-xl font-black text-slate-900 leading-none">{value}</p>
+      <p className="text-xs font-semibold text-slate-600 mt-1">{label}</p>
+      {sub && <p className="text-[10px] text-slate-400 mt-0.5">{sub}</p>}
     </div>
   )
 }
@@ -168,12 +164,12 @@ export default function DashboardPage() {
         {/* ── Primary stat cards ──────────────────────────── */}
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
           {[
-            { icon:<Users size={18}/>,          label:'Total Users',    value:formatNumber(stats?.totalUsers||0),             sub:`${formatNumber(stats?.newThisMonth||0)} this month`,  trend:5,                          color:'bg-blue-500' },
-            { icon:<IndianRupee size={18}/>,    label:'Revenue/Month',  value:`₹${formatNumber(stats?.revenueThisMonth||0)}`,  sub:`Last: ₹${formatNumber(stats?.revenueLastMonth||0)}`, trend:stats?.revenueGrowthPct,    color:'bg-emerald-500' },
-            { icon:<Crown size={18}/>,          label:'Active Subs',    value:formatNumber(stats?.activeSubscriptions||0),     sub:'Currently active',                                    color:'bg-purple-500' },
-            { icon:<Target size={18}/>,         label:'Avg Accuracy',   value:`${parseFloat(stats?.avgAccuracy||0).toFixed(1)}%`, sub:'Quiz performance',                                color:'bg-orange-500' },
-            { icon:<Activity size={18}/>,       label:'Active Today',   value:formatNumber(stats?.activeToday||0),            sub:'Unique users',                                         color:'bg-red-500' },
-            { icon:<span className="text-base">🪙</span>, label:'Coins', value:formatNumber(stats?.coinCirculation||0), sub:'Total earned',                                              color:'bg-amber-500' },
+            { icon:<Users size={16}/>,    label:'Total Users',   value:formatNumber(stats?.totalUsers||0),               sub:`+${formatNumber(stats?.newThisMonth||0)} this month`, trend:5,                        iconBg:'bg-blue-100',    iconText:'text-blue-600',   color:'' },
+            { icon:<IndianRupee size={16}/>,label:'Revenue/Month', value:`₹${formatNumber(stats?.revenueThisMonth||0)}`, sub:`Last: ₹${formatNumber(stats?.revenueLastMonth||0)}`,  trend:stats?.revenueGrowthPct, iconBg:'bg-emerald-100', iconText:'text-emerald-600',color:'' },
+            { icon:<Crown size={16}/>,    label:'Active Subs',   value:formatNumber(stats?.activeSubscriptions||0),      sub:'Currently active',                                                                   iconBg:'bg-purple-100',  iconText:'text-purple-600', color:'' },
+            { icon:<Target size={16}/>,   label:'Avg Accuracy',  value:`${parseFloat(stats?.avgAccuracy||0).toFixed(1)}%`, sub:'Quiz performance',                                                                iconBg:'bg-orange-100',  iconText:'text-orange-600', color:'' },
+            { icon:<Activity size={16}/>, label:'Active Today',  value:formatNumber(stats?.activeToday||0),              sub:'Unique users',                                                                        iconBg:'bg-red-100',     iconText:'text-red-600',    color:'' },
+            { icon:<span>🪙</span>,       label:'Coins',         value:formatNumber(stats?.coinCirculation||0),           sub:'Total earned',                                                                        iconBg:'bg-amber-100',   iconText:'text-amber-600',  color:'' },
           ].map(s => (
             <StatCard key={s.label} {...s} />
           ))}

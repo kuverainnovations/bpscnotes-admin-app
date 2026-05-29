@@ -72,12 +72,6 @@ h1, h2, h3 { font-family: 'DM Serif Display', Georgia, serif; }
 .nav-link.active { @apply bg-brand-500 text-white shadow-brand hover:bg-brand-500 hover:text-white; }
 .nav-link-group { @apply px-3 py-1.5 text-xs font-bold text-slate-400 uppercase tracking-widest mt-4 mb-1; }
 
-/* ── Dark Mode ───────────────────────────────────────────────
-   Applied when <html class="dark"> is set by the Header toggle
-──────────────────────────────────────────────────────────── */
-html.dark {
-  color-scheme: dark;
-}
 
 html.dark body {
   background: #0F172A;
@@ -144,3 +138,122 @@ html.dark textarea {
   border-color: #334155;
   color: #E2E8F0;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   DARK MODE — applied when <html class="dark"> is set by Header
+   Complete override for all common UI classes
+═══════════════════════════════════════════════════════════════ */
+html.dark,
+html.dark body {
+  background-color: #0F172A;
+  color: #E2E8F0;
+  color-scheme: dark;
+}
+
+/* Cards */
+html.dark .card {
+  background-color: #1E293B !important;
+  border-color: #334155 !important;
+  color: #E2E8F0;
+}
+
+/* Inputs, selects, textareas */
+html.dark .input,
+html.dark input:not([type="checkbox"]):not([type="radio"]),
+html.dark select,
+html.dark textarea {
+  background-color: #1E293B !important;
+  border-color: #334155 !important;
+  color: #E2E8F0 !important;
+}
+html.dark .input::placeholder,
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #64748B !important;
+}
+
+/* Buttons */
+html.dark .btn-secondary {
+  background-color: #1E293B !important;
+  border-color: #334155 !important;
+  color: #CBD5E1 !important;
+}
+html.dark .btn-secondary:hover {
+  background-color: #334155 !important;
+}
+
+/* Header */
+html.dark header {
+  background-color: rgba(15, 23, 42, 0.95) !important;
+  border-bottom-color: #1E293B !important;
+}
+
+/* Sidebar */
+html.dark aside,
+html.dark nav {
+  background-color: #0F172A !important;
+  border-color: #1E293B !important;
+}
+
+/* Tables */
+html.dark table thead tr {
+  background-color: #1E293B !important;
+  border-bottom-color: #334155 !important;
+}
+html.dark table tbody tr {
+  border-bottom-color: #1E293B !important;
+}
+html.dark table tbody tr:hover {
+  background-color: #1E293B !important;
+}
+html.dark th, html.dark td {
+  color: #CBD5E1 !important;
+}
+
+/* Text colors */
+html.dark .text-slate-900 { color: #F1F5F9 !important; }
+html.dark .text-slate-800 { color: #E2E8F0 !important; }
+html.dark .text-slate-700 { color: #CBD5E1 !important; }
+html.dark .text-slate-600 { color: #94A3B8 !important; }
+html.dark .text-slate-500 { color: #64748B !important; }
+
+/* Backgrounds */
+html.dark .bg-white         { background-color: #1E293B !important; }
+html.dark .bg-slate-50      { background-color: #1E293B !important; }
+html.dark .bg-slate-100     { background-color: #334155 !important; }
+html.dark .bg-slate-200     { background-color: #334155 !important; }
+
+/* Borders */
+html.dark .border-slate-100 { border-color: #334155 !important; }
+html.dark .border-slate-200 { border-color: #334155 !important; }
+html.dark .divide-slate-50  > * + * { border-color: #1E293B !important; }
+
+/* Section/page title */
+html.dark .section-title { color: #CBD5E1 !important; }
+
+/* Badge backgrounds that use light palette */
+html.dark .badge {
+  opacity: 0.9;
+}
+
+/* Scrollbar */
+html.dark ::-webkit-scrollbar-track { background: #1E293B; }
+html.dark ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+html.dark ::-webkit-scrollbar-thumb:hover { background: #64748B; }
+
+/* Modal / dialog */
+html.dark .shadow-modal,
+html.dark .shadow-xl,
+html.dark .shadow-2xl {
+  box-shadow: 0 25px 50px rgba(0,0,0,0.5) !important;
+}
+
+/* Fixed/sticky elements */
+html.dark .sticky {
+  background-color: #0F172A !important;
+}
+
+/* Nav active states */
+html.dark .nav-link { color: #94A3B8; }
+html.dark .nav-link:hover { background-color: #1E293B; color: #FFFFFF; }
+html.dark .nav-link.active { background-color: #1E293B; color: #FFFFFF; }
