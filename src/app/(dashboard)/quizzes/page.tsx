@@ -239,12 +239,12 @@ export default function QuizzesPage() {
               return (
                 <div key={quiz.id} className="card p-0 overflow-hidden hover:shadow-lg transition-shadow flex flex-col">
                   {/* Type color bar */}
-                  <div className={`h-1 w-full ${quiz.type==='daily'?'bg-purple-400':quiz.type==='mock'?'bg-orange-400':'bg-blue-400'}`}/>
+                  <div className={`h-1 w-full ${quiz.type==='daily'?'bg-purple-200':quiz.type==='mock'?'bg-orange-200':'bg-blue-200'}`}/>
                   <div className="p-5 flex flex-col gap-3 flex-1">
                     {/* Title + badges */}
                     <div>
                       <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${meta.bg} ${meta.color}`}>{meta.label}</span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${meta.bg.replace('100','50')} ${meta.color.replace('700','600')}`}>{meta.label}</span>
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${quiz.status==='published'?'bg-green-50 text-green-700 border-green-200':'bg-slate-50 text-slate-500 border-slate-200'}`}>
                           {quiz.status}
                         </span>
@@ -261,7 +261,7 @@ export default function QuizzesPage() {
                         { icon:<span className="text-[11px]">🪙</span>, label:'Coins', value:quiz.coins_reward||0 },
                         { icon:<Target size={11}/>,    label:'Attempts', value:formatNumber(quiz.attempt_count||0) },
                       ].map(s => (
-                        <div key={s.label} className="flex flex-col items-center py-2 bg-slate-50 rounded-xl">
+                        <div key={s.label} className="flex flex-col items-center py-2 bg-slate-50/80 rounded-xl border border-slate-100">
                           <span className="text-slate-400 mb-0.5">{s.icon}</span>
                           <span className="text-xs font-bold text-slate-800">{s.value}</span>
                           <span className="text-[9px] text-slate-400">{s.label}</span>
@@ -479,11 +479,11 @@ export default function QuizzesPage() {
                             <div className="grid grid-cols-2 gap-1.5">
                               {(q.options || [q.option_a, q.option_b, q.option_c, q.option_d].filter(Boolean)).map((opt: string, oi: number) => (
                                 <div key={oi} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs
-                                  ${oi === (q.correct_option ?? q.correctOption ?? 0)
+                                  ${oi === (typeof (q.correct_option??q.correctOption) === 'string' ? ['a','b','c','d','e'].indexOf((q.correct_option??q.correctOption).toLowerCase()) : (q.correct_option??q.correctOption??0))
                                     ? 'bg-green-100 text-green-800 font-semibold border border-green-200'
                                     : 'bg-white text-slate-600 border border-slate-200'}`}>
                                   <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-black shrink-0
-                                    ${oi === (q.correct_option ?? q.correctOption ?? 0) ? 'bg-green-500 text-white' : 'bg-slate-200 text-slate-500'}`}>
+                                    ${oi === (typeof (q.correct_option??q.correctOption) === 'string' ? ['a','b','c','d','e'].indexOf((q.correct_option??q.correctOption).toLowerCase()) : (q.correct_option??q.correctOption??0)) ? 'bg-green-500 text-white' : 'bg-slate-200 text-slate-500'}`}>
                                     {OPTION_LABELS[oi]}
                                   </span>
                                   {opt}

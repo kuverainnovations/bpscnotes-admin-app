@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import Header from '@/components/layout/Header'
 import api from '@/lib/api'
-import { useApiData } from '@/lib/hooks'
+import { useApiData, useDebounce } from '@/lib/hooks'
 import { PageLoader, ErrorMessage, useToast } from '@/components/ui/feedback'
 import { getStatusColor, formatNumber, formatCurrency } from '@/lib/utils'
 import { Search, Download, RefreshCw, CreditCard } from 'lucide-react'
@@ -17,6 +17,7 @@ const PIE_COLORS = ['#1565C0', '#9B59B6', '#F39C12']
 
 export default function SubscriptionsPage() {
   const [search, setSearch]   = useState('')
+  const debouncedSearch = useDebounce(search, 400)
   const [planFilter, setPlan] = useState('')
   const [statusFilter, setStatus] = useState('')
   const [page, setPage]       = useState(1)
@@ -65,8 +66,8 @@ export default function SubscriptionsPage() {
   }
 
   const { data, meta: pageMeta, loading, error, refetch } = useApiData<any>(
-    () => api.subscriptions.list({ search, plan: planFilter, status: statusFilter, page, limit: 20 }),
-    [search, planFilter, statusFilter, page]
+    () => api.subscriptions.list({ search: debouncedSearch, plan: planFilter, status: statusFilter, page, limit: 20 }),
+    [debouncedSearch, planFilter, statusFilter, page]
   )
   const subs: any[]    = data?.subscriptions || []
 
@@ -161,16 +162,16 @@ export default function SubscriptionsPage() {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: 'Active Subscriptions', value: formatNumber(stats?.activeSubscriptions || 0), emoji: '✅' },
-            { label: 'Revenue (Month)',       value: `₹${formatNumber(stats?.revenueThisMonth || 0)}`, emoji: '💰' },
-            { label: 'Total Revenue',         value: `₹${formatNumber(stats?.totalRevenue || 0)}`, emoji: '📈' },
-            { label: 'Growth %',              value: `${stats?.revenueGrowthPct >= 0 ? '+' : ''}${stats?.revenueGrowthPct || 0}%`, emoji: '🚀' },
+            { label: 'Active Subscriptions', value: formatNumber(stats?.activeSubscriptions || 0), emoji: '✅', color:'text-green-700', bg:'bg-green-50' },
+            { label: 'Revenue (Month)',       value: `₹${formatNumber(stats?.revenueThisMonth || 0)}`, emoji: '💰', color:'text-emerald-700', bg:'bg-emerald-50' },
+            { label: 'Total Revenue',         value: `₹${formatNumber(stats?.totalRevenue || 0)}`, emoji: '📈', color:'text-blue-700', bg:'bg-blue-50' },
+            { label: 'Growth %',              value: `${stats?.revenueGrowthPct >= 0 ? '+' : ''}${stats?.revenueGrowthPct || 0}%`, emoji: '🚀', color:'text-purple-700', bg:'bg-purple-50' },
           ].map(s => (
-            <div key={s.label} className="card p-4 flex items-center gap-3">
-              <span className="text-3xl">{s.emoji}</span>
+            <div key={s.label} className={`card p-4 flex items-center gap-3 ${s.bg}`}>
+              <span className="text-2xl">{s.emoji}</span>
               <div>
-                <p className="text-2xl font-bold text-slate-900">{s.value}</p>
-                <p className="text-xs text-slate-500">{s.label}</p>
+                <p className={`text-xl font-black ${s.color}`}>{s.value}</p>
+                <p className="text-xs text-slate-500 font-medium">{s.label}</p>
               </div>
             </div>
           ))}
@@ -227,7 +228,7 @@ export default function SubscriptionsPage() {
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input value={search} onChange={e => { setSearch(e.target.value); setPage(1) }} placeholder="Search by name or email..." className="input pl-9" />
           </div>
-          <select value={planFilter} onChange={e => { setPlan(e.target.value); setPage(1) }} className="input w-auto">
+          <div className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 rounded-xl border border-slate-200"><select value={planFilter} onChange={e => { setPlan(e.target.value); setPage(1) }} className="text-sm bg-transparent outline-none text-slate-700 pr-1">
             <option value="">All Plans</option>
             <option value="monthly">Monthly</option>
             <option value="quarterly">Quarterly</option>
@@ -311,6 +312,7 @@ export default function SubscriptionsPage() {
           </div>
         )}
       </div>
+    </div>
     </div>
   )
 }

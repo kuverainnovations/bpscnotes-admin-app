@@ -236,8 +236,8 @@ export default function ContentPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 mb-1 flex-wrap">
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border
-                          ${c.status === 'published' ? 'bg-green-100 text-green-700 border-green-200' :
-                            c.status === 'review'    ? 'bg-amber-100 text-amber-700 border-amber-200' :
+                          ${c.status === 'published' ? 'bg-green-50 text-green-600 border-green-100' :
+                            c.status === 'review'    ? 'bg-amber-50 text-amber-600 border-amber-100' :
                             'bg-slate-100 text-slate-500 border-slate-200'}`}>
                           {c.status === 'published' ? <CheckCircle size={8}/> : <AlertTriangle size={8}/>}
                           {c.status}
@@ -283,7 +283,7 @@ export default function ContentPage() {
                       { icon: <Users size={11}/>,      label: 'Enrolled', value: c.enrollment_count || 0 },
                       { icon: <span className="text-[11px]">🪙</span>, label: 'Coins', value: c.coins_reward || 0 },
                     ].map(s => (
-                      <div key={s.label} className="flex flex-col items-center py-2 bg-slate-50 rounded-xl">
+                      <div key={s.label} className="flex flex-col items-center py-2 bg-slate-50/80 rounded-xl border border-slate-100">
                         <span className="text-slate-400 mb-0.5">{s.icon}</span>
                         <span className="text-sm font-bold text-slate-800">{s.value}</span>
                         <span className="text-[9px] text-slate-400 font-medium">{s.label}</span>
