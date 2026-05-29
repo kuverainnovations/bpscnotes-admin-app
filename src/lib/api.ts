@@ -235,7 +235,8 @@ export const api = {
   notifications: {
     list:      (params: any = {}) => request(`/admin/notifications?${qs(params)}`),
     send:      (data: any) => request('/admin/notifications/send', { method: 'POST', body: JSON.stringify(data) }),
-    markRead:  (id: string) => request(`/admin/notifications/${id}/read`, { method: 'POST' }),
+    markRead:    (id: string) => request(`/admin/notifications/${id}/read`, { method: 'POST' }),
+    markAllRead: ()            => request('/admin/notifications/mark-all-read', { method: 'POST' }),
     delete:    (id: string) => request(`/admin/notifications/${id}`, { method: 'DELETE' }),
   },
 
@@ -247,6 +248,8 @@ export const api = {
     deleteRule:   (id: string)   => request(`/admin/coins/rules/${id}`, { method: 'DELETE' }),
     getTopEarners:()             => request('/admin/coins/top-earners'),
     getStats:     ()             => request('/admin/coins/stats'),
+    getAdConfig:  ()             => request('/admin/coins/ad-config'),
+    updateAdConfig:(data: any)   => request('/admin/coins/ad-config', { method: 'PUT', body: JSON.stringify(data) }),
   },
 
   // ── Study Rooms ───────────────────────────────────────────
@@ -314,12 +317,14 @@ export const api = {
   // Exam & Job categories — stored locally (no backend table yet)
   // These are persisted in localStorage by DynamicSelect component
   examCategories: {
-    list:   () => Promise.resolve({ data: { categories: [] } }),
-    create: (name: string) => Promise.resolve({ success: true, data: { name } }),
+    list:   ()             => request('/admin/exam-categories'),
+    create: (name: string) => request('/admin/exam-categories', { method: 'POST', body: JSON.stringify({ name }) }),
+    delete: (id: string)   => request(`/admin/exam-categories/${id}`, { method: 'DELETE' }),
   },
   jobCategories: {
-    list:   () => Promise.resolve({ data: { categories: [] } }),
-    create: (name: string) => Promise.resolve({ success: true, data: { name } }),
+    list:   ()             => request('/admin/job-categories'),
+    create: (name: string) => request('/admin/job-categories', { method: 'POST', body: JSON.stringify({ name }) }),
+    delete: (id: string)   => request(`/admin/job-categories/${id}`, { method: 'DELETE' }),
   },
 
   affairCategories: {
@@ -364,10 +369,14 @@ export const api = {
   },
 
   adminUsers: {
-    list:   () => request('/admin/users/admin-accounts/list'),
-    create: (data: any) => request('/admin/users/admin-accounts', { method: 'POST', body: JSON.stringify(data) }),
-    update: (id: string, data: any) => request(`/admin/users/admin-accounts/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-    delete: (id: string) => request(`/admin/users/admin-accounts/${id}`, { method: 'DELETE' }),
+    list:                 ()             => request('/admin/users/admin-accounts/list'),
+    create:               (data: any)    => request('/admin/users/admin-accounts', { method: 'POST', body: JSON.stringify(data) }),
+    update:               (id: string, data: any) => request(`/admin/users/admin-accounts/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete:               (id: string)   => request(`/admin/users/admin-accounts/${id}`, { method: 'DELETE' }),
+    // ── Email verification ─────────────────────────────────────
+    resendVerification:   (id: string)   => request(`/admin/users/admin-accounts/${id}/resend-verification`, { method: 'POST' }),
+    approve:              (id: string)   => request(`/admin/users/admin-accounts/${id}/approve`, { method: 'POST' }),
+    verifyToken:          (token: string)=> request(`/admin/verify-email?token=${token}`),
   },
 
   // ── Flashcards (Active Recall) ────────────────────────────

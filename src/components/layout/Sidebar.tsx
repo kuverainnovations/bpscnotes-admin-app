@@ -10,7 +10,8 @@ import {
   Trophy, Radio, Award, Image, Tag, CheckSquare, Settings,
   Shield, GraduationCap, ChevronRight, ChevronDown, LogOut,
   Zap, Brain, Layers, AlertTriangle, Star, LibraryBig,
-  Coins
+  Coins,
+  TrendingUp
 } from 'lucide-react'
 
 type NavItem = {
@@ -29,7 +30,6 @@ const NAV: NavGroup[] = [
   ]},
   { group:'Content',    defaultOpen:true,  items:[
     { href:'/content',          icon:BookOpen,        label:'Courses' },
-    { href:'/content/notes',    icon:FileText,        label:'Notes & Library' },
     { href:'/study-materials',  icon:LibraryBig,      label:'Study Materials' },
     { href:'/quizzes',          icon:HelpCircle,      label:'Quizzes & Mock Tests' },
     { href:'/current-affairs',  icon:Newspaper,       label:'Current Affairs' },
@@ -46,6 +46,7 @@ const NAV: NavGroup[] = [
     { href:'/coins',            icon:Coins,           label:'Coins & Rewards' },
   ]},
   { group:'Engagement', items:[
+    { href:'/analytics',        icon:TrendingUp,      label:'Analytics & Notifs' },
     { href:'/notifications',    icon:Bell,            label:'Notifications' },
     { href:'/study-rooms',      icon:Users2,          label:'Study Rooms' },
     { href:'/tier-rooms',       icon:Layers,          label:'Tier Room System' },
@@ -89,9 +90,9 @@ export default function Sidebar() {
     <aside className="fixed top-0 left-0 h-screen bg-white border-r border-slate-100 flex flex-col z-40"
       style={{ width: 'var(--sidebar-w)' }}>
 
-      {/* Logo */}
+      {/* Logo — Issue 2: click navigates to /dashboard */}
       <div className="px-5 py-4 border-b border-slate-100 shrink-0">
-        <div className="flex items-center gap-3">
+        <Link href="/dashboard" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
           <div className="w-9 h-9 rounded-xl bg-brand-500 flex items-center justify-center shadow-brand">
             <span className="text-white font-black text-lg" style={{ fontFamily:'DM Serif Display,serif' }}>B</span>
           </div>
@@ -99,7 +100,7 @@ export default function Sidebar() {
             <p className="font-bold text-slate-900 text-sm leading-none">BPSCNotes</p>
             <p className="text-xs text-slate-400 mt-0.5">Admin Panel</p>
           </div>
-        </div>
+        </Link>
       </div>
 
       {/* Nav */}

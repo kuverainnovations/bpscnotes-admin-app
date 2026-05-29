@@ -71,3 +71,76 @@ h1, h2, h3 { font-family: 'DM Serif Display', Georgia, serif; }
 .nav-link { @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all duration-150; }
 .nav-link.active { @apply bg-brand-500 text-white shadow-brand hover:bg-brand-500 hover:text-white; }
 .nav-link-group { @apply px-3 py-1.5 text-xs font-bold text-slate-400 uppercase tracking-widest mt-4 mb-1; }
+
+/* ── Dark Mode ───────────────────────────────────────────────
+   Applied when <html class="dark"> is set by the Header toggle
+──────────────────────────────────────────────────────────── */
+html.dark {
+  color-scheme: dark;
+}
+
+html.dark body {
+  background: #0F172A;
+  color: #E2E8F0;
+}
+
+html.dark .card {
+  background: #1E293B;
+  border-color: #334155;
+}
+
+html.dark .input {
+  background: #1E293B;
+  border-color: #334155;
+  color: #E2E8F0;
+}
+
+html.dark .input::placeholder {
+  color: #64748B;
+}
+
+html.dark .btn-secondary {
+  background: #1E293B;
+  color: #CBD5E1;
+}
+
+html.dark .btn-secondary:hover {
+  background: #334155;
+}
+
+html.dark .nav-link {
+  color: #94A3B8;
+}
+
+html.dark .nav-link:hover,
+html.dark .nav-link.active {
+  background: #1E293B;
+  color: #FFFFFF;
+}
+
+html.dark .badge {
+  border-color: #334155;
+}
+
+html.dark ::-webkit-scrollbar-track { background: #1E293B; }
+html.dark ::-webkit-scrollbar-thumb { background: #475569; }
+
+html.dark .table-row {
+  border-color: #1E293B;
+}
+
+html.dark .table-row:hover {
+  background: #1E293B;
+}
+
+/* Section title in dark */
+html.dark .section-title {
+  color: #CBD5E1;
+}
+
+html.dark select,
+html.dark textarea {
+  background: #1E293B;
+  border-color: #334155;
+  color: #E2E8F0;
+}
