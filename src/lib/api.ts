@@ -247,6 +247,8 @@ export const api = {
     deleteRule:   (id: string)   => request(`/admin/coins/rules/${id}`, { method: 'DELETE' }),
     getTopEarners:()             => request('/admin/coins/top-earners'),
     getStats:     ()             => request('/admin/coins/stats'),
+    getAdConfig:  ()             => request('/admin/coins/ad-config'),
+    updateAdConfig:(data: any)   => request('/admin/coins/ad-config', { method: 'PUT', body: JSON.stringify(data) }),
   },
 
   // ── Study Rooms ───────────────────────────────────────────
