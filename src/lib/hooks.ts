@@ -99,3 +99,15 @@ export function usePaginatedData<T>(
 
   return { data, total, loading, error, params, updateParams, refetch: load }
 }
+
+// ── useDebounce ─────────────────────────────────────────────
+// Returns a debounced version of the value that only updates
+// after [delay]ms of no changes. Use for search inputs.
+export function useDebounce<T>(value: T, delay = 400): T {
+  const [debounced, setDebounced] = useState<T>(value)
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), delay)
+    return () => clearTimeout(t)
+  }, [value, delay])
+  return debounced
+}
