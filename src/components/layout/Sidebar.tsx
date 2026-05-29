@@ -46,9 +46,8 @@ const NAV: NavGroup[] = [
     { href:'/coins',            icon:Coins,           label:'Coins & Rewards' },
   ]},
   { group:'Engagement', items:[
-    { href:'/analytics',        icon:TrendingUp,      label:'Analytics & Notifs' },
+    { href:'/analytics',        icon:TrendingUp,      label:'Analytics' },
     { href:'/notifications',    icon:Bell,            label:'Notifications' },
-    { href:'/study-rooms',      icon:Users2,          label:'Study Rooms' },
     { href:'/tier-rooms',       icon:Layers,          label:'Tier Room System' },
     { href:'/tier-rooms/flagged',icon:AlertTriangle,  label:'Anti-Cheat Review' },
     { href:'/achievements',     icon:Trophy,          label:'Achievements' },
