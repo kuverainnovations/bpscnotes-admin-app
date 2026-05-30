@@ -155,7 +155,7 @@ function Inner() {
   const openEdit = (item: any) => {
     setEditing(item)
     setForm({ title:item.title, detail:item.summary||item.full_content||'', category:item.category,
-      type:item.type||'prelims', examTags:item.exam_tags||[], isImportant:item.is_important||false,
+      type:item.type||(item.exam_tags?.find((t:string)=>['prelims','mains','both'].includes(t))||'prelims'), examTags:item.exam_tags||[], isImportant:item.is_important||false,
       publishDate:item.date?.split('T')[0]||'' })
     setShowModal(true)
   }
@@ -193,8 +193,8 @@ function Inner() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
             { emoji:'📰', label:'Total',     value:total,                                       color:'text-slate-700',  bg:'bg-slate-50' },
-            { emoji:'🎯', label:'Prelims',   value:list.filter(a=>a.type==='prelims').length,   color:'text-green-700',  bg:'bg-green-50' },
-            { emoji:'📝', label:'Mains',     value:list.filter(a=>a.type==='mains').length,     color:'text-purple-700', bg:'bg-purple-50' },
+            { emoji:'🎯', label:'Prelims',   value:list.filter(a=>{const t=a.type||(a.exam_tags?.find((x:string)=>['prelims','mains','both'].includes(x))||'prelims');return t==='prelims'||t==='both'}).length,   color:'text-green-700',  bg:'bg-green-50' },
+            { emoji:'📝', label:'Mains',     value:list.filter(a=>{const t=a.type||(a.exam_tags?.find((x:string)=>['prelims','mains','both'].includes(x))||'prelims');return t==='mains'||t==='both'}).length,     color:'text-purple-700', bg:'bg-purple-50' },
             { emoji:'⭐', label:'Important', value:list.filter(a=>a.is_important).length,       color:'text-amber-700',  bg:'bg-amber-50' },
           ].map(s => (
             <div key={s.label} className={`card p-4 flex items-center gap-3 ${s.bg}`}>
@@ -261,19 +261,27 @@ function Inner() {
               <div key={item.id} className="card p-0 overflow-hidden hover:shadow-lg transition-shadow group flex flex-col">
                 {/* Type colour bar */}
                 <div className={`h-1 w-full ${
-                  item.type==='mains' ? 'bg-purple-300' :
-                  item.type==='both'  ? 'bg-blue-300'   : 'bg-green-300'
+                  (() => {
+                    const t = item.type || (item.exam_tags?.find((tag: string) => ['prelims','mains','both'].includes(tag)) || 'prelims')
+                    return t==='mains' ? 'bg-purple-300' : t==='both' ? 'bg-blue-300' : 'bg-green-300'
+                  })()
                 }`}/>
 
                 <div className="p-4 flex flex-col gap-3 flex-1">
                   {/* Badges row */}
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border
-                      ${item.type==='mains' ? 'bg-purple-50 text-purple-700 border-purple-200' :
-                        item.type==='both'  ? 'bg-blue-50 text-blue-700 border-blue-200'       :
-                        'bg-green-50 text-green-600 border-green-100'}`}>
-                      {item.type || 'prelims'}
-                    </span>
+                    {/* Derive type from exam_tags[0] if type field missing */}
+                    {(() => {
+                      const t = item.type || (item.exam_tags && ['prelims','mains','both'].includes(item.exam_tags[0]) ? item.exam_tags[0] : 'prelims')
+                      return (
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border
+                          ${t==='mains' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                            t==='both'  ? 'bg-blue-50 text-blue-700 border-blue-200'       :
+                            'bg-green-50 text-green-600 border-green-100'}`}>
+                          {t}
+                        </span>
+                      )
+                    })()}
                     <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
                       {item.category}
                     </span>
