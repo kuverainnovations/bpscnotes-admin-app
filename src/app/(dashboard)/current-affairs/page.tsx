@@ -94,7 +94,7 @@ function Inner() {
     setMcqSaving(true)
     try {
       // Backend expects: correct as letter 'a'/'b'/'c'/'d', optionA-D as strings
-      const correctLetter = ['a','b','c','d'][Math.min(mcqForm.correct ?? 0, 3)]
+      const correctLetter = ['a','b','c','d','e'][Math.min(mcqForm.correct ?? 0, 4)]
       const opts = mcqForm.options as string[]
 
       const payload = {
@@ -105,6 +105,7 @@ function Inner() {
         optionB:     opts[1]?.trim() || '',   // required NOT NULL
         optionC:     opts[2]?.trim() || '',   // empty string OK
         optionD:     opts[3]?.trim() || '',   // empty string OK
+        optionE:     opts[4]?.trim() || '',   // 5th option if selected
       }
 
       const base  = process.env.NEXT_PUBLIC_API_URL
