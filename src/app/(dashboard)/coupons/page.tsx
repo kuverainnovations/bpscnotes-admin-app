@@ -32,8 +32,12 @@ export default function CouponsPage() {
   const [form, setForm]           = useState<any>(EMPTY_FORM)
   const { showToast, ToastComponent } = useToast()
 
+  const [couponFilter, setCouponFilter] = useState<string>('')
   const { data, loading, error, refetch } = useApiData<any>(() => api.subscriptions.getCoupons(), [])
-  const coupons: any[] = data?.coupons || []
+  const allCoupons: any[] = data?.coupons || []
+  const coupons = couponFilter === 'active' ? allCoupons.filter(c => c.is_active && !(c.expires_at && daysLeft(c.expires_at) < 0))
+    : couponFilter === 'expiring' ? allCoupons.filter(c => c.expires_at && daysLeft(c.expires_at) >= 0 && daysLeft(c.expires_at) <= 7)
+    : allCoupons
 
   const { mutate: save, loading: saving } = useMutation(
     (d: any) => editing ? api.subscriptions.updateCoupon(editing.id, d) : api.subscriptions.createCoupon(d),
@@ -42,8 +46,10 @@ export default function CouponsPage() {
   )
   const { mutate: remove } = useMutation((id: string) => api.subscriptions.deleteCoupon(id),
     { onSuccess: () => { refetch(); showToast('Deleted') }, onError: (m) => showToast(m, 'error') })
-  const { mutate: toggle } = useMutation((id: string, isActive: boolean) => api.subscriptions.updateCoupon(id, { isActive }),
-    { onSuccess: () => { refetch() }, onError: (m) => showToast(m, 'error') })
+  const toggleCoupon = async (id: string, isActive: boolean) => {
+    try { await api.subscriptions.updateCoupon(id, { isActive }); refetch() }
+    catch (e: any) { showToast(e.message || 'Failed', 'error') }
+  }
 
   const openNew  = () => { setEditing(null); setForm({...EMPTY_FORM, code:generateCode()}); setShowModal(true) }
   const openEdit = (c: any) => {
@@ -64,14 +70,20 @@ export default function CouponsPage() {
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { emoji:'🏷️', label:'Total',        value:coupons.length,                                        color:'text-slate-700', bg:'bg-slate-50' },
-            { emoji:'✅', label:'Active',        value:coupons.filter(c=>c.is_active).length,               color:'text-green-700', bg:'bg-green-50' },
-            { emoji:'📊', label:'Total Redeemed',value:formatNumber(coupons.reduce((a,c)=>a+(c.used_count||0),0)), color:'text-blue-700', bg:'bg-blue-50' },
-            { emoji:'⏰', label:'Expiring Soon', value:coupons.filter(c=>c.expires_at&&daysLeft(c.expires_at)<=7&&daysLeft(c.expires_at)>=0).length, color:'text-amber-700', bg:'bg-amber-50' },
+            { emoji:'🏷️', label:'Total',        value:allCoupons.length,                                        color:'text-slate-700', bg:'bg-slate-50',   filter:'' },
+            { emoji:'✅', label:'Active',        value:allCoupons.filter(c=>c.is_active&&!(c.expires_at&&daysLeft(c.expires_at)<0)).length, color:'text-green-700', bg:'bg-green-50', filter:'active' },
+            { emoji:'📊', label:'Total Redeemed',value:formatNumber(allCoupons.reduce((a,c)=>a+(c.used_count||0),0)), color:'text-blue-700', bg:'bg-blue-50', filter:'' },
+            { emoji:'⏰', label:'Expiring Soon', value:allCoupons.filter(c=>c.expires_at&&daysLeft(c.expires_at)<=7&&daysLeft(c.expires_at)>=0).length, color:'text-amber-700', bg:'bg-amber-50', filter:'expiring' },
           ].map(s => (
-            <div key={s.label} className={`card p-4 flex items-center gap-3 ${s.bg}`}>
+            <div key={s.label} onClick={() => setCouponFilter(f => f === s.filter ? '' : s.filter)}
+              className={`card p-4 flex items-center gap-3 cursor-pointer transition-all hover:shadow-md
+                ${s.bg} ${couponFilter === s.filter && s.filter ? 'ring-2 ring-blue-400' : ''}`}>
               <span className="text-2xl">{s.emoji}</span>
-              <div><p className={`text-xl font-black ${s.color}`}>{s.value}</p><p className="text-xs text-slate-500 font-medium">{s.label}</p></div>
+              <div><p className={`text-xl font-black ${s.color}`}>{s.value}</p>
+                <p className="text-xs text-slate-500 font-medium">{s.label}
+                  {s.filter && couponFilter === s.filter && <span className="ml-1 text-blue-500">× clear</span>}
+                </p>
+              </div>
             </div>
           ))}
         </div>
@@ -128,7 +140,7 @@ export default function CouponsPage() {
                     </div>
 
                     <div className="flex flex-col gap-1.5 shrink-0">
-                      <button onClick={() => toggle(coupon.id, !coupon.is_active)}
+                      <button onClick={() => toggleCoupon(coupon.id, !coupon.is_active)}
                         className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors
                           ${coupon.is_active?'bg-red-50 hover:bg-red-100 text-red-600':'bg-green-50 hover:bg-green-100 text-green-600'}`}>
                         {coupon.is_active?'Disable':'Enable'}

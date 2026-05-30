@@ -81,7 +81,7 @@ export default function CertificatesPage() {
                     <td className="px-4 py-3">
                       {cert.certificate_url
                         ? <span className="badge bg-green-100 text-green-700 border-green-200">✅ Available</span>
-                        : <span className="badge bg-slate-100 text-slate-500 border-slate-200">Generating...</span>
+                        : <span className="badge bg-amber-50 text-amber-600 border-amber-200">⏳ Not yet generated</span>
                       }
                     </td>
                     <td className="px-4 py-3">

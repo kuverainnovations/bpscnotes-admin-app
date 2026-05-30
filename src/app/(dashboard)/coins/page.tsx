@@ -108,7 +108,7 @@ export default function CoinsPage() {
             { emoji:'🪙', label:'Total in Circulation', value:formatNumber(stats?.coinCirculation||0), color:'text-amber-700', bg:'bg-amber-50' },
             { emoji:'⚡', label:'Active Rules',          value:rules.filter((r:any)=>r.is_active).length, color:'text-green-700', bg:'bg-green-50' },
             { emoji:'📋', label:'Total Rules',            value:rules.length, color:'text-blue-700', bg:'bg-blue-50' },
-            { emoji:'🏆', label:'Top Earners',            value:earners.length, color:'text-purple-700', bg:'bg-purple-50' },
+            { emoji:'🏆', label:'Top Earners',            value:Math.min(earners.length, 10), color:'text-purple-700', bg:'bg-purple-50' },
           ].map(s => (
             <div key={s.label} className={`card p-4 flex items-center gap-3 ${s.bg}`}>
               <span className="text-2xl">{s.emoji}</span>
@@ -373,11 +373,7 @@ export default function CoinsPage() {
               <div className="mt-3 pt-2 border-t border-slate-100">
                 <p className="text-xs text-slate-500 font-medium">
                   Max daily: <span className="font-black text-slate-800">
-                    🪙 {rules.filter((r:any)=>r.is_active).reduce((a:number,r:any) => {
-                      const c=r.coinsReward??r.coins_awarded??0
-                      const m=r.maxPerDay??r.max_per_day??1
-                      return m===0?a:a+(c*m)
-                    },0)}
+                    {(() => { const total=rules.filter((r:any)=>r.is_active).reduce((a:number,r:any) => { const cv=r.coinsReward??r.coins_awarded??0; const m=r.maxPerDay??r.max_per_day??1; return m===0?a:a+(cv*m) },0); return total>0?`🪙 ${total}`:'—' })()}
                   </span> per student
                 </p>
               </div>

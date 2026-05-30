@@ -314,6 +314,7 @@ export default function ContentPage() {
                       { icon: <Clock size={11}/>,      label: 'Hours',    value: `${c.total_hours || 0}h` },
                       { icon: <Users size={11}/>,      label: 'Enrolled', value: c.enrollment_count || 0 },
                       { icon: <Globe size={11}/>, label: 'Language', value: (c.language||'—').split(' ')[0] },
+                      { icon: <Layers size={11}/>, label: 'Chapters', value: c.total_chapters || (c.chapters_count) || 0 },
                     ].map(s => (
                       <div key={s.label} className="flex flex-col items-center py-2 bg-slate-50 rounded-xl">
                         <span className="text-slate-400 mb-0.5">{s.icon}</span>

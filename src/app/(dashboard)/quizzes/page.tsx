@@ -391,19 +391,20 @@ export default function QuizzesPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-600 mb-1.5">Subject</label>
-                  <input value={form.subject} onChange={e => setForm({...form,subject:e.target.value})}
-                    className="input w-full" placeholder="Polity, History…" />
+                  <select value={form.subject} onChange={e => setForm({...form,subject:e.target.value})}
+                    className="input w-full">
+                    <option value="">Select Subject</option>
+                    {['Polity','History','Geography','Economy','Science & Tech','Environment',
+                      'Art & Culture','Current Affairs','Maths','Reasoning','Hindi','English',
+                      'Bihar GK','General Studies'].map(s => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
               {/* Issue 5: Numbers with proper padding selects */}
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1.5">No. of Questions</label>
-                  {/* Issue 7: totalQuestions sets how many Q to add */}
-                  <NumInput value={form.totalQuestions} onChange={v => setForm({...form,totalQuestions:v})} min={1} max={200} placeholder="10" />
-                  <p className="text-[10px] text-slate-400 mt-1">You'll add this many questions after saving</p>
-                </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-600 mb-1.5">Duration (mins)</label>
                   <NumInput value={form.durationMins} onChange={v => setForm({...form,durationMins:v})} min={1} max={180} placeholder="15" />

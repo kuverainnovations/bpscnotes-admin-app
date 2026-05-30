@@ -59,8 +59,9 @@ function BannersPageContent() {
     if (!form.title) { showToast('Title required', 'error'); return }
     setSaving(true)
     try {
-      if (editing) await api.banners.update(editing.id, form)
-      else         await api.banners.create(form)
+      const payload = { ...form, bg_color: form.bgColor, isActive: form.isActive, sortOrder: form.sortOrder }
+      if (editing) await api.banners.update(editing.id, payload)
+      else         await api.banners.create(payload)
       setShowModal(false); load()
       showToast(editing ? '✅ Updated' : '✅ Banner created')
     } catch (e: any) { showToast(e.message, 'error') }

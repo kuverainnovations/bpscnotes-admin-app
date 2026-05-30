@@ -218,7 +218,8 @@ function Inner() {
                     <Calendar size={11} className="inline mr-1"/>Scheduled At
                   </label>
                   <input type="datetime-local" value={form.scheduledAt}
-                    onChange={e=>setForm({...form,scheduledAt:e.target.value})} className="input w-full"/>
+                    onChange={e=>setForm({...form,scheduledAt:e.target.value})} className="input w-full"
+                    step="60" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-600 mb-1.5">

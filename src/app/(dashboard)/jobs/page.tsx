@@ -55,9 +55,11 @@ function Inner() {
 
   const [jobs, setJobs]         = useState<any[]>([])
   const [total, setTotal]       = useState(0)
+  const [govtTotal, setGovtTotal] = useState(0)
   const [loading, setLoading]   = useState(true)
   const [search, setSearch]     = useState('')
   const [cat, setCat]           = useState('')
+  const [sortBy, setSortBy]       = useState('created_desc')
   const [page, setPage]         = useState(1)
   const debouncedSearch         = useDebounce(search, 400)
 
@@ -70,14 +72,15 @@ function Inner() {
   const load = async () => {
     setLoading(true)
     try {
-      const res = await api.jobs.list({ search: debouncedSearch, category: cat, page, limit: LIMIT })
+      const res = await api.jobs.list({ search: debouncedSearch, category: cat, sort: sortBy, page, limit: LIMIT })
       setJobs(res.data?.jobs || [])
       setTotal(res.data?.total || res.meta?.total || 0)
+      if (res.data?.govtJobsTotal !== undefined) setGovtTotal(res.data.govtJobsTotal)
     } catch (e: any) { showToast(e.message, 'error') }
     finally { setLoading(false) }
   }
-  useEffect(() => { setPage(1) }, [debouncedSearch, cat])
-  useEffect(() => { load() }, [debouncedSearch, cat, page])
+  useEffect(() => { setPage(1) }, [debouncedSearch, cat, sortBy])
+  useEffect(() => { load() }, [debouncedSearch, cat, sortBy, page])
 
   const openNew  = () => { setEditing(null); setForm(EMPTY); setShowModal(true) }
   const openEdit = (j: any) => {
@@ -132,7 +135,7 @@ function Inner() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
             { emoji:'💼', label:'Total Listings', value:total,                                                       color:'text-slate-700', bg:'bg-slate-50' },
-            { emoji:'🏛️', label:'Govt Jobs',      value:jobs.filter(j=>j.category!=='Private'&&j.category!=='Part-time').length, color:'text-blue-700', bg:'bg-blue-50' },
+            { emoji:'🏛️', label:'Govt Jobs',      value:govtTotal, color:'text-blue-700', bg:'bg-blue-50' },
             { emoji:'🆕', label:'New',            value:jobs.filter(j=>j.is_new).length,                             color:'text-green-700', bg:'bg-green-50' },
             { emoji:'⏰', label:'Closing Soon',   value:jobs.filter(j=>{ const d=daysUntil(j.last_date); return d!==null&&d>=0&&d<=7 }).length, color:'text-red-700', bg:'bg-red-50' },
           ].map(s => (
@@ -160,6 +163,15 @@ function Inner() {
               className="text-sm bg-transparent outline-none text-slate-700 pr-1">
               <option value="">All Categories</option>
               {CATS.map(c => <option key={c}>{c}</option>)}
+            </select>
+          </div>
+          <div className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 rounded-xl border border-slate-200">
+            <select value={sortBy} onChange={e => { setSortBy(e.target.value); setPage(1) }}
+              className="text-sm bg-transparent outline-none text-slate-700 pr-1">
+              <option value="created_desc">Newest First</option>
+              <option value="created_asc">Oldest First</option>
+              <option value="last_date_asc">Closing Soon</option>
+              <option value="last_date_desc">Closing Last</option>
             </select>
           </div>
           <button onClick={load} className="btn-secondary px-3 py-2"><RefreshCw size={13}/></button>

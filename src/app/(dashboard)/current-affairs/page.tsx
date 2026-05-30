@@ -65,6 +65,7 @@ function Inner() {
       const res = await api.currentAffairs.list({
         search: debouncedSearch,
         category: catFilter,
+        exam: typeFilter || undefined,  // sends 'prelims'/'mains' to backend exam_tags filter
         page,
         limit: LIMIT,
       })
@@ -127,9 +128,13 @@ function Inner() {
       }
 
       showToast(editingMcq ? 'MCQ updated ✅' : 'MCQ added ✅')
-      openMcqs(mcqAffair)
       setEditingMcq(null)
-      setMcqForm(emptyMcqForm(mcqForm.optionCount))
+      setMcqForm(emptyMcqForm(4))  // reset to blank form
+      // Reload MCQ list
+      const res2 = await fetch(`${base}/admin/current-affairs/${mcqAffair.id}/mcqs`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      setMcqs((await res2.json()).data?.mcqs || [])
     } catch (e: any) {
       showToast(e.message || 'Failed to save MCQ', 'error')
     } finally {
