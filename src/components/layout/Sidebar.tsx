@@ -62,8 +62,12 @@ const NAV: NavGroup[] = [
   ]},
 ]
 
-export default function Sidebar() {
-  const pathname = usePathname()
+type SidebarProps = {
+  onClose?: () => void
+}
+
+export default function Sidebar({ onClose }: SidebarProps) {
+    const pathname = usePathname()
   const router   = useRouter()
   const { admin, logout } = useAuth()
 
@@ -129,8 +133,12 @@ export default function Sidebar() {
                       (item.href !== '/dashboard' && pathname.startsWith(item.href))
                     return (
                       <div key={item.href} className="group relative flex items-center">
-                        <Link href={item.href} className={cn('nav-link flex-1 pr-7', active && 'active')}>
-                          <item.icon size={15} className="shrink-0" />
+<Link
+  href={item.href}
+  onClick={() => onClose?.()}
+  className={cn('nav-link flex-1 pr-7', active && 'active')}
+>
+                            <item.icon size={15} className="shrink-0" />
                           <span className="flex-1 truncate text-[13px]">{item.label}</span>
                           {active && <ChevronRight size={12} />}
                           {item.badge != null && item.badge > 0 && (

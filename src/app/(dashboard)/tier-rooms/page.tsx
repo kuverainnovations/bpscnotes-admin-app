@@ -321,7 +321,7 @@ export default function TierRoomsPage() {
                           {tiers.find(t => t.tier_key === rule.to_key)?.icon_emoji || '🔘'}
                         </span>
                         <div>
-                          <p className="font-semibold text-slate-800 text-xs">{rule.from_name} → {rule.to_name}</p>
+                          <p className="font-semibold text-slate-800 text-xs">{tierLabel(rule.from_key || rule.from_name)} → {tierLabel(rule.to_key || rule.to_name)}</p>
                           <div className="flex gap-1 mt-0.5">
                             <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${rule.is_active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
                               {rule.is_active ? 'Active' : 'Paused'}
@@ -390,7 +390,7 @@ export default function TierRoomsPage() {
                       <div className="flex items-center justify-between text-sm">
                         <div className="flex items-center gap-2">
                           <span className="text-xl">{d.icon_emoji}</span>
-                          <span className="font-semibold text-slate-800">{d.name}</span>
+                          <span className="font-semibold text-slate-800">{tierLabel(d.tier_key || d.name)}</span>
                           <span className={`text-xs px-2 py-0.5 rounded-full ${colors.badge}`}>
                             {d.member_count.toLocaleString()} members
                           </span>
@@ -418,7 +418,7 @@ export default function TierRoomsPage() {
                     <span className="text-2xl">{d.icon_emoji}</span>
                     <div>
                       <p className="text-lg font-bold text-slate-900">{d.member_count.toLocaleString()}</p>
-                      <p className="text-xs text-slate-500">{d.name} members</p>
+                      <p className="text-xs text-slate-500">{tierLabel(d.tier_key || d.name)} members</p>
                     </div>
                   </div>
                 ))}
@@ -502,7 +502,7 @@ export default function TierRoomsPage() {
                 disabled={saving || !promoteUserId.trim()}
                 className="btn-primary w-full justify-center"
               >
-                {saving ? 'Promoting...' : `Promote to ${tiers.find(t => t.tier_key === promoteTarget)?.name || promoteTarget}`}
+                {saving ? 'Promoting...' : `Promote to ${tierLabel(tiers.find(t => t.tier_key === promoteTarget)?.tier_key || promoteTarget)}`}
               </button>
             </div>
           </div>
@@ -517,7 +517,7 @@ export default function TierRoomsPage() {
           <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b border-slate-100">
               <div>
-                <p className="font-bold text-slate-900 text-lg">Edit {editTier.name}</p>
+                <p className="font-bold text-slate-900 text-lg">Edit {tierLabel(editTier.tier_key || editTier.name)}</p>
                 <p className="text-xs text-slate-500">Changes reflect immediately in the Android app</p>
               </div>
               <button onClick={() => setEditTier(null)} className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center">

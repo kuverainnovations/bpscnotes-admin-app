@@ -257,3 +257,61 @@ html.dark .sticky {
 html.dark .nav-link { color: #94A3B8; }
 html.dark .nav-link:hover { background-color: #1E293B; color: #FFFFFF; }
 html.dark .nav-link.active { background-color: #1E293B; color: #FFFFFF; }
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE RESPONSIVE — < 768px
+═══════════════════════════════════════════════════════════ */
+@media (max-width: 767px) {
+  /* Header padding for hamburger button */
+  header {
+    padding-left: 3.5rem !important;
+  }
+
+  /* Cards full width */
+  .card {
+    border-radius: 1rem !important;
+  }
+
+  /* Tables scroll horizontally */
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  /* Modals slide up from bottom on mobile */
+  .animate-slide-up {
+    animation: slideUp 0.25s ease-out;
+  }
+
+  /* Page padding reduced */
+  .p-6 { padding: 1rem !important; }
+  .p-5 { padding: 0.875rem !important; }
+
+  /* Stat grids — 2 col on mobile */
+  .grid-cols-3 { grid-template-columns: repeat(2, 1fr) !important; }
+  .xl\:grid-cols-3 { grid-template-columns: 1fr !important; }
+  .xl\:grid-cols-6 { grid-template-columns: repeat(2, 1fr) !important; }
+  .md\:grid-cols-4 { grid-template-columns: repeat(2, 1fr) !important; }
+
+  /* Pagination — compact */
+  .pagination-compact .page-num { display: none; }
+
+  /* Buttons — slightly larger tap targets */
+  .btn-primary, .btn-secondary {
+    min-height: 40px;
+  }
+
+  /* Modal always bottom sheet on mobile */
+  .modal-bottom {
+    border-radius: 1.5rem 1.5rem 0 0 !important;
+    max-height: 92vh;
+    width: 100%;
+    margin: 0;
+  }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
