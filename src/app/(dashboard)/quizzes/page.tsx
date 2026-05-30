@@ -180,7 +180,7 @@ export default function QuizzesPage() {
     const transformed = valid.map(q => {
       const opts = [...q.options]
       // Pad to 4 options minimum (backend requires A-D)
-      while (opts.length < 4) opts.push(opts[opts.length - 1] || opts[0] || 'N/A')
+      while (opts.length < 4) opts.push('')  // pad with empty, NOT duplicating last option
       const letters = ['a', 'b', 'c', 'd', 'e']
       return {
         question:      q.question,
@@ -625,8 +625,8 @@ export default function QuizzesPage() {
                                           questionText:  editQForm.question.trim(),
                                           optionA:       editQForm.optionA.trim(),
                                           optionB:       editQForm.optionB.trim(),
-                                          optionC:       editQForm.optionC.trim(),
-                                          optionD:       editQForm.optionD.trim(),
+                                          optionC:       (editQForm.optionCount || 4) >= 3 ? editQForm.optionC.trim() : '',
+                                          optionD:       (editQForm.optionCount || 4) >= 4 ? editQForm.optionD.trim() : '',
                                           correctOption: letters[editQForm.correctOption] || 'a',
                                           explanation:   editQForm.explanation.trim() || null,
                                         })

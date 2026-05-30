@@ -34,7 +34,7 @@ const NAV: NavGroup[] = [
     { href:'/quizzes',          icon:HelpCircle,      label:'Quizzes & Mock Tests' },
     { href:'/current-affairs',  icon:Newspaper,       label:'Current Affairs' },
     { href:'/flashcards',       icon:Brain,           label:'Flashcards' },
-    { href:'/reviews',          icon:CheckSquare,     label:'Review Uploads' },
+    // { href:'/reviews',          icon:CheckSquare,     label:'Review Uploads' },
   ]},
   { group:'Exams & Jobs', items:[
     { href:'/exams',            icon:GraduationCap,   label:'Exam Management' },
