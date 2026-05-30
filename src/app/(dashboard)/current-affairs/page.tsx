@@ -621,8 +621,8 @@ function Inner() {
                     <div className="flex gap-1 shrink-0">
                       <button onClick={() => {
                         setEditingMcq(mcq)
-                        const opts = [mcq.option_a,mcq.option_b,mcq.option_c,mcq.option_d].filter(Boolean)
-                        const correctIdx = ['a','b','c','d'].indexOf(mcq.correct||'a')
+                        const opts = [mcq.option_a,mcq.option_b,mcq.option_c,mcq.option_d,mcq.option_e].filter(Boolean)
+                        const correctIdx = ['a','b','c','d','e'].indexOf(mcq.correct||'a')
                         setMcqForm({question:mcq.question,options:opts,correct:correctIdx>=0?correctIdx:0,explanation:mcq.explanation||'',optionCount:opts.length})
                       }} className="w-7 h-7 rounded-lg bg-amber-50 hover:bg-amber-100 flex items-center justify-center">
                         <Edit size={12} className="text-amber-600"/>
