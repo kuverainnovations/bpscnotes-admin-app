@@ -14,7 +14,7 @@ import {
 } from 'lucide-react'
 
 const CATEGORIES = ['General','Economy','Polity','Science & Tech','Environment','International','Bihar','Sports','Defence','Awards']
-const EMPTY_FORM = { title:'', detail:'', category:'General', type:'prelims', examTags:[] as string[], isImportant:false, publishDate:'' }
+const EMPTY_FORM = { title:'', detail:'', category:'General', type:'prelims', examTags:[] as string[], isImportant:false, publishDate:'', status:'draft' }
 const OPTION_LABELS = ['A','B','C','D','E']
 const LIMIT = 20
 
@@ -156,7 +156,7 @@ function Inner() {
     setEditing(item)
     setForm({ title:item.title, detail:item.summary||item.full_content||'', category:item.category,
       type:item.type||(item.exam_tags?.find((t:string)=>['prelims','mains','both'].includes(t))||'prelims'), examTags:item.exam_tags||[], isImportant:item.is_important||false,
-      publishDate:item.date?.split('T')[0]||'' })
+      publishDate:item.date?.split('T')[0]||'', status:item.status||'draft' })
     setShowModal(true)
   }
 
@@ -166,7 +166,7 @@ function Inner() {
     try {
       const payload = { title:form.title, summary:form.detail, fullContent:form.detail,
         category:form.category, type:form.type, examTags:form.examTags,
-        isImportant:form.isImportant, date:form.publishDate }
+        isImportant:form.isImportant, date:form.publishDate, status:form.status }
       if (editing) await api.currentAffairs.update(editing.id, payload)
       else         await api.currentAffairs.create(payload)
       setShowModal(false); load(); showToast(editing ? 'Updated ✅' : 'Created ✅')
@@ -431,6 +431,24 @@ function Inner() {
                     <span className="text-sm font-medium text-slate-700">⭐ Mark Important</span>
                   </label>
                 </div>
+              </div>
+              {/* Status toggle — draft / published */}
+              <div className="flex items-center gap-3 pt-1">
+                <span className="text-xs font-bold text-slate-600">Status</span>
+                <div className="flex rounded-xl overflow-hidden border border-slate-200 text-xs font-semibold">
+                  {(['draft','published'] as const).map(s => (
+                    <button key={s} onClick={() => setForm({...form, status: s})}
+                      className={`px-4 py-2 transition-colors capitalize
+                        ${form.status === s
+                          ? s === 'published' ? 'bg-green-500 text-white' : 'bg-slate-500 text-white'
+                          : 'bg-white text-slate-500 hover:bg-slate-50'}`}>
+                      {s === 'published' ? '✅ Published' : '📝 Draft'}
+                    </button>
+                  ))}
+                </div>
+                {form.status === 'published' && (
+                  <span className="text-[10px] text-green-600 font-medium">Visible to users in app</span>
+                )}
               </div>
             </div>
 
