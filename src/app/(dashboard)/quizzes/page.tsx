@@ -47,6 +47,7 @@ const EMPTY_FORM = {
 
 // Issue 13: admin chooses option count (2–5)
 function emptyQ(optCount=4) {
+  optCount = Math.min(optCount, 4) // DB max is 4
   return {
     question:'', questionType:'text', questionImageUrl:'',
     optionType:'text', options:Array(optCount).fill(''), optionImages:Array(optCount).fill(''),
@@ -537,7 +538,7 @@ export default function QuizzesPage() {
                           {/* Issue 13: option count picker */}
                           <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white rounded-lg border border-slate-200">
                             <span className="text-[10px] text-slate-500 font-medium">Options:</span>
-                            {[2,3,4,5].map(n => (
+                            {[2,3,4].map(n => (
                               <button key={n} onClick={() => setOptionCount(i, n)}
                                 className={`w-6 h-6 rounded-md text-xs font-bold transition-colors
                                   ${q.optionCount===n?'bg-brand-500 text-white':'text-slate-500 hover:bg-slate-100'}`}>
