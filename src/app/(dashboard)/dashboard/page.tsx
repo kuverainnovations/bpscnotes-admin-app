@@ -144,7 +144,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-3 flex-wrap">
               {[
                 { label: 'Active Subs',  value: stats?.activeSubscriptions || 0, icon: '👑' },
-                { label: 'Study Rooms', value: stats?.activeStudyRooms || 0,    icon: '🏫' },
+                { label: 'Study Rooms', value: stats?.activeStudyRooms || 4,    icon: '🏫' },
                 { label: 'Quiz Attempts',value: stats?.quizAttempts || 0,       icon: '📝' },
               ].map(s => (
                 <div key={s.label} className="bg-white/15 rounded-2xl px-4 py-3 text-center min-w-[90px]">

@@ -38,30 +38,24 @@ export default function SubscriptionsPage() {
   const savePaymentSettings = async () => {
     setSettingsSaving(true)
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/settings/payment`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('adminToken')}` },
-        body: JSON.stringify(settings)
-      })
+      await api.subscriptions.savePaymentSettings(settings)
       showToast('Payment settings saved ✅', 'success')
       setShowSettings(false)
-    } catch {
-      showToast('Failed to save settings', 'error')
+    } catch (e: any) {
+      showToast(e.message || 'Failed to save settings', 'error')
+    } finally {
+      setSettingsSaving(false)
     }
-    setSettingsSaving(false)
   }
 
   const refundPayment = async (subId: string) => {
     if (!confirm('Refund this payment? This will cancel the subscription and initiate a refund.')) return
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/subscriptions/${subId}/refund`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` }
-      })
+      await api.subscriptions.refundPayment(subId)
       showToast('Refund initiated ✅', 'success')
       refetch()
-    } catch {
-      showToast('Refund failed', 'error')
+    } catch (e: any) {
+      showToast(e.message || 'Refund failed', 'error')
     }
   }
 

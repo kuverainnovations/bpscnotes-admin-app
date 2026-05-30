@@ -225,6 +225,8 @@ export const api = {
 
   // ── Subscriptions & Coupons ───────────────────────────────
   subscriptions: {
+    savePaymentSettings: (d: any) => request('/admin/settings/payment', { method: 'POST', body: JSON.stringify(d) }),
+    refundPayment:       (subId: string) => request(`/admin/subscriptions/${subId}/refund`, { method: 'POST' }),
     list:         (params = {}) => request(`/admin/subscriptions?${qs(params)}`),
     getStats:     ()             => request('/admin/subscriptions/stats'),
     cancel:       (id: string)   => request(`/admin/subscriptions/${id}/cancel`, { method: 'PUT' }),

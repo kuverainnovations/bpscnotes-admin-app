@@ -61,7 +61,7 @@ export default function AchievementsPage() {
   const load = useCallback(async () => {
     setLoading(true)
     try { const r = await api.adminAchievements.list(); setList(r.data?.achievements||[]) }
-    catch (e: any) { showToast(e.message||'Failed', 'error') }
+    catch (e: any) { showToast(e.message||'Failed to load achievements', 'error') }
     finally { setLoading(false) }
   }, [])
   useEffect(() => { load() }, [load])
@@ -75,8 +75,8 @@ export default function AchievementsPage() {
   }
 
   const toggle = async (id: string, isActive: boolean) => {
-    try { await api.adminAchievements.toggle(id, !isActive); load() }
-    catch (e: any) { showToast(e.message||'Failed', 'error') }
+    try { await api.adminAchievements.toggle(id, !isActive); load(); showToast('Updated ✅') }
+    catch (e: any) { showToast(e.message||'Failed to update', 'error') }
   }
 
   const condType = COND_TYPES.find(c => c.value === form.condition?.type)
