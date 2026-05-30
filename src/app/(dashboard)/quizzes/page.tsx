@@ -499,7 +499,10 @@ export default function QuizzesPage() {
                   ) : (
                     existingQuestions.map((q: any, i: number) => {
                       const correctIdx = normCorrect(q.correct_option ?? q.correctOption)
-                      const opts = [q.option_a, q.option_b, q.option_c, q.option_d].filter(Boolean)
+                      // Only show options that have actual content (not empty string)
+                      const allOpts = [q.option_a, q.option_b, q.option_c, q.option_d]
+                      const opts = allOpts.filter(o => typeof o === 'string' && o.trim() !== '')
+                      const optCount = opts.length || 2
                       const isEditing = editingQId === (q.id || String(i))
 
                       return (
@@ -512,6 +515,8 @@ export default function QuizzesPage() {
                                 <button
                                   onClick={() => {
                                     setEditingQId(q.id || String(i))
+                                    const qOptCount = [q.option_a, q.option_b, q.option_c, q.option_d]
+                                      .filter(o => typeof o === 'string' && o.trim() !== '').length || 2
                                     setEditQForm({
                                       question: q.question_text || q.question || '',
                                       optionA: q.option_a || '',
@@ -520,6 +525,7 @@ export default function QuizzesPage() {
                                       optionD: q.option_d || '',
                                       correctOption: correctIdx,
                                       explanation: q.explanation || '',
+                                      optionCount: qOptCount,
                                     })
                                   }}
                                   className="flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-semibold rounded-lg transition-colors"
@@ -558,7 +564,26 @@ export default function QuizzesPage() {
                                 <div>
                                   <label className="block text-xs font-bold text-slate-500 mb-1">Options — click letter to mark correct</label>
                                   <div className="space-y-2">
-                                    {['A','B','C','D'].map((lbl, oi) => {
+                                    {/* Option count selector */}
+                                  <div className="flex items-center gap-1.5 mb-2">
+                                    <span className="text-[10px] text-slate-500 font-medium">Options:</span>
+                                    {[2,3,4].map(n => (
+                                      <button key={n} onClick={() => {
+                                        const keys = ['optionA','optionB','optionC','optionD']
+                                        const update: any = { ...editQForm, optionCount: n }
+                                        // Clear options beyond new count
+                                        keys.slice(n).forEach(k => { update[k] = '' })
+                                        // Cap correctOption within new range
+                                        if (update.correctOption >= n) update.correctOption = 0
+                                        setEditQForm(update)
+                                      }}
+                                        className={`w-7 h-7 rounded-lg text-xs font-bold transition-colors
+                                          ${(editQForm.optionCount||4)===n?'bg-brand-500 text-white':'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
+                                        {n}
+                                      </button>
+                                    ))}
+                                  </div>
+                                  {['A','B','C','D'].slice(0, editQForm.optionCount || 4).map((lbl, oi) => {
                                       const key = `option${lbl}` as 'optionA'|'optionB'|'optionC'|'optionD'
                                       const isCorrect = editQForm.correctOption === oi
                                       return (
