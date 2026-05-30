@@ -202,7 +202,9 @@ export const api = {
     delete:       (id: string) => request(`/admin/quizzes/${id}`, { method: 'DELETE' }),
     addQuestions: (quizId: string, questions: any[]) =>
                     request(`/admin/quizzes/${quizId}/questions`, { method: 'POST', body: JSON.stringify({ questions }) }),
-    getQuestions: (quizId: string) => request(`/admin/quizzes/${quizId}/questions`),
+    getQuestions:     (quizId: string)              => request(`/admin/quizzes/${quizId}/questions`),
+    updateQuestion:   (questionId: string, d: any)   => request(`/admin/questions/${questionId}`, { method: 'PUT',    body: JSON.stringify(d) }),
+    deleteQuestion:   (questionId: string)            => request(`/admin/questions/${questionId}`, { method: 'DELETE' }),
   },
 
   // ── Current Affairs ───────────────────────────────────────

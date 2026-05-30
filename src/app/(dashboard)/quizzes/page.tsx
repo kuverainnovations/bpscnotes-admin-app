@@ -22,6 +22,12 @@ const TYPE_META: Record<string,{label:string;color:string;bg:string}> = {
 }
 
 const OPTION_LABELS = ['A','B','C','D','E']
+const LETTER_TO_IDX: Record<string,number> = { a:0, b:1, c:2, d:3, e:4 }
+const normCorrect = (v: any): number => {
+  if (typeof v === 'number') return Math.min(v, 3)
+  if (typeof v === 'string') return LETTER_TO_IDX[v.toLowerCase()] ?? 0
+  return 0
+}
 
 // Issue 8: controlled number input — shows empty string not 0
 function NumInput({ value, onChange, placeholder='', className='', min=0, max=9999 }:
@@ -80,6 +86,9 @@ export default function QuizzesPage() {
   // Issue 10: existing questions for edit
   const [existingQuestions, setExistingQuestions] = useState<any[]>([])
   const [loadingQs, setLoadingQs]   = useState(false)
+  const [editingQId, setEditingQId] = useState<string|null>(null)
+  const [editQForm, setEditQForm]   = useState<any>(null)
+  const [savingQ2, setSavingQ2]     = useState(false)
   const [qTab, setQTab]             = useState<'existing'|'add'>('existing')
 
   const load = useCallback(async () => {
@@ -488,36 +497,166 @@ export default function QuizzesPage() {
                       <button onClick={() => setQTab('add')} className="btn-primary mt-3 text-sm">Add Questions →</button>
                     </div>
                   ) : (
-                    existingQuestions.map((q: any, i: number) => (
-                      <div key={q.id || i} className="bg-slate-50 rounded-2xl p-4 border border-slate-200">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1">
-                            <p className="text-xs font-bold text-slate-400 mb-1">Q{i+1}</p>
-                            {q.question_image_url && <img src={q.question_image_url} alt="" className="max-h-20 rounded-xl mb-2 object-contain"/>}
-                            <p className="text-sm font-semibold text-slate-800 mb-2">{q.question || q.question_text}</p>
-                            <div className="grid grid-cols-2 gap-1.5">
-                              {(q.options || [q.option_a, q.option_b, q.option_c, q.option_d].filter(Boolean)).map((opt: string, oi: number) => (
-                                <div key={oi} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs
-                                  ${oi === (typeof (q.correct_option??q.correctOption)=== 'string' ? ['a','b','c','d','e'].indexOf((q.correct_option??q.correctOption).toLowerCase()) : (q.correct_option??q.correctOption??0))
-                                    ? 'bg-green-100 text-green-800 font-semibold border border-green-200'
-                                    : 'bg-white text-slate-600 border border-slate-200'}`}>
-                                  <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-black shrink-0
-                                    ${oi === (typeof (q.correct_option??q.correctOption)=== 'string' ? ['a','b','c','d','e'].indexOf((q.correct_option??q.correctOption).toLowerCase()) : (q.correct_option??q.correctOption??0)) ? 'bg-green-500 text-white' : 'bg-slate-200 text-slate-500'}`}>
-                                    {OPTION_LABELS[oi]}
-                                  </span>
-                                  {opt}
-                                </div>
-                              ))}
+                    existingQuestions.map((q: any, i: number) => {
+                      const correctIdx = normCorrect(q.correct_option ?? q.correctOption)
+                      const opts = [q.option_a, q.option_b, q.option_c, q.option_d].filter(Boolean)
+                      const isEditing = editingQId === (q.id || String(i))
+
+                      return (
+                        <div key={q.id || i} className="rounded-2xl border-2 border-slate-200 overflow-hidden">
+                          {/* Question header */}
+                          <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-b border-slate-100">
+                            <span className="text-xs font-black text-slate-500">Q{i+1}</span>
+                            <div className="flex gap-1.5">
+                              {!isEditing && (
+                                <button
+                                  onClick={() => {
+                                    setEditingQId(q.id || String(i))
+                                    setEditQForm({
+                                      question: q.question_text || q.question || '',
+                                      optionA: q.option_a || '',
+                                      optionB: q.option_b || '',
+                                      optionC: q.option_c || '',
+                                      optionD: q.option_d || '',
+                                      correctOption: correctIdx,
+                                      explanation: q.explanation || '',
+                                    })
+                                  }}
+                                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-semibold rounded-lg transition-colors"
+                                >
+                                  <Edit size={11}/> Edit
+                                </button>
+                              )}
+                              <button
+                                onClick={async () => {
+                                  if (!confirm('Delete this question?')) return
+                                  try {
+                                    await api.quizzes.deleteQuestion(q.id)
+                                    setExistingQuestions(prev => prev.filter((_,idx) => idx !== i))
+                                    showToast('Question deleted')
+                                  } catch (e: any) { showToast(e.message || 'Failed', 'error') }
+                                }}
+                                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold rounded-lg transition-colors"
+                              >
+                                <Trash2 size={11}/> Delete
+                              </button>
                             </div>
-                            {(q.explanation || q.hint) && (
-                              <p className="text-xs text-blue-600 mt-2 bg-blue-50 px-2.5 py-1.5 rounded-lg">
-                                💡 Hint: {q.explanation || q.hint}
-                              </p>
+                          </div>
+
+                          <div className="p-4">
+                            {isEditing ? (
+                              /* ── Edit mode ── */
+                              <div className="space-y-3">
+                                <div>
+                                  <label className="block text-xs font-bold text-slate-500 mb-1">Question *</label>
+                                  <textarea
+                                    value={editQForm.question}
+                                    onChange={e => setEditQForm({...editQForm, question: e.target.value})}
+                                    className="input resize-none h-16 w-full" autoFocus
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-bold text-slate-500 mb-1">Options — click letter to mark correct</label>
+                                  <div className="space-y-2">
+                                    {['A','B','C','D'].map((lbl, oi) => {
+                                      const key = `option${lbl}` as 'optionA'|'optionB'|'optionC'|'optionD'
+                                      const isCorrect = editQForm.correctOption === oi
+                                      return (
+                                        <div key={oi} className={`flex items-center gap-2 p-2 rounded-xl border-2 transition-colors
+                                          ${isCorrect ? 'border-green-400 bg-green-50' : 'border-transparent bg-slate-50'}`}>
+                                          <button
+                                            onClick={() => setEditQForm({...editQForm, correctOption: oi})}
+                                            className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs font-black shrink-0 transition-colors
+                                              ${isCorrect ? 'bg-green-500 text-white' : 'bg-white border-2 border-slate-200 text-slate-500 hover:border-green-400'}`}
+                                          >{lbl}</button>
+                                          <input
+                                            value={editQForm[key]}
+                                            onChange={e => setEditQForm({...editQForm, [key]: e.target.value})}
+                                            className="flex-1 bg-transparent outline-none text-sm text-slate-800 placeholder-slate-400"
+                                            placeholder={`Option ${lbl}…`}
+                                          />
+                                          {isCorrect && <span className="text-[10px] font-bold text-green-600 shrink-0">✓ Correct</span>}
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-bold text-slate-500 mb-1">Hint / Explanation</label>
+                                  <input
+                                    value={editQForm.explanation}
+                                    onChange={e => setEditQForm({...editQForm, explanation: e.target.value})}
+                                    className="input w-full" placeholder="Why is this the correct answer?"
+                                  />
+                                </div>
+                                <div className="flex gap-2 pt-1">
+                                  <button
+                                    onClick={async () => {
+                                      if (!editQForm.question.trim()) { showToast('Question text required', 'error'); return }
+                                      setSavingQ2(true)
+                                      try {
+                                        const letters = ['a','b','c','d']
+                                        await api.quizzes.updateQuestion(q.id, {
+                                          questionText:  editQForm.question.trim(),
+                                          optionA:       editQForm.optionA.trim(),
+                                          optionB:       editQForm.optionB.trim(),
+                                          optionC:       editQForm.optionC.trim(),
+                                          optionD:       editQForm.optionD.trim(),
+                                          correctOption: letters[editQForm.correctOption] || 'a',
+                                          explanation:   editQForm.explanation.trim() || null,
+                                        })
+                                        // Update local state so list reflects change immediately
+                                        setExistingQuestions(prev => prev.map((eq, idx) => idx !== i ? eq : {
+                                          ...eq,
+                                          question_text:  editQForm.question.trim(),
+                                          option_a: editQForm.optionA, option_b: editQForm.optionB,
+                                          option_c: editQForm.optionC, option_d: editQForm.optionD,
+                                          correct_option: letters[editQForm.correctOption],
+                                          explanation: editQForm.explanation,
+                                        }))
+                                        setEditingQId(null)
+                                        showToast('Question updated ✅')
+                                      } catch (e: any) { showToast(e.message || 'Failed', 'error') }
+                                      finally { setSavingQ2(false) }
+                                    }}
+                                    disabled={savingQ2}
+                                    className="btn-primary text-sm"
+                                  >
+                                    {savingQ2 ? <><Loader2 size={13} className="animate-spin"/> Saving…</> : <><CheckCircle2 size={13}/> Save Changes</>}
+                                  </button>
+                                  <button onClick={() => setEditingQId(null)} className="btn-secondary text-sm">Cancel</button>
+                                </div>
+                              </div>
+                            ) : (
+                              /* ── Read mode ── */
+                              <>
+                                {q.question_image_url && <img src={q.question_image_url} alt="" className="max-h-20 rounded-xl mb-2 object-contain"/>}
+                                <p className="text-sm font-semibold text-slate-800 mb-2">{q.question_text || q.question}</p>
+                                <div className="grid grid-cols-2 gap-1.5">
+                                  {opts.map((opt: string, oi: number) => (
+                                    <div key={oi} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs
+                                      ${oi === correctIdx
+                                        ? 'bg-green-100 text-green-800 font-semibold border border-green-200'
+                                        : 'bg-white text-slate-600 border border-slate-200'}`}>
+                                      <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-black shrink-0
+                                        ${oi === correctIdx ? 'bg-green-500 text-white' : 'bg-slate-200 text-slate-500'}`}>
+                                        {OPTION_LABELS[oi]}
+                                      </span>
+                                      {opt}
+                                    </div>
+                                  ))}
+                                </div>
+                                {(q.explanation || q.hint) && (
+                                  <p className="text-xs text-blue-600 mt-2 bg-blue-50 px-2.5 py-1.5 rounded-lg">
+                                    💡 {q.explanation || q.hint}
+                                  </p>
+                                )}
+                              </>
                             )}
                           </div>
                         </div>
-                      </div>
-                    ))
+                      )
+                    })
                   )}
                 </div>
               )}
