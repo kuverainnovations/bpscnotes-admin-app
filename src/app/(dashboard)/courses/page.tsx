@@ -48,8 +48,10 @@ export default function ContentPage() {
   const [newChTitle, setNewChTitle] = useState('')
   const [addingLesson, setAddingLesson] = useState<string|null>(null)
   const [newLesson, setNewLesson]   = useState<any>(EMPTY_LESSON)
-  const [editingLesson, setEditingLesson] = useState<any>(null)
+  const [editingLesson, setEditingLesson] = useState<string|null>(null)
   const [editLessonData, setEditLessonData] = useState<any>(EMPTY_LESSON)
+  const [editingChapter, setEditingChapter] = useState<string|null>(null)
+  const [editChapterTitle, setEditChapterTitle] = useState('')
   const chapterRef = useRef<HTMLDivElement>(null)
 
   // Modal state
@@ -88,7 +90,7 @@ export default function ContentPage() {
       const res = await api.courses.getChapters(courseId)
       const chs = res.data?.chapters || []
       setChapters(chs)
-      // Fix: update the lesson count in the list card from real chapter data
+      // Update lesson count on card from real chapter data
       const realTotal = chs.reduce((sum: number, ch: any) => sum + (ch.lessons?.length || 0), 0)
       setList(prev => prev.map(course =>
         course.id === courseId ? { ...course, total_lessons: realTotal } : course
@@ -130,17 +132,25 @@ export default function ContentPage() {
   }
 
   const updateLesson = async (lId: string) => {
-    if (!editLessonData.title.trim()) return
+    if (!editLessonData.title?.trim()) return
     try {
       await api.courses.updateLesson(contentCourse.id, lId, {
-        ...editLessonData,
-        durationMins: Number(editLessonData.durationMins)
+        ...editLessonData, durationMins: Number(editLessonData.durationMins)
       })
       setEditingLesson(null)
-      setEditLessonData(EMPTY_LESSON)
       loadChapters(contentCourse.id)
       showToast('Lesson updated ✅')
-    } catch { showToast('Failed to update lesson', 'error') }
+    } catch (e: any) { showToast(e.message || 'Failed to update', 'error') }
+  }
+
+  const updateChapterTitle = async (chId: string) => {
+    if (!editChapterTitle.trim()) return
+    try {
+      await api.courses.updateChapter(contentCourse.id, chId, { title: editChapterTitle })
+      setEditingChapter(null)
+      loadChapters(contentCourse.id)
+      showToast('Chapter renamed ✅')
+    } catch (e: any) { showToast(e.message || 'Failed to update chapter', 'error') }
   }
 
   // Issue 6: delete with optimistic UI — remove from list immediately
@@ -300,10 +310,10 @@ export default function ContentPage() {
                   {/* Stats row */}
                   <div className="grid grid-cols-4 gap-1.5">
                     {[
-                      { icon: <BookMarked size={11}/>, label: 'Lessons',  value: c.total_lessons ?? c.lesson_count ?? 0 },
+                      { icon: <BookMarked size={11}/>, label: 'Lessons',  value: c.total_lessons || 0 },
                       { icon: <Clock size={11}/>,      label: 'Hours',    value: `${c.total_hours || 0}h` },
                       { icon: <Users size={11}/>,      label: 'Enrolled', value: c.enrollment_count || 0 },
-                      { icon: <Globe size={11}/>,      label: 'Language', value: (c.language||'—').split(' ')[0] },
+                      { icon: <Globe size={11}/>, label: 'Language', value: (c.language||'—').split(' ')[0] },
                     ].map(s => (
                       <div key={s.label} className="flex flex-col items-center py-2 bg-slate-50 rounded-xl">
                         <span className="text-slate-400 mb-0.5">{s.icon}</span>
@@ -410,36 +420,62 @@ export default function ContentPage() {
                   {chapters.map((ch: any, chIdx: number) => (
                     <div key={ch.id} className="border border-slate-200 rounded-2xl overflow-hidden">
                       {/* Chapter header */}
-                      <div
-                        className="flex items-center gap-3 px-4 py-3.5 bg-white hover:bg-slate-50 cursor-pointer transition-colors"
-                        onClick={() => setExpandedCh(expandedCh === ch.id ? null : ch.id)}
-                      >
-                        <div className="w-6 h-6 rounded-lg bg-purple-100 flex items-center justify-center text-purple-700 text-xs font-black shrink-0">
-                          {chIdx + 1}
+                      {editingChapter === ch.id ? (
+                        <div className="flex items-center gap-2 px-4 py-3 bg-amber-50 border-b border-amber-100">
+                          <div className="w-6 h-6 rounded-lg bg-purple-100 flex items-center justify-center text-purple-700 text-xs font-black shrink-0">{chIdx + 1}</div>
+                          <input value={editChapterTitle} onChange={e => setEditChapterTitle(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && updateChapterTitle(ch.id)}
+                            className="input flex-1 text-sm py-1.5" autoFocus />
+                          <button onClick={() => updateChapterTitle(ch.id)}
+                            className="w-7 h-7 rounded-lg bg-green-500 hover:bg-green-600 flex items-center justify-center shrink-0">
+                            <Check size={12} className="text-white" />
+                          </button>
+                          <button onClick={() => setEditingChapter(null)}
+                            className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center shrink-0">
+                            <X size={12} className="text-slate-500" />
+                          </button>
                         </div>
-                        {expandedCh === ch.id
-                          ? <ChevronDown size={15} className="text-slate-500 shrink-0" />
-                          : <ChevronRight size={15} className="text-slate-400 shrink-0" />}
-                        <span className="font-semibold text-slate-800 flex-1 text-sm">{ch.title}</span>
-                        <span className="text-xs text-slate-400 px-2 py-0.5 bg-slate-100 rounded-full mr-2">
-                          {(ch.lessons || []).length} lessons
-                        </span>
-                        <button
-                          onClick={e => { e.stopPropagation(); deleteChapter(ch.id) }}
-                          className="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center transition-colors shrink-0"
+                      ) : (
+                        <div
+                          className="flex items-center gap-3 px-4 py-3.5 bg-white hover:bg-slate-50 cursor-pointer transition-colors"
+                          onClick={() => setExpandedCh(expandedCh === ch.id ? null : ch.id)}
                         >
-                          <Trash2 size={12} className="text-red-500" />
-                        </button>
-                      </div>
+                          <div className="w-6 h-6 rounded-lg bg-purple-100 flex items-center justify-center text-purple-700 text-xs font-black shrink-0">
+                            {chIdx + 1}
+                          </div>
+                          {expandedCh === ch.id
+                            ? <ChevronDown size={15} className="text-slate-500 shrink-0" />
+                            : <ChevronRight size={15} className="text-slate-400 shrink-0" />}
+                          <span className="font-semibold text-slate-800 flex-1 text-sm">{ch.title}</span>
+                          <span className="text-xs text-slate-400 px-2 py-0.5 bg-slate-100 rounded-full">
+                            {(ch.lessons || []).length} lessons
+                          </span>
+                          <button
+                            onClick={e => { e.stopPropagation(); setEditingChapter(ch.id); setEditChapterTitle(ch.title) }}
+                            className="w-7 h-7 rounded-lg bg-amber-50 hover:bg-amber-100 flex items-center justify-center transition-colors shrink-0"
+                            title="Rename chapter"
+                          >
+                            <Edit size={11} className="text-amber-600" />
+                          </button>
+                          <button
+                            onClick={e => { e.stopPropagation(); deleteChapter(ch.id) }}
+                            className="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center transition-colors shrink-0"
+                          >
+                            <Trash2 size={12} className="text-red-500" />
+                          </button>
+                        </div>
+                      )}
 
                       {expandedCh === ch.id && (
                         <div className="border-t border-slate-100">
                           {(ch.lessons || []).map((l: any, idx: number) => (
                             <div key={l.id}
-                              className={`px-4 py-3 ${idx < (ch.lessons||[]).length - 1 ? 'border-b border-slate-50' : ''} hover:bg-slate-50/50 transition-colors`}
+                              className={`${idx < (ch.lessons||[]).length - 1 ? 'border-b border-slate-50' : ''}`}
                             >
                               {editingLesson === l.id ? (
-                                <div className="space-y-2">
+                                /* ── Inline edit form ── */
+                                <div className="p-4 bg-blue-50/60 space-y-3">
+                                  <p className="text-xs font-bold text-blue-700 uppercase tracking-wide">Edit Lesson</p>
                                   <div className="grid grid-cols-2 gap-2">
                                     <input value={editLessonData.title}
                                       onChange={e => setEditLessonData({...editLessonData, title: e.target.value})}
@@ -457,7 +493,7 @@ export default function ContentPage() {
                                       placeholder="PDF / Notes URL" className="input col-span-2 text-sm" />
                                     <input value={editLessonData.videoUrl}
                                       onChange={e => setEditLessonData({...editLessonData, videoUrl: e.target.value})}
-                                      placeholder="Video URL (optional)" className="input col-span-2 text-sm" />
+                                      placeholder="Video URL" className="input col-span-2 text-sm" />
                                     <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer col-span-2">
                                       <input type="checkbox" checked={editLessonData.isFreePreview}
                                         onChange={e => setEditLessonData({...editLessonData, isFreePreview: e.target.checked})} className="rounded" />
@@ -465,14 +501,16 @@ export default function ContentPage() {
                                     </label>
                                   </div>
                                   <div className="flex gap-2">
-                                    <button onClick={() => updateLesson(l.id)}
-                                      className="btn-primary text-xs py-1.5 px-3"><Check size={11}/> Save</button>
-                                    <button onClick={() => setEditingLesson(null)}
+                                    <button onClick={() => updateLesson(l.id)} className="btn-primary text-xs py-1.5 px-3">
+                                      <Check size={12} /> Save
+                                    </button>
+                                    <button onClick={() => { setEditingLesson(null); setEditLessonData(EMPTY_LESSON) }}
                                       className="btn-secondary text-xs py-1.5 px-3">Cancel</button>
                                   </div>
                                 </div>
                               ) : (
-                                <div className="flex items-center gap-3">
+                                /* ── Normal lesson row ── */
+                                <div className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50/50 transition-colors">
                                   <span className="text-base shrink-0">{lessonIcon(l.type)}</span>
                                   <div className="flex-1 min-w-0">
                                     <p className="text-sm font-medium text-slate-800 truncate">{l.title}</p>
@@ -482,10 +520,22 @@ export default function ContentPage() {
                                       {l.notes_url && <a href={l.notes_url} target="_blank" rel="noreferrer" className="text-[10px] text-blue-500 hover:underline">PDF ↗</a>}
                                     </div>
                                   </div>
-                                  <button onClick={() => {
-                                    setEditingLesson(l.id)
-                                    setEditLessonData({ title: l.title, type: l.type||'pdf', durationMins: l.duration_mins||0, notesUrl: l.notes_url||'', videoUrl: l.video_url||'', isFreePreview: l.is_free_preview||false, isLocked: l.is_locked!==false })
-                                  }} className="w-7 h-7 rounded-lg bg-blue-50 hover:bg-blue-100 flex items-center justify-center shrink-0 transition-colors">
+                                  {/* ✏️ Edit lesson button */}
+                                  <button
+                                    onClick={() => {
+                                      setEditingLesson(l.id)
+                                      setEditLessonData({
+                                        title: l.title, type: l.type || 'pdf',
+                                        durationMins: l.duration_mins || 0,
+                                        notesUrl: l.notes_url || '',
+                                        videoUrl: l.video_url || '',
+                                        isFreePreview: l.is_free_preview || false,
+                                        isLocked: l.is_locked !== false,
+                                      })
+                                    }}
+                                    className="w-7 h-7 rounded-lg bg-blue-50 hover:bg-blue-100 flex items-center justify-center shrink-0 transition-colors"
+                                    title="Edit lesson"
+                                  >
                                     <Edit size={11} className="text-blue-500" />
                                   </button>
                                   <button onClick={() => deleteLesson(l.id)}
