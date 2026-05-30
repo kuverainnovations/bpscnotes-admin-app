@@ -39,7 +39,7 @@ export default function TierRoomsPage() {
   const [distribution, setDist]       = useState<any[]>([])
   const [loading, setLoading]         = useState(true)
   const [error, setError]             = useState('')
-  const [activeTab, setActiveTab]     = useState<'tiers' | 'rules' | 'distribution' | 'promote'>('tiers')
+  const [activeTab, setActiveTab]     = useState<'tiers' | 'rules' | 'distribution' | 'promote' | 'live'>('tiers')
 
   // Modal states
   const [editTier, setEditTier]       = useState<any>(null)
@@ -47,6 +47,8 @@ export default function TierRoomsPage() {
   const [showPromote, setShowPromote] = useState(false)
   const [saving, setSaving]           = useState(false)
   const [saveMsg, setSaveMsg]         = useState('')
+  const [liveRooms, setLiveRooms]     = useState<any[]>([])
+  const [liveLoading, setLiveLoading] = useState(false)
 
   // Promote form
   const [promoteUserId, setPromoteUserId]   = useState('')
@@ -71,6 +73,17 @@ export default function TierRoomsPage() {
   }, [])
 
   useEffect(() => { loadAll() }, [loadAll])
+
+  const loadLiveRooms = async () => {
+    setLiveLoading(true)
+    try {
+      const res = await api.tierRooms.getLiveSessions()
+      setLiveRooms(res.data?.sessions || [])
+    } catch { setLiveRooms([]) }
+    finally { setLiveLoading(false) }
+  }
+
+  useEffect(() => { if (activeTab === 'live') loadLiveRooms() }, [activeTab])
 
   const flash = (msg: string) => {
     setSaveMsg(msg); setTimeout(() => setSaveMsg(''), 3000)
@@ -189,6 +202,7 @@ export default function TierRoomsPage() {
             { key: 'rules',        label: '📈 Progression Rules', icon: ArrowUp },
             { key: 'distribution', label: '📊 Distribution',      icon: BarChart3 },
             { key: 'promote',      label: '🚀 Promote User',      icon: Zap },
+            { key: 'live',         label: '🔴 Live Sessions',     icon: Users },
           ] as const).map(tab => (
             <button
               key={tab.key}
@@ -439,6 +453,66 @@ export default function TierRoomsPage() {
         {/* ════════════════════════════════════════════════ */}
         {/* TAB 4: Manual Promote/Demote                    */}
         {/* ════════════════════════════════════════════════ */}
+        {activeTab === 'live' && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="font-bold text-slate-900">Live Study Sessions</h2>
+              <button onClick={loadLiveRooms} className="btn-secondary text-xs">
+                <RefreshCw size={13}/> Refresh
+              </button>
+            </div>
+            {liveLoading ? (
+              <div className="card p-12 text-center text-slate-400">Loading live sessions…</div>
+            ) : liveRooms.length === 0 ? (
+              <div className="card p-12 text-center">
+                <p className="text-4xl mb-3">🏫</p>
+                <p className="font-semibold text-slate-700">No active sessions right now</p>
+                <p className="text-sm text-slate-400 mt-1">Students start sessions from the app</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {liveRooms.map((room: any) => (
+                  <div key={room.id || room.room_id} className="card p-4 border-l-4 border-l-green-400">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-green-50 flex items-center justify-center text-xl">
+                          {room.icon_emoji || '🏫'}
+                        </div>
+                        <div>
+                          <p className="font-bold text-slate-900 text-sm">{room.name || room.room_name || 'Study Room'}</p>
+                          <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
+                            <span className="flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse inline-block"/>
+                              {room.active_members ?? room.member_count ?? 0} members live
+                            </span>
+                            {room.tier_name && (
+                              <span className="badge bg-slate-100 text-slate-600 border-slate-200 text-[10px]">
+                                {tierLabel(room.tier_key || room.tier_name)}
+                              </span>
+                            )}
+                            {room.started_at && (
+                              <span>Started {new Date(room.started_at).toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'})}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-2xl font-black text-green-600">{room.active_members ?? room.member_count ?? 0}</p>
+                        <p className="text-[10px] text-slate-400">active</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <div className="card p-3 bg-blue-50 border border-blue-100">
+                  <p className="text-xs text-blue-700 font-semibold">
+                    Total members in rooms: {liveRooms.reduce((a: number, r: any) => a + (r.active_members ?? r.member_count ?? 0), 0)}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {activeTab === 'promote' && (
           <div className="max-w-lg space-y-4">
             <div>

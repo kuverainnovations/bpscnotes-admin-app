@@ -370,6 +370,7 @@ export const api = {
     // Phase 5 — anti-cheat
     getFlaggedUsers: (q: any = {})         => request(`/admin/room-tiers/flagged-users?${new URLSearchParams(q)}`),
     clearUserFlags:  (userId: string)      => request(`/admin/room-tiers/flagged-users/${userId}/clear`, { method: 'POST' }),
+    getLiveSessions: ()                    => request('/admin/room-tiers/live-sessions'),
   },
 
   adminUsers: {
