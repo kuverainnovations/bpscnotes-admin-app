@@ -34,9 +34,19 @@ function fmt(bytes: number) {
 // ── Preview Modal ─────────────────────────────────────────────
 // Issue 1: Handles PDF, image AND video
 function PreviewModal({ url, title, type, onClose }: { url:string; title:string; type:string; onClose:()=>void }) {
-  const isVideo = type === 'video' || url.match(/\.(mp4|webm|ogg|mov)$/i)
-  const isPdf   = !isVideo && (type === 'pdf' || url.match(/\.pdf$/i))
-  const isImage = !isVideo && !isPdf && url.match(/\.(jpg|jpeg|png|webp|gif)$/i)
+  // Detect type: check explicit type first, then URL pattern (handles query params)
+  const isVideo = type === 'video' || /\.(mp4|webm|ogg|mov)(\?|$)/i.test(url)
+  const isImage = !isVideo && (
+    type === 'image' ||
+    /\.(jpg|jpeg|png|webp|gif|svg)(\?|$)/i.test(url) ||
+    // Cloudinary/S3 image URLs may not have extension — check path
+    /\/image\/upload\//i.test(url)
+  )
+  const isPdf = !isVideo && !isImage && (
+    type === 'pdf' || type === 'pyq' || type === 'book' ||
+    /\.pdf(\?|$)/i.test(url) ||
+    url.includes('docs.google.com')
+  )
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
@@ -150,7 +160,7 @@ export default function StudyMaterialsAdminPage() {
     finally { setLoading(false) }
   }, [status, page])
 
-  useEffect(() => { setPage(1) }, [status])
+  useEffect(() => { setPage(1); setMaterials([]) }, [status])
   useEffect(() => { load(); loadStats() }, [load, loadStats])
 
   const approve = async (id: string) => {

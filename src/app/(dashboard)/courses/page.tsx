@@ -48,6 +48,8 @@ export default function ContentPage() {
   const [newChTitle, setNewChTitle] = useState('')
   const [addingLesson, setAddingLesson] = useState<string|null>(null)
   const [newLesson, setNewLesson]   = useState<any>(EMPTY_LESSON)
+  const [editingLesson, setEditingLesson] = useState<any>(null)
+  const [editLessonData, setEditLessonData] = useState<any>(EMPTY_LESSON)
   const chapterRef = useRef<HTMLDivElement>(null)
 
   // Modal state
@@ -84,7 +86,13 @@ export default function ContentPage() {
     setLoadingCh(true)
     try {
       const res = await api.courses.getChapters(courseId)
-      setChapters(res.data?.chapters || [])
+      const chs = res.data?.chapters || []
+      setChapters(chs)
+      // Fix: update the lesson count in the list card from real chapter data
+      const realTotal = chs.reduce((sum: number, ch: any) => sum + (ch.lessons?.length || 0), 0)
+      setList(prev => prev.map(course =>
+        course.id === courseId ? { ...course, total_lessons: realTotal } : course
+      ))
     } catch { showToast('Failed to load chapters', 'error') }
     finally { setLoadingCh(false) }
   }
@@ -119,6 +127,20 @@ export default function ContentPage() {
     if (!confirm('Delete this lesson?')) return
     try { await api.courses.deleteLesson(contentCourse.id, lId); loadChapters(contentCourse.id) }
     catch { showToast('Failed to delete lesson', 'error') }
+  }
+
+  const updateLesson = async (lId: string) => {
+    if (!editLessonData.title.trim()) return
+    try {
+      await api.courses.updateLesson(contentCourse.id, lId, {
+        ...editLessonData,
+        durationMins: Number(editLessonData.durationMins)
+      })
+      setEditingLesson(null)
+      setEditLessonData(EMPTY_LESSON)
+      loadChapters(contentCourse.id)
+      showToast('Lesson updated ✅')
+    } catch { showToast('Failed to update lesson', 'error') }
   }
 
   // Issue 6: delete with optimistic UI — remove from list immediately
@@ -278,10 +300,10 @@ export default function ContentPage() {
                   {/* Stats row */}
                   <div className="grid grid-cols-4 gap-1.5">
                     {[
-                      { icon: <BookMarked size={11}/>, label: 'Lessons',  value: c.total_lessons || 0 },
+                      { icon: <BookMarked size={11}/>, label: 'Lessons',  value: c.total_lessons ?? c.lesson_count ?? 0 },
                       { icon: <Clock size={11}/>,      label: 'Hours',    value: `${c.total_hours || 0}h` },
                       { icon: <Users size={11}/>,      label: 'Enrolled', value: c.enrollment_count || 0 },
-                      { icon: <span className="text-[11px]">🪙</span>, label: 'Coins', value: c.coins_reward || 0 },
+                      { icon: <Globe size={11}/>,      label: 'Language', value: (c.language||'—').split(' ')[0] },
                     ].map(s => (
                       <div key={s.label} className="flex flex-col items-center py-2 bg-slate-50 rounded-xl">
                         <span className="text-slate-400 mb-0.5">{s.icon}</span>
@@ -414,20 +436,64 @@ export default function ContentPage() {
                         <div className="border-t border-slate-100">
                           {(ch.lessons || []).map((l: any, idx: number) => (
                             <div key={l.id}
-                              className={`flex items-center gap-3 px-4 py-3 ${idx < (ch.lessons||[]).length - 1 ? 'border-b border-slate-50' : ''} hover:bg-slate-50/50 transition-colors`}
+                              className={`px-4 py-3 ${idx < (ch.lessons||[]).length - 1 ? 'border-b border-slate-50' : ''} hover:bg-slate-50/50 transition-colors`}
                             >
-                              <span className="text-base shrink-0">{lessonIcon(l.type)}</span>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-slate-800 truncate">{l.title}</p>
-                                <div className="flex items-center gap-2 mt-0.5">
-                                  {l.duration_mins > 0 && <span className="text-[10px] text-slate-400">{l.duration_mins}min</span>}
-                                  {l.is_free_preview && <span className="text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded-md font-medium">Free preview</span>}
-                                  {l.notes_url && <a href={l.notes_url} target="_blank" rel="noreferrer" className="text-[10px] text-blue-500 hover:underline">PDF ↗</a>}
+                              {editingLesson === l.id ? (
+                                <div className="space-y-2">
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <input value={editLessonData.title}
+                                      onChange={e => setEditLessonData({...editLessonData, title: e.target.value})}
+                                      className="input col-span-2 text-sm" placeholder="Lesson title" autoFocus />
+                                    <select value={editLessonData.type}
+                                      onChange={e => setEditLessonData({...editLessonData, type: e.target.value})}
+                                      className="input text-sm">
+                                      {LESSON_TYPES.map(t => <option key={t.value} value={t.value}>{t.icon} {t.label}</option>)}
+                                    </select>
+                                    <input type="number" value={editLessonData.durationMins}
+                                      onChange={e => setEditLessonData({...editLessonData, durationMins: Number(e.target.value)})}
+                                      placeholder="Duration (mins)" className="input text-sm" />
+                                    <input value={editLessonData.notesUrl}
+                                      onChange={e => setEditLessonData({...editLessonData, notesUrl: e.target.value})}
+                                      placeholder="PDF / Notes URL" className="input col-span-2 text-sm" />
+                                    <input value={editLessonData.videoUrl}
+                                      onChange={e => setEditLessonData({...editLessonData, videoUrl: e.target.value})}
+                                      placeholder="Video URL (optional)" className="input col-span-2 text-sm" />
+                                    <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer col-span-2">
+                                      <input type="checkbox" checked={editLessonData.isFreePreview}
+                                        onChange={e => setEditLessonData({...editLessonData, isFreePreview: e.target.checked})} className="rounded" />
+                                      Free preview
+                                    </label>
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <button onClick={() => updateLesson(l.id)}
+                                      className="btn-primary text-xs py-1.5 px-3"><Check size={11}/> Save</button>
+                                    <button onClick={() => setEditingLesson(null)}
+                                      className="btn-secondary text-xs py-1.5 px-3">Cancel</button>
+                                  </div>
                                 </div>
-                              </div>
-                              <button onClick={() => deleteLesson(l.id)} className="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center shrink-0 transition-colors">
-                                <Trash2 size={11} className="text-red-400" />
-                              </button>
+                              ) : (
+                                <div className="flex items-center gap-3">
+                                  <span className="text-base shrink-0">{lessonIcon(l.type)}</span>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-slate-800 truncate">{l.title}</p>
+                                    <div className="flex items-center gap-2 mt-0.5">
+                                      {l.duration_mins > 0 && <span className="text-[10px] text-slate-400">{l.duration_mins}min</span>}
+                                      {l.is_free_preview && <span className="text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded-md font-medium">Free preview</span>}
+                                      {l.notes_url && <a href={l.notes_url} target="_blank" rel="noreferrer" className="text-[10px] text-blue-500 hover:underline">PDF ↗</a>}
+                                    </div>
+                                  </div>
+                                  <button onClick={() => {
+                                    setEditingLesson(l.id)
+                                    setEditLessonData({ title: l.title, type: l.type||'pdf', durationMins: l.duration_mins||0, notesUrl: l.notes_url||'', videoUrl: l.video_url||'', isFreePreview: l.is_free_preview||false, isLocked: l.is_locked!==false })
+                                  }} className="w-7 h-7 rounded-lg bg-blue-50 hover:bg-blue-100 flex items-center justify-center shrink-0 transition-colors">
+                                    <Edit size={11} className="text-blue-500" />
+                                  </button>
+                                  <button onClick={() => deleteLesson(l.id)}
+                                    className="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center shrink-0 transition-colors">
+                                    <Trash2 size={11} className="text-red-400" />
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           ))}
 

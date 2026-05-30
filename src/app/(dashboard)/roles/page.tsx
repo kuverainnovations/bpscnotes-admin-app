@@ -177,7 +177,7 @@ export default function RolesPage() {
 
               return (
                 <div key={admin.id}
-                  className="card p-5 flex flex-col gap-4 hover:shadow-lg transition-shadow group"
+                  className={`card p-5 flex flex-col gap-4 hover:shadow-lg transition-shadow group ${admin.status !== 'active' ? 'opacity-50 grayscale' : ''}`}
                 >
                   {/* Top row */}
                   <div className="flex items-start justify-between">
@@ -190,9 +190,11 @@ export default function RolesPage() {
                         >
                           {initials}
                         </div>
-                        <div className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white
-                          ${admin.status === 'active' ? 'bg-green-500' : 'bg-slate-400'}`}
-                        />
+                        {admin.status !== 'active' && (
+                          <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white bg-red-400 flex items-center justify-center">
+                            <span className="text-white text-[7px] font-black">✕</span>
+                          </div>
+                        )}
                       </div>
                       <div>
                         <div className="flex items-center gap-1.5">
@@ -418,6 +420,7 @@ export default function RolesPage() {
                       return (
                         <label
                           key={p}
+                          onClick={() => togglePerm(p)}
                           className={`flex items-center gap-2 p-2.5 rounded-xl cursor-pointer transition-all border
                             ${checked ? `${meta?.bg || 'bg-brand-50 border-brand-200'}` : 'border-transparent hover:bg-slate-50'}`}
                         >

@@ -199,7 +199,7 @@ export default function DashboardPage() {
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false}/>
                 <XAxis dataKey="date" tick={{fontSize:11,fill:'#94a3b8'}} axisLine={false} tickLine={false}/>
-                <YAxis tick={{fontSize:11,fill:'#94a3b8'}} axisLine={false} tickLine={false} tickFormatter={v=>formatNumber(v)}/>
+                <YAxis tick={{fontSize:11,fill:'#94a3b8'}} axisLine={false} tickLine={false} tickFormatter={v=>formatNumber(v)} domain={[0,'auto']} allowDataOverflow={false}/>
                 <Tooltip
                   formatter={(v:number) => [formatNumber(v), 'Users']}
                   contentStyle={{borderRadius:12, fontSize:12, border:'1px solid #e2e8f0', boxShadow:'0 4px 16px rgba(0,0,0,.06)'}}
@@ -256,7 +256,7 @@ export default function DashboardPage() {
               <BarChart data={revChart} margin={{top:5, right:5, bottom:0, left:-15}}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false}/>
                 <XAxis dataKey="date" tick={{fontSize:11,fill:'#94a3b8'}} axisLine={false} tickLine={false}/>
-                <YAxis tick={{fontSize:11,fill:'#94a3b8'}} axisLine={false} tickLine={false} tickFormatter={v=>`₹${v/1000}k`}/>
+                <YAxis tick={{fontSize:11,fill:'#94a3b8'}} axisLine={false} tickLine={false} tickFormatter={v=>`₹${v/1000}k`} domain={[0,'auto']} allowDataOverflow={false}/>
                 <Tooltip formatter={(v:number) => [`₹${formatNumber(v)}`, 'Revenue']} contentStyle={{borderRadius:12, fontSize:12}}/>
                 <Bar dataKey="value" fill="#1565C0" radius={[6,6,0,0]} maxBarSize={40}/>
               </BarChart>
@@ -305,7 +305,7 @@ export default function DashboardPage() {
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {[
                 { label:'Courses',     value:stats?.totalCourses||0,  icon:<BookOpen size={16} className="text-blue-600"/>,    href:'/content',          color:'bg-blue-50/60' },
-                { label:'Notes',       value:stats?.totalNotes||0,    icon:<FileText size={16} className="text-teal-600"/>,    href:'/content/notes',    color:'bg-teal-50/60' },
+                { label:'Materials',   value:stats?.totalMaterials||0,icon:<FileText size={16} className="text-teal-600"/>,    href:'/study-materials',  color:'bg-teal-50/60' },
                 { label:'Quizzes',     value:stats?.totalQuizzes||0,  icon:<HelpCircle size={16} className="text-purple-600"/>,href:'/quizzes',          color:'bg-purple-50/60' },
                 { label:'Flashcards',  value:stats?.totalFlashcards||0,icon:<Zap size={16} className="text-yellow-600"/>,      href:'/flashcards',       color:'bg-yellow-50/60' },
                 { label:'Affairs',     value:stats?.totalAffairs||0,  icon:<Newspaper size={16} className="text-orange-600"/>, href:'/current-affairs',  color:'bg-orange-50/60' },
