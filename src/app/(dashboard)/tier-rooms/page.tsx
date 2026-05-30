@@ -21,14 +21,21 @@ import {
 // ─────────────────────────────────────────────────────────────
 
 const TIER_COLORS: Record<string, { bg: string; border: string; text: string; badge: string }> = {
+  starter:    { bg: 'bg-slate-50',   border: 'border-slate-300', text: 'text-slate-700', badge: 'bg-slate-100 text-slate-700' },
+  serious:    { bg: 'bg-yellow-50',  border: 'border-yellow-300',text: 'text-yellow-800',badge: 'bg-yellow-100 text-yellow-800' },
+  consistent: { bg: 'bg-purple-50',  border: 'border-purple-300',text: 'text-purple-800',badge: 'bg-purple-100 text-purple-800' },
+  achiever:   { bg: 'bg-cyan-50',    border: 'border-cyan-300',  text: 'text-cyan-800',  badge: 'bg-cyan-100 text-cyan-800' },
+  // Keep old keys as fallback during DB migration
   silver:  { bg: 'bg-slate-50',   border: 'border-slate-300', text: 'text-slate-700', badge: 'bg-slate-100 text-slate-700' },
   gold:    { bg: 'bg-yellow-50',  border: 'border-yellow-300',text: 'text-yellow-800',badge: 'bg-yellow-100 text-yellow-800' },
   premium: { bg: 'bg-purple-50',  border: 'border-purple-300',text: 'text-purple-800',badge: 'bg-purple-100 text-purple-800' },
   diamond: { bg: 'bg-cyan-50',    border: 'border-cyan-300',  text: 'text-cyan-800',  badge: 'bg-cyan-100 text-cyan-800' },
 }
 
-// Display names for tiers — backend stores old names, we show new ones
+// Tier display names — DB now uses new keys but keep fallback for old data
 const TIER_LABEL: Record<string, string> = {
+  starter: 'Starter', serious: 'Serious', consistent: 'Consistent', achiever: 'Achiever',
+  // Fallback for any pre-migration records still in DB
   silver: 'Starter', gold: 'Serious', premium: 'Consistent', diamond: 'Achiever',
 }
 const tierLabel = (key: string) => TIER_LABEL[key?.toLowerCase()] || key
@@ -233,7 +240,7 @@ export default function TierRoomsPage() {
 
             <div className="grid md:grid-cols-2 gap-4">
               {tiers.map(tier => {
-                const colors = TIER_COLORS[tier.tier_key] || TIER_COLORS.silver
+                const colors = TIER_COLORS[tier.tier_key] || TIER_COLORS.starter
                 return (
                   <div key={tier.id} className={`card p-5 border-2 ${colors.border} ${colors.bg}`}>
                     <div className="flex items-start justify-between mb-4">
@@ -398,7 +405,7 @@ export default function TierRoomsPage() {
               <div className="space-y-4">
                 {distribution.map((d: any) => {
                   const pct = parseFloat(d.percentage) || 0
-                  const colors = TIER_COLORS[d.tier_key] || TIER_COLORS.silver
+                  const colors = TIER_COLORS[d.tier_key] || TIER_COLORS.starter
                   return (
                     <div key={d.tier_key} className="space-y-2">
                       <div className="flex items-center justify-between text-sm">
@@ -442,9 +449,9 @@ export default function TierRoomsPage() {
             <div className="card p-4 bg-blue-50 border border-blue-200">
               <p className="text-sm text-blue-800">
                 <span className="font-semibold">💡 Healthy distribution target:</span>{' '}
-                ~60% Silver, ~25% Gold, ~12% Premium, ~3% Diamond.
-                If Silver is over 80%, consider lowering the Silver→Gold threshold.
-                If Diamond is over 10%, the Diamond tier may feel less exclusive.
+                ~60% Starter, ~25% Serious, ~12% Consistent, ~3% Achiever.
+                If Starter is over 80%, consider lowering the Starter→Serious threshold.
+                If Achiever is over 10%, the Achiever tier may feel less exclusive.
               </p>
             </div>
           </div>
@@ -542,7 +549,7 @@ export default function TierRoomsPage() {
                 <label className="block text-xs font-semibold text-slate-700 mb-2">Target Tier *</label>
                 <div className="grid grid-cols-2 gap-2">
                   {tiers.map(tier => {
-                    const colors = TIER_COLORS[tier.tier_key] || TIER_COLORS.silver
+                    const colors = TIER_COLORS[tier.tier_key] || TIER_COLORS.starter
                     return (
                       <button
                         key={tier.tier_key}
