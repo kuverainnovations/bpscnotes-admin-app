@@ -62,9 +62,15 @@ function Inner() {
   const load = async () => {
     setLoading(true)
     try {
-      const res = await api.currentAffairs.list({ search: debouncedSearch, category: catFilter, type: typeFilter, page, limit: LIMIT })
+      const res = await api.currentAffairs.list({
+        search: debouncedSearch,
+        category: catFilter,
+        type: typeFilter,
+        page,
+        limit: LIMIT,
+      })
       setList(res.data?.affairs || [])
-      setTotal(res.data?.total || res.meta?.total || 0)
+      setTotal(res.meta?.total ?? res.data?.total ?? 0)
     } catch (e: any) { showToast(e.message, 'error') }
     finally { setLoading(false) }
   }
