@@ -633,7 +633,7 @@ function Inner() {
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-1.5">
-                    {['a','b','c','d'].map(l => mcq[`option_${l}`] && (
+                    {['a','b','c','d','e'].map(l => mcq[`option_${l}`] && (
                       <div key={l} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs
                         ${mcq.correct===l?'bg-green-100 text-green-800 font-semibold border border-green-200':'bg-white text-slate-600 border border-slate-200'}`}>
                         <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-black shrink-0
