@@ -65,7 +65,6 @@ function Inner() {
       const res = await api.currentAffairs.list({
         search: debouncedSearch,
         category: catFilter,
-        type: typeFilter,
         page,
         limit: LIMIT,
       })
