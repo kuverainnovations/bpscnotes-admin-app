@@ -497,11 +497,11 @@ export default function QuizzesPage() {
                             <div className="grid grid-cols-2 gap-1.5">
                               {(q.options || [q.option_a, q.option_b, q.option_c, q.option_d].filter(Boolean)).map((opt: string, oi: number) => (
                                 <div key={oi} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs
-                                  ${oi === (typeof (q.correct_option??q.correctOption)====='string' ? ['a','b','c','d','e'].indexOf((q.correct_option??q.correctOption).toLowerCase()) : (q.correct_option??q.correctOption??0))
+                                  ${oi === (typeof (q.correct_option??q.correctOption)=== 'string' ? ['a','b','c','d','e'].indexOf((q.correct_option??q.correctOption).toLowerCase()) : (q.correct_option??q.correctOption??0))
                                     ? 'bg-green-100 text-green-800 font-semibold border border-green-200'
                                     : 'bg-white text-slate-600 border border-slate-200'}`}>
                                   <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-black shrink-0
-                                    ${oi === (typeof (q.correct_option??q.correctOption)====='string' ? ['a','b','c','d','e'].indexOf((q.correct_option??q.correctOption).toLowerCase()) : (q.correct_option??q.correctOption??0)) ? 'bg-green-500 text-white' : 'bg-slate-200 text-slate-500'}`}>
+                                    ${oi === (typeof (q.correct_option??q.correctOption)=== 'string' ? ['a','b','c','d','e'].indexOf((q.correct_option??q.correctOption).toLowerCase()) : (q.correct_option??q.correctOption??0)) ? 'bg-green-500 text-white' : 'bg-slate-200 text-slate-500'}`}>
                                     {OPTION_LABELS[oi]}
                                   </span>
                                   {opt}
