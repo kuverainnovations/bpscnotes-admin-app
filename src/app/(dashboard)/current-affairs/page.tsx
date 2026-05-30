@@ -82,44 +82,68 @@ function Inner() {
     setMcqLoading(false)
   }
 
-  // Issue 8: saveMcq uses dynamic options array
   const saveMcq = async () => {
     if (!mcqForm.question.trim() || mcqForm.options.filter(Boolean).length < 2) {
       showToast('Question and at least 2 options are required', 'error'); return
     }
     setMcqSaving(true)
     try {
+      // Backend expects: correct as letter 'a'/'b'/'c'/'d', optionA-D as strings
+      const correctLetter = ['a','b','c','d'][Math.min(mcqForm.correct ?? 0, 3)]
+      const opts = mcqForm.options as string[]
+
       const payload = {
-        question:    mcqForm.question,
-        correct:     mcqForm.correct,
-        explanation: mcqForm.explanation,
-        options:     mcqForm.options.map((o: string, i: number) => ({ label: OPTION_LABELS[i], text: o })),
-        // legacy columns for older backends
-        optionA: mcqForm.options[0] || '',
-        optionB: mcqForm.options[1] || '',
-        optionC: mcqForm.options[2] || '',
-        optionD: mcqForm.options[3] || '',
+        question:    mcqForm.question.trim(),
+        correct:     correctLetter,           // letter, not index
+        explanation: mcqForm.explanation?.trim() || '',
+        optionA:     opts[0]?.trim() || '',   // required NOT NULL
+        optionB:     opts[1]?.trim() || '',   // required NOT NULL
+        optionC:     opts[2]?.trim() || '',   // empty string OK
+        optionD:     opts[3]?.trim() || '',   // empty string OK
       }
-      const base = process.env.NEXT_PUBLIC_API_URL
+
+      const base  = process.env.NEXT_PUBLIC_API_URL
       const token = localStorage.getItem('adminToken')
-      const url  = editingMcq
+      const url   = editingMcq
         ? `${base}/admin/current-affairs/mcqs/${editingMcq.id}`
         : `${base}/admin/current-affairs/${mcqAffair.id}/mcqs`
-      await fetch(url, { method: editingMcq ? 'PUT' : 'POST', headers: { 'Content-Type':'application/json', Authorization:`Bearer ${token}` }, body: JSON.stringify(payload) })
+
+      const res = await fetch(url, {
+        method: editingMcq ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload),
+      })
+
+      // Check for HTTP errors — fetch doesn't throw on 4xx/5xx
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: `HTTP ${res.status}` }))
+        throw new Error(err.message || `Request failed (${res.status})`)
+      }
+
       showToast(editingMcq ? 'MCQ updated ✅' : 'MCQ added ✅')
       openMcqs(mcqAffair)
-      setEditingMcq(null); setMcqForm(emptyMcqForm(mcqForm.optionCount))
-    } catch (e: any) { showToast(e.message || 'Failed', 'error') }
-    setMcqSaving(false)
+      setEditingMcq(null)
+      setMcqForm(emptyMcqForm(mcqForm.optionCount))
+    } catch (e: any) {
+      showToast(e.message || 'Failed to save MCQ', 'error')
+    } finally {
+      setMcqSaving(false)
+    }
   }
 
   const deleteMcq = async (id: string) => {
     if (!confirm('Delete this MCQ?')) return
-    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/current-affairs/mcqs/${id}`, {
-      method: 'DELETE', headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` }
-    })
-    setMcqs(p => p.filter(m => m.id !== id))
-    showToast('MCQ deleted')
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/current-affairs/mcqs/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` },
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      setMcqs(p => p.filter(m => m.id !== id))
+      showToast('MCQ deleted')
+    } catch (e: any) {
+      showToast(e.message || 'Failed to delete', 'error')
+    }
   }
 
   const openNew  = () => { setEditing(null); setForm(EMPTY_FORM); setShowModal(true) }
@@ -207,10 +231,17 @@ function Inner() {
           <button onClick={openNew} className="btn-primary"><Plus size={14} /> Add Affair</button>
         </div>
 
-        {/* Issue 5: Card list instead of table */}
+        {/* Quiz-style card grid */}
         {loading ? (
-          <div className="space-y-3">
-            {[1,2,3].map(i => <div key={i} className="card p-5 animate-pulse"><div className="h-4 bg-slate-100 rounded w-3/4 mb-2"/><div className="h-3 bg-slate-100 rounded w-1/3"/></div>)}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {[1,2,3].map(i => (
+              <div key={i} className="card p-5 animate-pulse space-y-3">
+                <div className="h-3 bg-slate-100 rounded w-1/3"/>
+                <div className="h-4 bg-slate-100 rounded w-full"/>
+                <div className="h-3 bg-slate-100 rounded w-2/3"/>
+                <div className="h-10 bg-slate-100 rounded"/>
+              </div>
+            ))}
           </div>
         ) : list.length === 0 ? (
           <div className="card p-16 text-center">
@@ -220,61 +251,85 @@ function Inner() {
             <button onClick={openNew} className="btn-primary mx-auto"><Plus size={14}/> Add Current Affair</button>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {list.map(item => (
-              <div key={item.id} className="card p-5 hover:shadow-md transition-shadow group">
-                <div className="flex items-start gap-4">
-                  {/* Left indicator */}
-                  <div className={`w-1.5 self-stretch rounded-full shrink-0
-                    ${item.type==='mains' ? 'bg-purple-400' : item.type==='both' ? 'bg-blue-400' : 'bg-green-400'}`} />
+              <div key={item.id} className="card p-0 overflow-hidden hover:shadow-lg transition-shadow group flex flex-col">
+                {/* Type colour bar */}
+                <div className={`h-1 w-full ${
+                  item.type==='mains' ? 'bg-purple-300' :
+                  item.type==='both'  ? 'bg-blue-300'   : 'bg-green-300'
+                }`}/>
 
-                  <div className="flex-1 min-w-0">
-                    {/* Title row */}
-                    <div className="flex items-start gap-2 flex-wrap mb-2">
-                      {item.is_important && <Star size={13} className="text-amber-500 shrink-0 mt-0.5 fill-amber-500" />}
-                      <p className="font-bold text-slate-900 leading-snug flex-1">{item.title}</p>
-                    </div>
-
-                    {/* Meta row */}
-                    <div className="flex items-center gap-3 flex-wrap text-xs">
-                      <span className={`badge ${item.type==='mains'?'bg-purple-100 text-purple-700 border-purple-200':item.type==='both'?'bg-blue-100 text-blue-700 border-blue-200':'bg-green-100 text-green-700 border-green-200'}`}>
-                        {item.type || 'prelims'}
+                <div className="p-4 flex flex-col gap-3 flex-1">
+                  {/* Badges row */}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border
+                      ${item.type==='mains' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                        item.type==='both'  ? 'bg-blue-50 text-blue-700 border-blue-200'       :
+                        'bg-green-50 text-green-600 border-green-100'}`}>
+                      {item.type || 'prelims'}
+                    </span>
+                    <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                      {item.category}
+                    </span>
+                    {item.is_important && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                        ⭐ Important
                       </span>
-                      <span className="badge bg-slate-100 text-slate-600 border-slate-200">{item.category}</span>
-                      {item.date && (
-                        <span className="flex items-center gap-1 text-slate-400">
-                          <Calendar size={10}/> {new Date(item.date).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}
-                        </span>
-                      )}
-                      {(item.exam_tags||[]).slice(0,2).map((t:string) => (
-                        <span key={t} className="badge bg-brand-50 text-brand-700 border-brand-200 text-[10px]">{t}</span>
-                      ))}
-                    </div>
-
-                    {/* Detail preview */}
-                    {(item.summary || item.full_content) && (
-                      <p className="text-xs text-slate-500 mt-2 line-clamp-2 leading-relaxed">
-                        {item.summary || item.full_content}
-                      </p>
                     )}
                   </div>
 
-                  {/* Actions */}
-                  <div className="flex items-center gap-1.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => setPreview(item)} title="Preview"
-                      className="w-8 h-8 rounded-xl bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition-colors">
-                      <Eye size={13} className="text-blue-600"/>
+                  {/* Title */}
+                  <h3 className="font-bold text-slate-900 text-sm leading-snug line-clamp-3">
+                    {item.title}
+                  </h3>
+
+                  {/* Stats mini-grid — matches quiz cards */}
+                  <div className="grid grid-cols-3 gap-1.5">
+                    <div className="flex flex-col items-center py-2 bg-slate-50/80 rounded-xl border border-slate-100">
+                      <span className="text-slate-400 mb-0.5 text-[11px]">❓</span>
+                      <span className="text-xs font-black text-slate-800">{item.mcq_count ?? 0}</span>
+                      <span className="text-[9px] text-slate-400">MCQs</span>
+                    </div>
+                    <div className="flex flex-col items-center py-2 bg-slate-50/80 rounded-xl border border-slate-100">
+                      <span className="text-slate-400 mb-0.5 text-[11px]">📅</span>
+                      <span className="text-xs font-black text-slate-800">
+                        {item.date ? new Date(item.date).toLocaleDateString('en-IN',{day:'numeric',month:'short'}) : '—'}
+                      </span>
+                      <span className="text-[9px] text-slate-400">Date</span>
+                    </div>
+                    <div className="flex flex-col items-center py-2 bg-slate-50/80 rounded-xl border border-slate-100">
+                      <span className="text-slate-400 mb-0.5 text-[11px]">👁️</span>
+                      <span className="text-xs font-black text-slate-800">{item.view_count ?? 0}</span>
+                      <span className="text-[9px] text-slate-400">Views</span>
+                    </div>
+                  </div>
+
+                  {/* Summary preview */}
+                  {(item.summary || item.full_content) && (
+                    <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed">
+                      {item.summary || item.full_content}
+                    </p>
+                  )}
+
+                  <div className="flex-1"/>
+
+                  {/* Actions — labelled buttons like quizzes */}
+                  <div className="flex gap-2 pt-2 border-t border-slate-50">
+                    <button onClick={() => setPreview(item)}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold transition-colors">
+                      <Eye size={12}/> Preview
                     </button>
-                    <button onClick={() => openMcqs(item)} title="Add MCQs"
-                      className="w-8 h-8 rounded-xl bg-purple-50 hover:bg-purple-100 flex items-center justify-center transition-colors">
-                      <span className="text-purple-600 text-xs font-black">Q?</span>
+                    <button onClick={() => openMcqs(item)}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-semibold transition-colors">
+                      ❓ MCQs{item.mcq_count > 0 ? ` (${item.mcq_count})` : ''}
                     </button>
-                    <button onClick={() => openEdit(item)} title="Edit"
-                      className="w-8 h-8 rounded-xl bg-amber-50 hover:bg-amber-100 flex items-center justify-center transition-colors">
+                    <button onClick={() => openEdit(item)}
+                      className="w-9 h-9 rounded-xl bg-amber-50 hover:bg-amber-100 flex items-center justify-center transition-colors" title="Edit">
                       <Edit size={13} className="text-amber-600"/>
                     </button>
-                    <button onClick={() => del(item.id, item.title)} title="Delete"
-                      className="w-8 h-8 rounded-xl bg-red-50 hover:bg-red-100 flex items-center justify-center transition-colors">
+                    <button onClick={() => del(item.id, item.title)}
+                      className="w-9 h-9 rounded-xl bg-red-50 hover:bg-red-100 flex items-center justify-center transition-colors" title="Delete">
                       <Trash2 size={13} className="text-red-600"/>
                     </button>
                   </div>
