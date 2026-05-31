@@ -28,6 +28,16 @@ const LESSON_TYPES = [
 
 const EMPTY_LESSON = { title:'', type:'pdf', durationMins:0, notesUrl:'', videoUrl:'', isFreePreview:false, isLocked:true }
 
+const SUBJECTS = [
+  'Polity', 'History', 'Geography', 'Economy', 'Science & Technology',
+  'Environment', 'Bihar GK', 'Current Affairs', 'English', 'Mathematics',
+  'General Studies', 'CSAT', 'Ethics', 'Art & Culture', 'International Relations',
+]
+
+const LANGUAGES = [
+  'Hindi', 'English', 'Hindi + English', 'Hindi (English subtitles)', 'Telugu', 'Tamil', 'Urdu',
+]
+
 function lessonIcon(type: string) {
   return LESSON_TYPES.find(t => t.value === type)?.icon || '📄'
 }
@@ -323,7 +333,6 @@ export default function ContentPage() {
                       { icon: <BookMarked size={11}/>, label: 'Lessons',  value: c.total_lessons || 0 },
                       { icon: <Clock size={11}/>,      label: 'Hours',    value: `${c.total_hours || 0}h` },
                       { icon: <Users size={11}/>,      label: 'Enrolled', value: c.enrollment_count || 0 },
-                      { icon: <Globe size={11}/>, label: 'Language', value: (c.language||'—').split(' ')[0] },
                       { icon: <Layers size={11}/>, label: 'Chapters', value: c.total_chapters || (c.chapters_count) || 0 },
                     ].map(s => (
                       <div key={s.label} className="flex flex-col items-center py-2 bg-slate-50 rounded-xl">
@@ -679,13 +688,37 @@ export default function ContentPage() {
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-500 mb-1.5">Subject *</label>
-                    <input value={form.subject} onChange={e => setForm({...form, subject: e.target.value})}
-                      className="input w-full" placeholder="e.g. Polity, History…" />
+                    <select
+                      value={SUBJECTS.includes(form.subject) ? form.subject : form.subject ? '__other__' : ''}
+                      onChange={e => {
+                        if (e.target.value === '__other__') setForm({...form, subject: ''})
+                        else setForm({...form, subject: e.target.value})
+                      }}
+                      className="input w-full px-3 py-2.5 text-sm"
+                    >
+                      <option value="" disabled>Select a subject…</option>
+                      {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+                      <option value="__other__">Other (type below)</option>
+                    </select>
+                    {(!SUBJECTS.includes(form.subject)) && (
+                      <input
+                        value={form.subject}
+                        onChange={e => setForm({...form, subject: e.target.value})}
+                        placeholder="Enter subject name…"
+                        className="input w-full mt-2 text-sm"
+                        autoFocus
+                      />
+                    )}
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-500 mb-1.5">Language</label>
-                    <input value={form.language} onChange={e => setForm({...form, language: e.target.value})}
-                      className="input w-full" placeholder="Hindi + English" />
+                    <select value={form.language} onChange={e => setForm({...form, language: e.target.value})}
+                      className="input w-full px-3 py-2.5 text-sm">
+                      {LANGUAGES.map(l => <option key={l} value={l}>{l}</option>)}
+                    </select>
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      "Hindi + English" means the course uses both languages (most common for BPSC)
+                    </p>
                   </div>
                   <div className="col-span-2">
                     <label className="block text-xs font-bold text-slate-500 mb-1.5">Description</label>
