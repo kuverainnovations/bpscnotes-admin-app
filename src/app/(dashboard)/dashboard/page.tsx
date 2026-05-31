@@ -304,7 +304,7 @@ export default function DashboardPage() {
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {[
-                { label:'Courses',     value:stats?.totalCourses||0,  icon:<BookOpen size={16} className="text-blue-600"/>,    href:'/content',          color:'bg-blue-50/60' },
+                { label:'Courses',     value:stats?.totalCourses||0,  icon:<BookOpen size={16} className="text-blue-600"/>,    href:'/courses',          color:'bg-blue-50/60' },
                 { label:'Materials',   value:stats?.totalStudyMaterials ?? stats?.totalMaterials ?? 0,icon:<FileText size={16} className="text-teal-600"/>,    href:'/study-materials',  color:'bg-teal-50/60' },
                 { label:'Quizzes',     value:stats?.totalQuizzes||0,  icon:<HelpCircle size={16} className="text-purple-600"/>,href:'/quizzes',          color:'bg-purple-50/60' },
                 { label:'Flashcards',  value:stats?.totalFlashcards||0,icon:<Zap size={16} className="text-yellow-600"/>,      href:'/flashcards',       color:'bg-yellow-50/60' },

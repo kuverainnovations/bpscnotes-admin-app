@@ -613,7 +613,7 @@ export default function ContentPage() {
                           ) : (
                             <button onClick={() => setAddingLesson(ch.id)}
                               className="w-full py-2.5 text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-50 flex items-center justify-center gap-1.5 transition-colors font-semibold border-t border-slate-50">
-                              <Plus size={13} /> Add Lesson1
+                              <Plus size={13} /> Add Lesson
                             </button>
                           )}
                         </div>
