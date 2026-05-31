@@ -7,7 +7,8 @@ import {
   Search, Plus, Edit, Trash2, BookOpen, RefreshCw, X, Check,
   ChevronDown, ChevronRight, GripVertical, Star, Users, Clock,
   Globe, Award, Tag, Eye, EyeOff, Layers, Video, FileText,
-  AlertTriangle, CheckCircle, BookMarked, Zap, Crown, ChevronsLeft,ChevronLeft,ChevronsRight,
+  AlertTriangle, CheckCircle, BookMarked, Zap, Crown, ChevronsLeft, ChevronLeft, ChevronsRight,
+  Lock, Unlock, ShieldCheck,
 } from 'lucide-react'
 import DynamicSelect from '@/components/ui/DynamicSelect'
 
@@ -82,6 +83,15 @@ export default function ContentPage() {
     setContentCourse(c)
     loadChapters(c.id)
     setTimeout(() => chapterRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
+  }
+
+  const unlockFreeLessons = async (courseId: string) => {
+    if (!confirm('Unlock all lessons for this free course? This fixes lessons that were incorrectly locked.')) return
+    try {
+      await (api.courses as any).unlockFreeLessons(courseId)
+      showToast('All lessons unlocked ✅')
+      loadChapters(courseId)
+    } catch (e: any) { showToast(e.message || 'Failed to unlock', 'error') }
   }
 
   const loadChapters = async (courseId: string) => {
@@ -398,9 +408,20 @@ export default function ContentPage() {
                   <p className="text-purple-200 text-xs">{chapters.length} chapter{chapters.length !== 1 ? 's' : ''} · click a chapter to expand</p>
                 </div>
               </div>
-              <button onClick={() => setContentCourse(null)} className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors">
-                <X size={14} />
-              </button>
+              <div className="flex items-center gap-2">
+                {!contentCourse.is_paid && (
+                  <button
+                    onClick={() => unlockFreeLessons(contentCourse.id)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-green-500 hover:bg-green-600 text-white text-xs font-bold transition-colors"
+                    title="Unlock all lessons (free course fix)"
+                  >
+                    <Unlock size={11} /> Unlock All
+                  </button>
+                )}
+                <button onClick={() => setContentCourse(null)} className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors">
+                  <X size={14} />
+                </button>
+              </div>
             </div>
 
             <div className="p-5 space-y-3">
@@ -495,10 +516,15 @@ export default function ContentPage() {
                                     <input value={editLessonData.videoUrl}
                                       onChange={e => setEditLessonData({...editLessonData, videoUrl: e.target.value})}
                                       placeholder="Video URL" className="input col-span-2 text-sm" />
-                                    <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer col-span-2">
+                                    <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
                                       <input type="checkbox" checked={editLessonData.isFreePreview}
-                                        onChange={e => setEditLessonData({...editLessonData, isFreePreview: e.target.checked})} className="rounded" />
-                                      Free preview
+                                        onChange={e => setEditLessonData({...editLessonData, isFreePreview: e.target.checked, isLocked: e.target.checked ? false : editLessonData.isLocked})} className="rounded" />
+                                      <span className="text-green-700 font-semibold">Free preview</span> <span className="text-slate-400">(non-enrolled)</span>
+                                    </label>
+                                    <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+                                      <input type="checkbox" checked={editLessonData.isLocked}
+                                        onChange={e => setEditLessonData({...editLessonData, isLocked: e.target.checked, isFreePreview: e.target.checked ? false : editLessonData.isFreePreview})} className="rounded" />
+                                      <span className="text-orange-700 font-semibold">🔒 Locked</span> <span className="text-slate-400">(paid course only)</span>
                                     </label>
                                   </div>
                                   <div className="flex gap-2">
@@ -518,6 +544,8 @@ export default function ContentPage() {
                                     <div className="flex items-center gap-2 mt-0.5">
                                       {l.duration_mins > 0 && <span className="text-[10px] text-slate-400">{l.duration_mins}min</span>}
                                       {l.is_free_preview && <span className="text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded-md font-medium">Free preview</span>}
+                                      {l.is_locked && !l.is_free_preview && <span className="text-[10px] px-1.5 py-0.5 bg-orange-100 text-orange-700 rounded-md font-medium">🔒 Locked</span>}
+                                      {!l.is_locked && !l.is_free_preview && <span className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded-md font-medium">Unlocked</span>}
                                       {l.notes_url && <a href={l.notes_url} target="_blank" rel="noreferrer" className="text-[10px] text-blue-500 hover:underline">PDF ↗</a>}
                                     </div>
                                   </div>
@@ -565,10 +593,15 @@ export default function ContentPage() {
                                   placeholder="PDF / Notes URL" className="input col-span-2 text-sm" />
                                 <input value={newLesson.videoUrl} onChange={e => setNewLesson({...newLesson, videoUrl: e.target.value})}
                                   placeholder="Video URL (optional)" className="input col-span-2 text-sm" />
-                                <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer col-span-2">
+                                <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
                                   <input type="checkbox" checked={newLesson.isFreePreview}
-                                    onChange={e => setNewLesson({...newLesson, isFreePreview: e.target.checked})} className="rounded" />
-                                  Free preview (visible to non-enrolled users)
+                                    onChange={e => setNewLesson({...newLesson, isFreePreview: e.target.checked, isLocked: e.target.checked ? false : newLesson.isLocked})} className="rounded" />
+                                  <span className="text-green-700 font-semibold">Free preview</span>
+                                </label>
+                                <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+                                  <input type="checkbox" checked={newLesson.isLocked}
+                                    onChange={e => setNewLesson({...newLesson, isLocked: e.target.checked, isFreePreview: e.target.checked ? false : newLesson.isFreePreview})} className="rounded" />
+                                  <span className="text-orange-700 font-semibold">🔒 Locked</span> <span className="text-slate-400">(requires purchase)</span>
                                 </label>
                               </div>
                               <div className="flex gap-2">

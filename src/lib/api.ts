@@ -142,6 +142,8 @@ export const api = {
                       request(`/admin/courses/${courseId}/lessons/${lessonId}`, { method: 'PUT', body: JSON.stringify(data) }),
     deleteLesson:   (courseId: string, lessonId: string) =>
                       request(`/admin/courses/${courseId}/lessons/${lessonId}`, { method: 'DELETE' }),
+    unlockFreeLessons: (courseId: string) => request(`/admin/courses/${courseId}/unlock-free-lessons`, { method: 'POST' }),
+    bulkFixFreeLocks:  () => request('/admin/courses/bulk-fix-free-locks', { method: 'POST' }),
     // Subjects
     subjects:       () => request('/admin/subjects'),
     affairCategories: () => request('/admin/affair-categories'),
