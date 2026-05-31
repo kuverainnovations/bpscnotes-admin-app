@@ -549,7 +549,7 @@ export default function ContentPage() {
                                       {l.notes_url && <a href={l.notes_url} target="_blank" rel="noreferrer" className="text-[10px] text-blue-500 hover:underline">PDF ↗</a>}
                                     </div>
                                   </div>
-                                  {/* ✏️ Edit lesson button */}
+                                  {/* ✏️ Edit + Delete buttons */}
                                   <button
                                     onClick={() => {
                                       setEditingLesson(l.id)
@@ -562,14 +562,13 @@ export default function ContentPage() {
                                         isLocked: l.is_locked !== false,
                                       })
                                     }}
-                                    className="w-7 h-7 rounded-lg bg-blue-50 hover:bg-blue-100 flex items-center justify-center shrink-0 transition-colors"
-                                    title="Edit lesson"
+                                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-semibold shrink-0 transition-colors"
                                   >
-                                    <Edit size={11} className="text-blue-500" />
+                                    <Edit size={10} /> Edit
                                   </button>
                                   <button onClick={() => deleteLesson(l.id)}
-                                    className="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center shrink-0 transition-colors">
-                                    <Trash2 size={11} className="text-red-400" />
+                                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 text-[11px] font-semibold shrink-0 transition-colors">
+                                    <Trash2 size={10} />
                                   </button>
                                 </div>
                               )}
