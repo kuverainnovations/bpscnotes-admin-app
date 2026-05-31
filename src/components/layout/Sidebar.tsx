@@ -29,7 +29,7 @@ const NAV: NavGroup[] = [
     { href:'/roles',            icon:Shield,          label:'Admin Roles' },
   ]},
   { group:'Content',    defaultOpen:true,  items:[
-    { href:'/content',          icon:BookOpen,        label:'Courses' },
+    { href:'/courses',          icon:BookOpen,        label:'Courses' },
     { href:'/study-materials',  icon:LibraryBig,      label:'Study Materials' },
     { href:'/quizzes',          icon:HelpCircle,      label:'Quizzes & Mock Tests' },
     { href:'/current-affairs',  icon:Newspaper,       label:'Current Affairs' },
