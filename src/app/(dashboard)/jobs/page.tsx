@@ -42,7 +42,7 @@ const EMPTY = {
   title:'', organization:'', category:'BPSC', totalVacancies:0,
   location:'Bihar (All Districts)', salary:'', qualification:'',
   ageLimit:'', lastDate:'', applicationUrl:'', isNew:true, isFeatured:false,
-  description:'',
+  description:'', briefDescription:'', pdfUrl:'',
 }
 
 export default function JobsPage() {
@@ -92,6 +92,8 @@ function Inner() {
       ageLimit:j.age_limit||'', lastDate:j.last_date?.split('T')[0]||'',
       applicationUrl:j.application_url||'', isNew:j.is_new||false, isFeatured:j.is_featured||false,
       description:j.description||'',
+      briefDescription:j.brief_description||'',
+      pdfUrl:j.pdf_url||'',
     })
     setShowModal(true)
   }
@@ -335,6 +337,16 @@ function Inner() {
                     <label className="block text-xs font-bold text-slate-600 mb-1.5">Description</label>
                     <textarea value={form.description} onChange={e => setForm({...form,description:e.target.value})}
                       className="input h-20 resize-none w-full" placeholder="Brief job description…"/>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Brief Description <span className="text-slate-400 font-normal">(shown in app detail)</span></label>
+                    <textarea value={form.briefDescription} onChange={e => setForm({...form,briefDescription:e.target.value})}
+                      className="input h-16 resize-none w-full" placeholder="Short summary shown in app (1–2 lines)…"/>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">PDF URL <span className="text-slate-400 font-normal">(official notification PDF)</span></label>
+                    <input value={form.pdfUrl} onChange={e => setForm({...form,pdfUrl:e.target.value})}
+                      className="input w-full" placeholder="https://…/notification.pdf"/>
                   </div>
                 </div>
               </section>
