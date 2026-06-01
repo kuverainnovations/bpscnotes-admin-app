@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import Header from '@/components/layout/Header'
 import api from '@/lib/api'
 import { useToast } from '@/components/ui/feedback'
+import DynamicSelect from '@/components/ui/DynamicSelect'
 import {
   Plus, RefreshCw, Edit, Trash2, X, Radio,
   Users, Clock, Calendar, Link2, BookOpen,
@@ -201,13 +202,7 @@ function Inner() {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-600 mb-1.5">Subject</label>
-                  <div className="flex items-center gap-1.5 px-3 py-2.5 bg-slate-50 rounded-xl border border-slate-200">
-                    <select value={form.subject} onChange={e=>setForm({...form,subject:e.target.value})}
-                      className="text-sm bg-transparent outline-none text-slate-700 w-full">
-                      <option value="">Select…</option>
-                      {SUBJECTS.map(s=><option key={s}>{s}</option>)}
-                    </select>
-                  </div>
+                  <DynamicSelect type="subjects" value={form.subject} onChange={v=>setForm({...form,subject:v})} placeholder="Select…" />
                 </div>
               </div>
 

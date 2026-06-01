@@ -688,27 +688,7 @@ export default function ContentPage() {
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-500 mb-1.5">Subject *</label>
-                    <select
-                      value={SUBJECTS.includes(form.subject) ? form.subject : form.subject ? '__other__' : ''}
-                      onChange={e => {
-                        if (e.target.value === '__other__') setForm({...form, subject: ''})
-                        else setForm({...form, subject: e.target.value})
-                      }}
-                      className="input w-full px-3 py-2.5 text-sm"
-                    >
-                      <option value="" disabled>Select a subject…</option>
-                      {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
-                      <option value="__other__">Other (type below)</option>
-                    </select>
-                    {(!SUBJECTS.includes(form.subject)) && (
-                      <input
-                        value={form.subject}
-                        onChange={e => setForm({...form, subject: e.target.value})}
-                        placeholder="Enter subject name…"
-                        className="input w-full mt-2 text-sm"
-                        autoFocus
-                      />
-                    )}
+                    <DynamicSelect type="subjects" value={form.subject} onChange={v => setForm({...form, subject:v})} placeholder="Select a subject…" required />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-500 mb-1.5">Language</label>

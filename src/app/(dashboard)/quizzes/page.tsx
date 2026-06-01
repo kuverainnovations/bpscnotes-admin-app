@@ -5,6 +5,7 @@ import api from '@/lib/api'
 import { useMutation, useDebounce } from '@/lib/hooks'
 import { useToast } from '@/components/ui/feedback'
 import { formatNumber } from '@/lib/utils'
+import DynamicSelect from '@/components/ui/DynamicSelect'
 import {
   Search, Plus, Edit, Trash2, HelpCircle, RefreshCw,
   ChevronLeft, ChevronRight,
@@ -391,15 +392,7 @@ export default function QuizzesPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-600 mb-1.5">Subject</label>
-                  <select value={form.subject} onChange={e => setForm({...form,subject:e.target.value})}
-                    className="input w-full">
-                    <option value="">Select Subject</option>
-                    {['Polity','History','Geography','Economy','Science & Tech','Environment',
-                      'Art & Culture','Current Affairs','Maths','Reasoning','Hindi','English',
-                      'Bihar GK','General Studies'].map(s => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
+                  <DynamicSelect type="subjects" value={form.subject} onChange={v => setForm({...form,subject:v})} placeholder="Select Subject" />
                 </div>
               </div>
 

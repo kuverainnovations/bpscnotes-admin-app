@@ -6,6 +6,7 @@ import { useApiData, useMutation } from '@/lib/hooks'
 import { PageLoader, ErrorMessage, EmptyState, useToast } from '@/components/ui/feedback'
 import { getStatusColor, formatNumber } from '@/lib/utils'
 import { Search, Plus, Edit, Trash2, Upload, RefreshCw, Pin, TrendingUp } from 'lucide-react'
+import DynamicSelect from '@/components/ui/DynamicSelect'
 
 const TYPE_COLORS: Record<string, string> = {
   pdf:   'bg-red-50 text-red-600 border-red-100',
@@ -238,12 +239,7 @@ export default function NotesPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1.5">Subject *</label>
-                  <select value={form.subject} onChange={e => setForm({ ...form, subject: e.target.value })} className="input">
-                    <option value="">Select subject</option>
-                    {['Polity', 'History', 'Economy', 'Geography', 'Bihar GK', 'Science & Tech', 'Maths', 'General Studies'].map(s => (
-                      <option key={s}>{s}</option>
-                    ))}
-                  </select>
+                  <DynamicSelect type="subjects" value={form.subject} onChange={v => setForm({ ...form, subject: v })} placeholder="Select subject" required />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1.5">Type *</label>

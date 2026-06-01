@@ -177,9 +177,9 @@ export default function DynamicSelect({
         </div>
       )}
 
-      <div className="flex gap-1.5">
+      <div className="flex gap-1.5 flex-wrap items-start">
         {loading ? (
-          <div className="input flex-1 flex items-center gap-2 text-slate-400 text-sm">
+          <div className="input flex-1 min-w-32 flex items-center gap-2 text-slate-400 text-sm">
             <Loader2 size={13} className="animate-spin" /> Loading…
           </div>
         ) : (
@@ -187,7 +187,7 @@ export default function DynamicSelect({
             value={value}
             required={required}
             onChange={e => onChange(e.target.value)}
-            className={`input flex-1 ${className}`}
+            className={`input flex-1 min-w-32 ${className}`}
           >
             <option value="">{placeholder}</option>
             {items.map(name => (

@@ -187,7 +187,7 @@ export default function FlashcardsPage() {
             <input value={search} onChange={e => { setSearch(e.target.value); setPage(1) }}
               placeholder="Search flashcards…" className="input pl-9" />
           </div>
-          <div className="w-44">
+          <div className="min-w-44 flex-shrink-0">
             <DynamicSelect type="subjects" value={filterSubject} onChange={v => { setFilter(v); setPage(1) }} placeholder="All Subjects" />
           </div>
           <button onClick={load} className="btn-secondary px-3 py-2" title="Refresh"><RefreshCw size={13}/></button>

@@ -530,8 +530,7 @@ export default function ContentPage() {
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-500 mb-1.5">Subject *</label>
-                    <input value={form.subject} onChange={e => setForm({...form, subject: e.target.value})}
-                      className="input w-full" placeholder="e.g. Polity, History…" />
+                    <DynamicSelect type="subjects" value={form.subject} onChange={v => setForm({...form, subject:v})} placeholder="Select a subject…" required />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-500 mb-1.5">Language</label>

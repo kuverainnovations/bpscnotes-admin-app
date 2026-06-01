@@ -7,6 +7,7 @@ import Header from '@/components/layout/Header'
 import api from '@/lib/api'
 import { useToast } from '@/components/ui/feedback'
 import { useDebounce } from '@/lib/hooks'
+import DynamicSelect from '@/components/ui/DynamicSelect'
 import {
   Plus, Search, RefreshCw, Edit, Trash2, Eye, X,
   ChevronLeft, ChevronRight, Filter, Calendar,
@@ -220,13 +221,8 @@ function Inner() {
             <input value={search} onChange={e => { setSearch(e.target.value); setPage(1) }}
               placeholder="Search headlines…" className="input pl-9" />
           </div>
-          <div className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 rounded-xl border border-slate-200">
-            <Tag size={12} className="text-slate-400" />
-            <select value={catFilter} onChange={e => { setCat(e.target.value); setPage(1) }}
-              className="text-sm bg-transparent outline-none text-slate-700 pr-1">
-              <option value="">All Categories</option>
-              {CATEGORIES.map(c => <option key={c}>{c}</option>)}
-            </select>
+          <div className="min-w-44 flex-shrink-0">
+            <DynamicSelect type="affair-categories" value={catFilter} onChange={v => { setCat(v); setPage(1) }} placeholder="All Categories" />
           </div>
           <div className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 rounded-xl border border-slate-200">
             <BookOpen size={12} className="text-slate-400" />
@@ -403,13 +399,7 @@ function Inner() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-600 mb-1.5">Category</label>
-                  {/* Issue 4: styled select */}
-                  <div className="flex items-center gap-1.5 px-3 py-2.5 bg-slate-50 rounded-xl border border-slate-200">
-                    <select value={form.category} onChange={e => setForm({...form,category:e.target.value})}
-                      className="text-sm bg-transparent outline-none text-slate-700 w-full">
-                      {CATEGORIES.map(c => <option key={c}>{c}</option>)}
-                    </select>
-                  </div>
+                  <DynamicSelect type="affair-categories" value={form.category} onChange={v => setForm({...form,category:v})} placeholder="Select Category" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-600 mb-1.5">Type</label>

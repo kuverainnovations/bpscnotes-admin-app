@@ -6,6 +6,7 @@ import Header from '@/components/layout/Header'
 import api from '@/lib/api'
 import { useToast } from '@/components/ui/feedback'
 import { useDebounce } from '@/lib/hooks'
+import DynamicSelect from '@/components/ui/DynamicSelect'
 import {
   Plus, Search, RefreshCw, Edit, Trash2, X, ExternalLink,
   Briefcase, Calendar, MapPin, Users, IndianRupee, GraduationCap,
@@ -42,7 +43,7 @@ const EMPTY = {
   title:'', organization:'', category:'BPSC', totalVacancies:0,
   location:'Bihar (All Districts)', salary:'', qualification:'',
   ageLimit:'', lastDate:'', applicationUrl:'', isNew:true, isFeatured:false,
-  description:'', briefDescription:'', pdfUrl:'',
+  description:'',
 }
 
 export default function JobsPage() {
@@ -86,15 +87,12 @@ function Inner() {
   const openEdit = (j: any) => {
     setEditing(j)
     setForm({
-      title:j.title, organization:j.organization||j.department||'', category:j.category,
-      totalVacancies:j.total_posts||j.total_vacancies||0, location:j.location||'Bihar (All Districts)',
+      title:j.title, organization:j.organization, category:j.category,
+      totalVacancies:j.total_vacancies||0, location:j.location||'Bihar (All Districts)',
       salary:j.salary_range||j.salary||'', qualification:j.qualification||'',
-      ageLimit:j.age_limit||'', lastDate:j.apply_end_date?.split('T')[0]||j.last_date?.split('T')[0]||'',
-      applicationUrl:j.official_link||j.application_link||j.application_url||'',
-      isNew:j.is_new||false, isFeatured:j.is_featured||false,
+      ageLimit:j.age_limit||'', lastDate:j.last_date?.split('T')[0]||'',
+      applicationUrl:j.application_url||'', isNew:j.is_new||false, isFeatured:j.is_featured||false,
       description:j.description||'',
-      briefDescription:j.brief_description||'',
-      pdfUrl:j.pdf_url||'',
     })
     setShowModal(true)
   }
@@ -159,14 +157,8 @@ function Inner() {
             <input value={search} onChange={e => { setSearch(e.target.value); setPage(1) }}
               placeholder="Search title, organization…" className="input pl-9"/>
           </div>
-          {/* Issue 4: styled select */}
-          <div className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 rounded-xl border border-slate-200">
-            <Filter size={12} className="text-slate-400"/>
-            <select value={cat} onChange={e => { setCat(e.target.value); setPage(1) }}
-              className="text-sm bg-transparent outline-none text-slate-700 pr-1">
-              <option value="">All Categories</option>
-              {CATS.map(c => <option key={c}>{c}</option>)}
-            </select>
+          <div className="min-w-44 flex-shrink-0">
+            <DynamicSelect type="job-categories" value={cat} onChange={v => { setCat(v); setPage(1) }} placeholder="All Categories" />
           </div>
           <div className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 rounded-xl border border-slate-200">
             <select value={sortBy} onChange={e => { setSortBy(e.target.value); setPage(1) }}
@@ -326,28 +318,13 @@ function Inner() {
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-slate-600 mb-1.5">Category</label>
-                      <div className="flex items-center gap-1.5 px-3 py-2.5 bg-slate-50 rounded-xl border border-slate-200">
-                        <select value={form.category} onChange={e => setForm({...form,category:e.target.value})}
-                          className="text-sm bg-transparent outline-none text-slate-700 w-full">
-                          {CATS.map(c => <option key={c}>{c}</option>)}
-                        </select>
-                      </div>
+                      <DynamicSelect type="job-categories" value={form.category} onChange={v => setForm({...form,category:v})} placeholder="Select Category" />
                     </div>
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-600 mb-1.5">Description</label>
                     <textarea value={form.description} onChange={e => setForm({...form,description:e.target.value})}
                       className="input h-20 resize-none w-full" placeholder="Brief job description…"/>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Brief Description <span className="text-slate-400 font-normal">(shown in app detail)</span></label>
-                    <textarea value={form.briefDescription} onChange={e => setForm({...form,briefDescription:e.target.value})}
-                      className="input h-16 resize-none w-full" placeholder="Short summary shown in app (1–2 lines)…"/>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1.5">PDF URL <span className="text-slate-400 font-normal">(official notification PDF)</span></label>
-                    <input value={form.pdfUrl} onChange={e => setForm({...form,pdfUrl:e.target.value})}
-                      className="input w-full" placeholder="https://…/notification.pdf"/>
                   </div>
                 </div>
               </section>
