@@ -86,11 +86,12 @@ function Inner() {
   const openEdit = (j: any) => {
     setEditing(j)
     setForm({
-      title:j.title, organization:j.organization, category:j.category,
-      totalVacancies:j.total_vacancies||0, location:j.location||'Bihar (All Districts)',
+      title:j.title, organization:j.organization||j.department||'', category:j.category,
+      totalVacancies:j.total_posts||j.total_vacancies||0, location:j.location||'Bihar (All Districts)',
       salary:j.salary_range||j.salary||'', qualification:j.qualification||'',
-      ageLimit:j.age_limit||'', lastDate:j.last_date?.split('T')[0]||'',
-      applicationUrl:j.application_url||'', isNew:j.is_new||false, isFeatured:j.is_featured||false,
+      ageLimit:j.age_limit||'', lastDate:j.apply_end_date?.split('T')[0]||j.last_date?.split('T')[0]||'',
+      applicationUrl:j.official_link||j.application_link||j.application_url||'',
+      isNew:j.is_new||false, isFeatured:j.is_featured||false,
       description:j.description||'',
       briefDescription:j.brief_description||'',
       pdfUrl:j.pdf_url||'',
