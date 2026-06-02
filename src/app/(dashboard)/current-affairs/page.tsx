@@ -15,7 +15,7 @@ import {
 } from 'lucide-react'
 
 const CATEGORIES = ['General','Economy','Polity','Science & Tech','Environment','International','Bihar','Sports','Defence','Awards']
-const EMPTY_FORM = { title:'', detail:'', category:'General', type:'prelims', examTags:[] as string[], isImportant:false, publishDate:'', status:'draft' }
+const EMPTY_FORM = { title:'', detail:'', category:'General', type:'prelims', examTags:[] as string[], isImportant:false, publishDate:'', status:'draft', readTime:1 }
 const OPTION_LABELS = ['A','B','C','D','E']
 const LIMIT = 20
 
@@ -163,7 +163,7 @@ function Inner() {
     setEditing(item)
     setForm({ title:item.title, detail:item.summary||item.full_content||'', category:item.category,
       type:item.type||(item.exam_tags?.find((t:string)=>['prelims','mains','both'].includes(t))||'prelims'), examTags:item.exam_tags||[], isImportant:item.is_important||false,
-      publishDate:item.date?.split('T')[0]||'', status:item.status||'draft' })
+      publishDate:item.date?.split('T')[0]||'', status:item.status||'draft', readTime:item.read_time||1 })
     setShowModal(true)
   }
 
@@ -173,7 +173,7 @@ function Inner() {
     try {
       const payload = { title:form.title, summary:form.detail, fullContent:form.detail,
         category:form.category, type:form.type, examTags:form.examTags,
-        isImportant:form.isImportant, date:form.publishDate, status:form.status }
+        isImportant:form.isImportant, date:form.publishDate, status:form.status, readTime:Number(form.readTime)||1 }
       if (editing) await api.currentAffairs.update(editing.id, payload)
       else         await api.currentAffairs.create(payload)
       setShowModal(false); load(); showToast(editing ? 'Updated ✅' : 'Created ✅')
@@ -418,15 +418,19 @@ function Inner() {
                   <label className="block text-xs font-bold text-slate-600 mb-1.5">Publish Date</label>
                   <input type="date" value={form.publishDate} onChange={e => setForm({...form,publishDate:e.target.value})} className="input w-full"/>
                 </div>
-                <div className="flex items-center pt-6">
-                  <label className="flex items-center gap-2.5 cursor-pointer select-none"
-                    onClick={() => setForm({...form,isImportant:!form.isImportant})}>
-                    <div className={`w-10 h-5 rounded-full transition-colors relative ${form.isImportant?'bg-amber-400':'bg-slate-200'}`}>
-                      <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${form.isImportant?'translate-x-5':'translate-x-0.5'}`}/>
-                    </div>
-                    <span className="text-sm font-medium text-slate-700">⭐ Mark Important</span>
-                  </label>
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">Read Time <span className="text-slate-400 font-normal">(minutes)</span></label>
+                  <input type="number" min={1} max={60} value={form.readTime} onChange={e => setForm({...form,readTime:parseInt(e.target.value)||1})} className="input w-full" placeholder="e.g. 3"/>
                 </div>
+              </div>
+              <div className="flex items-center pt-1">
+                <label className="flex items-center gap-2.5 cursor-pointer select-none"
+                  onClick={() => setForm({...form,isImportant:!form.isImportant})}>
+                  <div className={`w-10 h-5 rounded-full transition-colors relative ${form.isImportant?'bg-amber-400':'bg-slate-200'}`}>
+                    <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${form.isImportant?'translate-x-5':'translate-x-0.5'}`}/>
+                  </div>
+                  <span className="text-sm font-medium text-slate-700">⭐ Mark Important</span>
+                </label>
               </div>
               {/* Status toggle — draft / published */}
               <div className="flex items-center gap-3 pt-1">
