@@ -8,7 +8,7 @@ import {
   ChevronDown, ChevronRight, GripVertical, Star, Users, Clock,
   Globe, Award, Tag, Eye, EyeOff, Layers, Video, FileText,
   AlertTriangle, CheckCircle, BookMarked, Zap, Crown, ChevronsLeft, ChevronLeft, ChevronsRight,
-  Lock, Unlock, ShieldCheck,
+  Lock, Unlock, ShieldCheck, Upload, File, ExternalLink,
 } from 'lucide-react'
 import DynamicSelect from '@/components/ui/DynamicSelect'
 
@@ -27,6 +27,120 @@ const LESSON_TYPES = [
 ]
 
 const EMPTY_LESSON = { title:'', type:'pdf', durationMins:0, notesUrl:'', videoUrl:'', isFreePreview:false, isLocked:true }
+
+// ─── File size limits ─────────────────────────────────────────
+const PDF_LIMIT_MB  = 50
+const VIDEO_LIMIT_MB = 500
+
+// ─── Reusable file upload field ───────────────────────────────
+function FileUploadField({
+  label, accept, limitMb, existingUrl, onChange, disabled, courseId,
+}: {
+  label: string
+  accept: string
+  limitMb: number
+  existingUrl: string
+  onChange: (url: string) => void
+  disabled?: boolean
+  courseId?: string
+}) {
+  const [progress, setProgress] = useState<number | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [localUrl, setLocalUrl] = useState(existingUrl)
+  const inputRef = useRef<HTMLInputElement>(null)
+  // Keep localUrl in sync if parent resets the form
+  useEffect(() => { setLocalUrl(existingUrl) }, [existingUrl])
+
+  const isPdf = accept.includes('pdf')
+  const icon  = isPdf ? <FileText size={14} className="shrink-0" /> : <Video size={14} className="shrink-0" />
+  const color = isPdf ? 'blue' : 'purple'
+
+  const pick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const sizeMb = file.size / (1024 * 1024)
+    if (sizeMb > limitMb) {
+      alert(`File too large (${sizeMb.toFixed(1)} MB). Maximum allowed: ${limitMb} MB.`)
+      e.target.value = ''
+      return
+    }
+    setUploading(true)
+    setProgress(0)
+    try {
+      // courseId not needed for the file itself; pass placeholder — server ignores it
+      const result = await (api.courses as any).uploadLessonFile(courseId || 'default', file, setProgress)
+      const url = result?.fileUrl ?? result?.data?.fileUrl ?? ''
+      setLocalUrl(url)
+      onChange(url)
+    } catch (err: any) {
+      alert(err.message || 'Upload failed')
+    } finally {
+      setUploading(false)
+      setProgress(null)
+      e.target.value = ''
+    }
+  }
+
+  return (
+    <div className="col-span-2 space-y-1.5">
+      <div className="flex items-center justify-between">
+        <label className={`text-xs font-bold text-${color}-700 flex items-center gap-1.5`}>
+          {icon} {label}
+        </label>
+        <span className="text-[10px] text-slate-400">Max {limitMb} MB</span>
+      </div>
+
+      {/* URL display + open link */}
+      {localUrl && (
+        <div className={`flex items-center gap-2 px-3 py-2 bg-${color}-50 border border-${color}-200 rounded-xl text-xs`}>
+          <span className={`text-${color}-700 truncate flex-1`}>{localUrl.split('/').pop()}</span>
+          <a href={localUrl} target="_blank" rel="noreferrer"
+            className={`text-${color}-500 hover:text-${color}-700 shrink-0`} title="Open file">
+            <ExternalLink size={12} />
+          </a>
+          <button onClick={() => { setLocalUrl(''); onChange('') }}
+            className="text-slate-400 hover:text-red-400 shrink-0" title="Remove">
+            <X size={12} />
+          </button>
+        </div>
+      )}
+
+      {/* Upload button + progress */}
+      {uploading ? (
+        <div className="flex items-center gap-3 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl">
+          <div className="flex-1 bg-slate-200 rounded-full h-1.5">
+            <div
+              className={`h-1.5 rounded-full bg-${color}-500 transition-all`}
+              style={{ width: `${progress ?? 0}%` }}
+            />
+          </div>
+          <span className="text-xs text-slate-500 shrink-0">{progress ?? 0}%</span>
+        </div>
+      ) : (
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => inputRef.current?.click()}
+          className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed
+            border-${color}-200 hover:border-${color}-400 hover:bg-${color}-50
+            text-${color}-600 text-xs font-semibold transition-colors disabled:opacity-40`}
+        >
+          <Upload size={13} />
+          {localUrl ? 'Replace file' : `Upload ${isPdf ? 'PDF' : 'Video'}`}
+        </button>
+      )}
+      <input ref={inputRef} type="file" accept={accept} className="hidden" onChange={pick} />
+
+      {/* Manual URL fallback */}
+      <input
+        value={localUrl}
+        onChange={e => { setLocalUrl(e.target.value); onChange(e.target.value) }}
+        placeholder={`Or paste ${isPdf ? 'PDF' : 'video'} URL directly`}
+        className="input text-xs text-slate-400 placeholder:text-slate-300"
+      />
+    </div>
+  )
+}
 
 const SUBJECTS = [
   'Polity', 'History', 'Geography', 'Economy', 'Science & Technology',
@@ -519,12 +633,22 @@ export default function ContentPage() {
                                     <input type="number" value={editLessonData.durationMins}
                                       onChange={e => setEditLessonData({...editLessonData, durationMins: Number(e.target.value)})}
                                       placeholder="Duration (mins)" className="input text-sm" />
-                                    <input value={editLessonData.notesUrl}
-                                      onChange={e => setEditLessonData({...editLessonData, notesUrl: e.target.value})}
-                                      placeholder="PDF / Notes URL" className="input col-span-2 text-sm" />
-                                    <input value={editLessonData.videoUrl}
-                                      onChange={e => setEditLessonData({...editLessonData, videoUrl: e.target.value})}
-                                      placeholder="Video URL" className="input col-span-2 text-sm" />
+                                    <FileUploadField
+                                      label="PDF / Notes File"
+                                      accept="application/pdf"
+                                      limitMb={PDF_LIMIT_MB}
+                                      existingUrl={editLessonData.notesUrl}
+                                      onChange={url => setEditLessonData((d: typeof editLessonData) => ({ ...d, notesUrl: url }))}
+                                      courseId={contentCourse?.id}
+                                    />
+                                    <FileUploadField
+                                      label="Video File"
+                                      accept="video/mp4,video/quicktime,video/x-m4v,video/webm,video/x-msvideo,video/x-matroska"
+                                      limitMb={VIDEO_LIMIT_MB}
+                                      existingUrl={editLessonData.videoUrl}
+                                      onChange={url => setEditLessonData((d: typeof editLessonData) => ({ ...d, videoUrl: url }))}
+                                      courseId={contentCourse?.id}
+                                    />
                                     <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
                                       <input type="checkbox" checked={editLessonData.isFreePreview}
                                         onChange={e => setEditLessonData({...editLessonData, isFreePreview: e.target.checked, isLocked: e.target.checked ? false : editLessonData.isLocked})} className="rounded" />
@@ -597,10 +721,22 @@ export default function ContentPage() {
                                 <input type="number" value={newLesson.durationMins}
                                   onChange={e => setNewLesson({...newLesson, durationMins: Number(e.target.value)})}
                                   placeholder="Duration (mins)" className="input text-sm" />
-                                <input value={newLesson.notesUrl} onChange={e => setNewLesson({...newLesson, notesUrl: e.target.value})}
-                                  placeholder="PDF / Notes URL" className="input col-span-2 text-sm" />
-                                <input value={newLesson.videoUrl} onChange={e => setNewLesson({...newLesson, videoUrl: e.target.value})}
-                                  placeholder="Video URL (optional)" className="input col-span-2 text-sm" />
+                                <FileUploadField
+                                  label="PDF / Notes File"
+                                  accept="application/pdf"
+                                  limitMb={PDF_LIMIT_MB}
+                                  existingUrl={newLesson.notesUrl}
+                                  onChange={url => setNewLesson((l: typeof newLesson) => ({ ...l, notesUrl: url }))}
+                                  courseId={contentCourse?.id}
+                                />
+                                <FileUploadField
+                                  label="Video File"
+                                  accept="video/mp4,video/quicktime,video/x-m4v,video/webm,video/x-msvideo,video/x-matroska"
+                                  limitMb={VIDEO_LIMIT_MB}
+                                  existingUrl={newLesson.videoUrl}
+                                  onChange={url => setNewLesson((l: typeof newLesson) => ({ ...l, videoUrl: url }))}
+                                  courseId={contentCourse?.id}
+                                />
                                 <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
                                   <input type="checkbox" checked={newLesson.isFreePreview}
                                     onChange={e => setNewLesson({...newLesson, isFreePreview: e.target.checked, isLocked: e.target.checked ? false : newLesson.isLocked})} className="rounded" />
