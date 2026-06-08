@@ -161,10 +161,14 @@ async function parseFile(file: File): Promise<{ questions: any[]; quizMeta: Reco
     // XLSX is imported at top of file
     const buf = await file.arrayBuffer()
     const wb  = XLSX.read(buf, { type: 'array' })
-    const ws  = wb.Sheets[wb.SheetNames[0]]
-    rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' })
-    // Try to read quiz info from dedicated sheet
+    // Read quiz meta from dedicated sheet first
     quizMeta = extractMetaFromSheet(XLSX, wb)
+    // Find questions sheet by name, fall back to first sheet
+    const qSheetName = wb.SheetNames.find((n: string) =>
+      n.toLowerCase().includes('question') || n.toLowerCase().includes('quiz question')
+    ) || wb.SheetNames[0]
+    const ws = wb.Sheets[qSheetName]
+    rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' })
   } else {
     rows = parseCSV(await file.text())
   }
