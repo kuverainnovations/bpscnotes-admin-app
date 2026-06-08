@@ -1,8 +1,6 @@
 'use client'
-// xlsx is used for .xlsx/.xls parsing — install with: npm install xlsx
-// CSV files work without it via the built-in parser below
-let XLSXLib: any = null
-try { XLSXLib = require('xlsx') } catch { /* xlsx not installed — CSV only mode */ }
+// NOTE: install xlsx for Excel support: npm install xlsx
+// CSV files work without it — built-in parser used automatically
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Header from '@/components/layout/Header'
@@ -115,20 +113,19 @@ function parseCSV(text: string): any[][] {
 
 async function parseFile(file: File): Promise<any[]> {
   const isCsv = file.name.toLowerCase().endsWith('.csv')
-
   let rows: any[][]
-  if (!isCsv && XLSXLib) {
-    // Excel file — use xlsx library
+
+  if (!isCsv) {
+    // Try to load xlsx dynamically — works if npm install xlsx has been run
+    let XLSX: any = null
+    try { XLSX = await new Function('return import("xlsx")')() } catch { /* not installed */ }
+    if (!XLSX) throw new Error('.xlsx/.xls requires the xlsx package.\nRun: npm install xlsx\nOr upload a .csv file instead.')
     const buf = await file.arrayBuffer()
-    const wb  = XLSXLib.read(buf, { type: 'array' })
+    const wb  = XLSX.read(buf, { type: 'array' })
     const ws  = wb.Sheets[wb.SheetNames[0]]
-    rows = XLSXLib.utils.sheet_to_json(ws, { header: 1, defval: '' })
-  } else if (!isCsv && !XLSXLib) {
-    throw new Error('.xlsx/.xls requires the xlsx package. Run: npm install xlsx\nOr upload a .csv file instead.')
+    rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' })
   } else {
-    // CSV — built-in parser, no dependency
-    const text = await file.text()
-    rows = parseCSV(text)
+    rows = parseCSV(await file.text())
   }
 
   if (rows.length < 2) throw new Error('File is empty or has no data rows')
@@ -136,7 +133,6 @@ async function parseFile(file: File): Promise<any[]> {
   const headers: string[] = (rows[0] as any[]).map((h: any) =>
     String(h).trim().toLowerCase().replace(/\s+/g, '_')
   )
-
   const questions: any[] = []
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i] as any[]
