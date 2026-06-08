@@ -1,6 +1,5 @@
 'use client'
 import * as XLSX from 'xlsx'
-
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Header from '@/components/layout/Header'
 import api from '@/lib/api'
@@ -66,60 +65,44 @@ function emptyQ(optCount=4) {
   }
 }
 
-// ─── Download the same .xlsx template that matches the upload format ─────────
+
+// ─── Bulk Quiz Upload ─────────────────────────────────────────
+
 function downloadTemplate() {
-
   const wb = XLSX.utils.book_new()
-
-  // ── Sheet 1: Quiz Info ──────────────────────────────────────
   const infoRows = [
-    ['Field', 'Your Value  ← Fill here', 'Allowed values / notes'],
-    ['title *',       'BPSC Polity Practice Set — 100 MCQs',  'Required. Quiz name shown in the app.'],
-    ['subject *',     'Polity',                               'Required. e.g. Polity, History, Bihar GK, Economy'],
-    ['type',          'topic',                                'topic  /  mock  /  daily   (default: topic)'],
-    ['duration_mins', '60',                                   'Duration in minutes  (default: 15)'],
-    ['passing_score', '60',                                   'Pass percentage threshold  (default: 60)'],
-    ['coins_reward',  '20',                                   'Coins given on completion  (default: 10)'],
-    ['status',        'published',                            'published  (live in app)  or  draft  (hidden)'],
+    ['Field', 'Your Value  <- Fill here', 'Allowed values / notes'],
+    ['title',         'My Quiz Title',  'Required. Quiz name shown in the app.'],
+    ['subject',       'Polity',         'Required. e.g. Polity, History, Bihar GK, Economy'],
+    ['type',          'topic',          'topic  /  mock  /  daily   (default: topic)'],
+    ['duration_mins', '15',             'Duration in minutes  (default: 15)'],
+    ['passing_score', '60',             'Pass percentage threshold  (default: 60)'],
+    ['coins_reward',  '10',             'Coins given on completion  (default: 10)'],
+    ['status',        'published',      'published  (live in app)  or  draft  (hidden)'],
   ]
   const wsInfo = XLSX.utils.aoa_to_sheet(infoRows)
   wsInfo['!cols'] = [{ wch: 22 }, { wch: 40 }, { wch: 38 }]
   XLSX.utils.book_append_sheet(wb, wsInfo, 'Quiz Info')
 
-  // ── Sheet 2: Quiz Questions ─────────────────────────────────
   const qRows = [
-    ['question *', 'option_a *', 'option_b *', 'option_c', 'option_d', 'option_e', 'correct_option *', 'explanation', 'subject'],
-    // 20 sample BPSC questions
-    ['What is the capital of Bihar?', 'Patna', 'Ranchi', 'Gaya', 'Muzaffarpur', '', 'a', 'Patna has been the capital of Bihar since ancient times.', 'Bihar GK'],
-    ['Who was the first Chief Minister of Bihar?', 'Shri Krishna Sinha', 'Anugrah Narayan Sinha', 'Binodanand Jha', 'Mahamaya Prasad Sinha', '', 'a', 'Sri Krishna Sinha became the first CM of Bihar in 1946.', 'Bihar GK'],
+    ['question', 'option_a', 'option_b', 'option_c', 'option_d', 'option_e', 'correct_option', 'explanation', 'subject'],
+    ['What is the capital of Bihar?', 'Patna', 'Ranchi', 'Gaya', 'Muzaffarpur', '', 'a', 'Patna has been the capital since ancient times.', 'Bihar GK'],
+    ['Who was the first Chief Minister of Bihar?', 'Shri Krishna Sinha', 'Anugrah Narayan Sinha', 'Binodanand Jha', 'Mahamaya Prasad Sinha', '', 'a', 'Sri Krishna Sinha became the first CM in 1946.', 'Bihar GK'],
     ['Which river flows through Patna?', 'Ganga', 'Yamuna', 'Godavari', 'Kaveri', '', 'a', 'The Ganga river flows through Patna.', 'Geography'],
-    ['Article 370 was related to which state?', 'Jammu & Kashmir', 'Himachal Pradesh', 'Uttarakhand', 'Sikkim', '', 'a', 'Article 370 granted special status to J&K, abrogated in 2019.', 'Polity'],
-    ['Fundamental Rights are in which Part of the Constitution?', 'Part III', 'Part IV', 'Part II', 'Part V', '', 'a', 'Part III (Articles 12–35) contains Fundamental Rights.', 'Polity'],
+    ['Article 370 was related to which state?', 'Jammu & Kashmir', 'Himachal Pradesh', 'Uttarakhand', 'Sikkim', '', 'a', 'Article 370 granted special status to J&K.', 'Polity'],
+    ['Fundamental Rights are in which Part of the Constitution?', 'Part III', 'Part IV', 'Part II', 'Part V', '', 'a', 'Part III (Articles 12-35) contains Fundamental Rights.', 'Polity'],
     ['Full form of BPSC?', 'Bihar Public Service Commission', 'Bihar Police Service Commission', 'Bengal Public Service Commission', 'Bihar Provincial Committee', '', 'a', 'BPSC = Bihar Public Service Commission.', 'General Studies'],
-    ['Photosynthesis occurs in which organelle?', 'Chloroplast', 'Mitochondria', 'Nucleus', 'Ribosome', '', 'a', 'Chloroplasts contain chlorophyll used in photosynthesis.', 'Science & Technology'],
-    ['Who is known as the Iron Man of India?', 'Sardar Vallabhbhai Patel', 'Subhas Chandra Bose', 'Bal Gangadhar Tilak', 'Lal Bahadur Shastri', '', 'a', 'Sardar Patel unified the princely states.', 'History'],
-    ['Which Five Year Plan focused on poverty alleviation?', 'Fifth', 'First', 'Third', 'Seventh', '', 'a', 'The Fifth FYP (1974–79) focused on poverty alleviation.', 'Economy'],
-    ['Directive Principles borrowed from which country?', 'Ireland', 'USA', 'UK', 'Australia', '', 'a', 'Directive Principles borrowed from the Irish Constitution.', 'Polity'],
-    ['Which Amendment gave constitutional status to Panchayati Raj?', '73rd', '42nd', '44th', '86th', '', 'a', 'The 73rd Constitutional Amendment (1992).', 'Polity'],
-    ['CRR stands for?', 'Cash Reserve Ratio', 'Credit Reserve Rate', 'Central Reserve Ratio', 'Cash Return Rate', '', 'a', 'CRR is the minimum cash banks must hold with RBI.', 'Economy'],
-    ['Longest river flowing entirely within India?', 'Ganga', 'Godavari', 'Brahmaputra', 'Krishna', '', 'a', 'The Ganga is the longest river flowing entirely within India.', 'Geography'],
-    ['Article 21A provides for?', 'Right to Education', 'Right to Life', 'Right to Property', 'Right to Work', '', 'a', 'Article 21A (86th Amendment) — free education for children 6–14.', 'Polity'],
-    ['GST was implemented in India from?', '1 July 2017', '1 April 2016', '1 January 2018', '26 January 2017', '', 'a', 'GST was rolled out on 1 July 2017.', 'Economy'],
-    ['Father of the Indian Constitution?', 'B.R. Ambedkar', 'Jawaharlal Nehru', 'Mahatma Gandhi', 'Sardar Patel', '', 'a', 'Dr B.R. Ambedkar chaired the Drafting Committee.', 'Polity'],
-    ['Planet closest to the Sun?', 'Mercury', 'Venus', 'Earth', 'Mars', '', 'a', 'Mercury is the closest planet to the Sun.', 'Science & Technology'],
-    ['Sarnath is associated with which religion?', 'Buddhism', 'Hinduism', 'Jainism', 'Sikhism', '', 'a', 'Buddha delivered his first sermon at Sarnath.', 'History'],
-    ['Most abundant gas in Earth\'s atmosphere?', 'Nitrogen', 'Oxygen', 'Carbon Dioxide', 'Argon', '', 'a', 'Nitrogen makes up about 78% of Earth\'s atmosphere.', 'Science & Technology'],
-    ['Who wrote Arthashastra?', 'Chanakya', 'Ashoka', 'Chandragupta', 'Vikramaditya', '', 'a', 'Chanakya (Kautilya) wrote the Arthashastra.', 'History'],
+    ['Photosynthesis occurs in which organelle?', 'Chloroplast', 'Mitochondria', 'Nucleus', 'Ribosome', '', 'a', 'Chloroplasts contain chlorophyll for photosynthesis.', 'Science & Technology'],
+    ['Who is the Iron Man of India?', 'Sardar Vallabhbhai Patel', 'Subhas Chandra Bose', 'Bal Gangadhar Tilak', 'Lal Bahadur Shastri', '', 'a', 'Sardar Patel unified the princely states.', 'History'],
+    ['Which Five Year Plan focused on poverty alleviation?', 'Fifth', 'First', 'Third', 'Seventh', '', 'a', 'Fifth FYP (1974-79) focused on poverty alleviation.', 'Economy'],
+    ['Directive Principles borrowed from which country?', 'Ireland', 'USA', 'UK', 'Australia', '', 'a', 'Directive Principles from the Irish Constitution.', 'Polity'],
   ]
   const wsQ = XLSX.utils.aoa_to_sheet(qRows)
   wsQ['!cols'] = [{ wch: 36 }, { wch: 22 }, { wch: 22 }, { wch: 22 }, { wch: 22 }, { wch: 16 }, { wch: 14 }, { wch: 32 }, { wch: 18 }]
   XLSX.utils.book_append_sheet(wb, wsQ, 'Quiz Questions')
-
-  // Download
   XLSX.writeFile(wb, 'quiz_bulk_upload_template.xlsx')
 }
 
-// ─── Parse uploaded CSV/Excel into question rows ──────────────
 function parseCSV(text: string): any[][] {
   const rows: any[][] = []
   for (const line of text.split(/\r?\n/)) {
@@ -138,55 +121,52 @@ function parseCSV(text: string): any[][] {
   return rows
 }
 
-// Extract quiz metadata from a sheet named "Quiz Info" (key-value pairs in col A/B)
-// Skips banner/title rows — only reads rows where col A is a known field name
-
-
-function extractMetaFromSheet(wb: any): Record<string,string> {
+function extractMetaFromSheet(wb: any): Record<string, string> {
   const infoSheet = wb.Sheets['Quiz Info'] || wb.Sheets['quiz_info'] || wb.Sheets['QuizInfo']
   if (!infoSheet) return {}
-  const rows: any[][] = XLSX.utils.sheet_to_json(infoSheet, { header: 1, defval: '' })
-  const KNOWN = ['title','subject','type','duration_mins','duration','passing_score','pass_score','coins_reward','coins','status']
-  const meta: Record<string,string> = {}
+  const rows: any[] = XLSX.utils.sheet_to_json(infoSheet, { header: 1, defval: '' })
+  const KNOWN = ['title', 'subject', 'type', 'duration_mins', 'duration', 'passing_score', 'pass_score', 'coins_reward', 'coins', 'status']
+  const meta: Record<string, string> = {}
   for (const row of rows) {
-    const key = String(row[0] || '').trim().toLowerCase().replace(/\s+/g,'_').replace(/\s*\*$/,'')
-    const val = String(row[1] || '').trim()
+    const r = row as any[]
+    const key = String(r[0] || '').trim().toLowerCase().replace(/\s*\*/g, '').replace(/\s+/g, '_').trim()
+    const val = String(r[1] || '').trim()
     if (KNOWN.includes(key) && val) meta[key] = val
   }
   return meta
 }
 
-async function parseFile(file: File): Promise<{ questions: any[]; quizMeta: Record<string,string> }> {
+async function parseFile(file: File): Promise<{ questions: any[]; quizMeta: Record<string, string> }> {
   const isCsv = file.name.toLowerCase().endsWith('.csv')
   let rows: any[][]
-  let quizMeta: Record<string,string> = {}
+  let quizMeta: Record<string, string> = {}
 
   if (!isCsv) {
     const buf = await file.arrayBuffer()
-    const wb  = XLSX.read(buf, { type: 'array' })
-    quizMeta  = extractMetaFromSheet(wb)
-    const qSheetName = wb.SheetNames.find((n: string) =>
-      n.toLowerCase().includes('question')
-    ) || wb.SheetNames[wb.SheetNames.length - 1]
-    rows = XLSX.utils.sheet_to_json(wb.Sheets[qSheetName], { header: 1, defval: '' })
+    const wb = XLSX.read(buf, { type: 'array' })
+    quizMeta = extractMetaFromSheet(wb)
+    const qSheetName = wb.SheetNames.find((n: string) => n.toLowerCase().includes('question'))
+      || wb.SheetNames[wb.SheetNames.length - 1]
+    rows = XLSX.utils.sheet_to_json(wb.Sheets[qSheetName], { header: 1, defval: '' }) as any[][]
   } else {
     rows = parseCSV(await file.text())
   }
 
   if (rows.length < 2) throw new Error('File is empty or has no data rows')
 
-  // Scan for actual header row — skips banner/legend rows
+  // Find header row — scan first 10 rows for one containing "question"
   let headerIdx = 0
   for (let i = 0; i < Math.min(rows.length, 10); i++) {
-    const rowLower = (rows[i] as any[]).map(c => String(c).trim().toLowerCase())
-    if (rowLower.some(c => c === 'question' || c === 'question *' || c === 'question_text')) {
+    const cells = (rows[i] as any[]).map((c: any) => String(c).trim().toLowerCase().replace(/\s*\*/g, '').trim())
+    if (cells.some((c: string) => c === 'question' || c === 'question_text')) {
       headerIdx = i
       break
     }
   }
 
+  // Clean headers: strip *, spaces, underscores
   const headers: string[] = (rows[headerIdx] as any[]).map((h: any) =>
-    String(h).trim().toLowerCase().replace(/\s+/g, '_').replace(/\s*\*$/, '').replace(/\*$/, '')
+    String(h).trim().toLowerCase().replace(/\s*\*/g, '').replace(/\s+/g, '_').trim().replace(/^_+|_+$/g, '')
   )
 
   const questions: any[] = []
@@ -194,48 +174,42 @@ async function parseFile(file: File): Promise<{ questions: any[]; quizMeta: Reco
     const row = rows[i] as any[]
     if (row.every((c: any) => !String(c).trim())) continue
     const obj: any = {}
-    headers.forEach((h, j) => { if (h) obj[h] = String(row[j] ?? '').trim() })
+    headers.forEach((h: string, j: number) => { if (h) obj[h] = String(row[j] ?? '').trim() })
     questions.push(obj)
   }
   return { questions, quizMeta }
 }
-// ─── Bulk Upload Modal ────────────────────────────────────────
+
 function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
-  const [step, setStep] = useState<'upload'|'preview'|'done'>('upload')
+  const [step, setStep] = useState<'upload' | 'preview' | 'done'>('upload')
   const [questions, setQuestions] = useState<any[]>([])
-  const [parseError, setParseError] = useState<string|null>(null)
+  const [parseError, setParseError] = useState<string | null>(null)
   const [importing, setImporting] = useState(false)
   const [result, setResult] = useState<any>(null)
   const [dragOver, setDragOver] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+  const [meta, setMeta] = useState({ title: '', subject: '', type: 'topic', durationMins: 15, passingScore: 60, coinsReward: 10, status: 'published' })
 
-  const [meta, setMeta] = useState({
-    title: '', subject: '', type: 'topic',
-    durationMins: 15, passingScore: 60, coinsReward: 10, status: 'published',
-  })
-
-  // Column header aliases accepted
-  const FIELD_MAP: Record<string,string> = {
-    question:'question', question_text:'question', q:'question',
-    option_a:'option_a', a:'option_a', opt_a:'option_a',
-    option_b:'option_b', b:'option_b', opt_b:'option_b',
-    option_c:'option_c', c:'option_c', opt_c:'option_c',
-    option_d:'option_d', d:'option_d', opt_d:'option_d',
-    option_e:'option_e', e:'option_e', opt_e:'option_e',
-    correct_option:'correct_option', answer:'correct_option', correct:'correct_option',
-    explanation:'explanation', hint:'explanation',
-    subject:'subject',
+  const FIELD_MAP: Record<string, string> = {
+    question: 'question', question_text: 'question', q: 'question',
+    option_a: 'option_a', a: 'option_a',
+    option_b: 'option_b', b: 'option_b',
+    option_c: 'option_c', c: 'option_c',
+    option_d: 'option_d', d: 'option_d',
+    option_e: 'option_e', e: 'option_e',
+    correct_option: 'correct_option', answer: 'correct_option', correct: 'correct_option',
+    explanation: 'explanation', hint: 'explanation',
+    subject: 'subject',
   }
 
-  const normalise = (rows: any[]) =>
-    rows.map(r => {
-      const out: any = {}
-      Object.entries(r).forEach(([k, v]) => {
-        const mapped = FIELD_MAP[k.toLowerCase().replace(/\s+/g,'_')]
-        if (mapped) out[mapped] = v
-      })
-      return out
+  const normalise = (rows: any[]) => rows.map(r => {
+    const out: any = {}
+    Object.entries(r).forEach(([k, v]) => {
+      const mapped = FIELD_MAP[k.toLowerCase().replace(/\s+/g, '_')]
+      if (mapped) out[mapped] = v
     })
+    return out
+  })
 
   const handleFile = async (file: File) => {
     setParseError(null)
@@ -245,29 +219,22 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
       if (norm.length === 0) throw new Error('No valid rows found')
       if (norm.length > 500) throw new Error('Maximum 500 questions per upload')
       setQuestions(norm)
-      // Auto-fill quiz metadata from sheet — no manual step needed
-      const TYPE_MAP: Record<string,string> = { topic:'topic', mock:'mock', daily:'daily', 'mock test':'mock' }
+      const TYPE_MAP: Record<string, string> = { topic: 'topic', mock: 'mock', daily: 'daily', 'mock test': 'mock' }
       setMeta(m => ({
         ...m,
-        title:        quizMeta['title']        || quizMeta['quiz_title']                                  || m.title,
-        subject:      quizMeta['subject']       || norm[0]?.subject                                        || m.subject,
-        type:         TYPE_MAP[String(quizMeta['type'] || '').toLowerCase()]                               || m.type,
+        title:        quizMeta['title']        || m.title,
+        subject:      quizMeta['subject']       || norm[0]?.subject || m.subject,
+        type:         TYPE_MAP[String(quizMeta['type'] || '').toLowerCase()] || m.type,
         durationMins: parseInt(quizMeta['duration_mins'] || quizMeta['duration'] || '0') || m.durationMins,
         passingScore: parseInt(quizMeta['passing_score'] || quizMeta['pass_score'] || '0') || m.passingScore,
         coinsReward:  parseInt(quizMeta['coins_reward']  || quizMeta['coins']     || '0') || m.coinsReward,
         status:       quizMeta['status'] || m.status,
       }))
       setStep('preview')
-    } catch (e: any) {
-      setParseError(e.message || 'Failed to parse file')
-    }
+    } catch (e: any) { setParseError(e.message || 'Failed to parse file') }
   }
 
-  const onDrop = (e: React.DragEvent) => {
-    e.preventDefault(); setDragOver(false)
-    const file = e.dataTransfer.files?.[0]
-    if (file) handleFile(file)
-  }
+  const onDrop = (e: React.DragEvent) => { e.preventDefault(); setDragOver(false); const file = e.dataTransfer.files?.[0]; if (file) handleFile(file) }
 
   const submit = async () => {
     if (!meta.title.trim() || !meta.subject.trim()) return
@@ -277,76 +244,48 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
       setResult(res.data)
       setStep('done')
       onSuccess()
-    } catch (e: any) {
-      setParseError(e.message || 'Import failed')
-      setImporting(false)
-    }
+    } catch (e: any) { setParseError(e.message || 'Import failed'); setImporting(false) }
   }
 
-  // Validation preview — count errors
-  const LETTERS = ['a','b','c','d','e']
+  const LETTERS = ['a', 'b', 'c', 'd', 'e']
   const errors = questions.map((q, i) => {
     const msgs: string[] = []
     if (!q.question) msgs.push('question missing')
     const opts = [q.option_a, q.option_b, q.option_c, q.option_d, q.option_e].filter(Boolean)
-    if (opts.length < 2) msgs.push('need ≥ 2 options')
+    if (opts.length < 2) msgs.push('need >= 2 options')
     const co = String(q.correct_option || '').toLowerCase()
-    if (!LETTERS.includes(co) && !['1','2','3','4','5'].includes(co))
-      msgs.push('correct_option invalid')
+    if (!LETTERS.includes(co) && !['1', '2', '3', '4', '5'].includes(co)) msgs.push('correct_option invalid')
     return { row: i + 2, msgs }
   }).filter(e => e.msgs.length > 0)
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-      onClick={e => e.target === e.currentTarget && onClose()}>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="bg-white rounded-3xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl">
-
-        {/* Header */}
         <div className="bg-gradient-to-r from-emerald-600 to-teal-500 px-6 py-5 rounded-t-3xl flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center">
-              <FileSpreadsheet size={20} className="text-white" />
-            </div>
-            <div>
-              <h2 className="font-bold text-white text-lg leading-none">Bulk Quiz Import</h2>
-              <p className="text-white/70 text-xs mt-1">Upload Excel / CSV · max 500 questions</p>
-            </div>
+            <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center"><FileSpreadsheet size={20} className="text-white" /></div>
+            <div><h2 className="font-bold text-white text-lg leading-none">Bulk Quiz Import</h2><p className="text-white/70 text-xs mt-1">Upload Excel / CSV · max 500 questions</p></div>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center">
-            <X size={15} className="text-white" />
-          </button>
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center"><X size={15} className="text-white" /></button>
         </div>
 
         <div className="overflow-y-auto flex-1 p-6">
-
-          {/* Step 1: Upload */}
           {step === 'upload' && (
             <div className="space-y-5">
-              {/* Template download */}
               <div className="flex items-center justify-between p-4 bg-blue-50 rounded-2xl border border-blue-100">
                 <div>
-                  <p className="font-semibold text-blue-800 text-sm">📋 Download Template First</p>
-                  <p className="text-xs text-blue-600 mt-0.5">Fill in the .xlsx template (Quiz Info + Questions sheets) and upload it back</p>
+                  <p className="font-semibold text-blue-800 text-sm">Download Template First</p>
+                  <p className="text-xs text-blue-600 mt-0.5">Fill in the .xlsx template and upload it back</p>
                 </div>
-                <button onClick={() => downloadTemplate()}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors">
+                <button onClick={downloadTemplate} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors">
                   <Download size={13} /> Download .xlsx
                 </button>
               </div>
 
-              {/* Column reference */}
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs space-y-2">
                 <p className="font-bold text-slate-700">Column Reference</p>
                 <div className="grid grid-cols-2 gap-1.5">
-                  {[
-                    ['question *','The question text'],
-                    ['option_a *','First option'],
-                    ['option_b *','Second option'],
-                    ['option_c','Third option (optional)'],
-                    ['option_d','Fourth option (optional)'],
-                    ['option_e','Fifth option (optional)'],
-                    ['correct_option *','a / b / c / d / e  or  1 / 2 / 3 / 4'],
-                  ].map(([col, desc]) => (
+                  {[['question','The question text'],['option_a','First option'],['option_b','Second option'],['option_c','Third (optional)'],['option_d','Fourth (optional)'],['option_e','Fifth (optional)'],['correct_option','a/b/c/d/e or 1/2/3/4'],['explanation','Shown after answering (optional)'],['subject','Per-question subject (optional)']].map(([col, desc]) => (
                     <div key={col} className="flex gap-1.5">
                       <code className="bg-white border border-slate-200 px-1.5 py-0.5 rounded text-emerald-700 font-mono shrink-0">{col}</code>
                       <span className="text-slate-500">{desc}</span>
@@ -355,66 +294,38 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
                 </div>
               </div>
 
-              {/* Drop zone */}
-              <div
-                onDragOver={e => { e.preventDefault(); setDragOver(true) }}
-                onDragLeave={() => setDragOver(false)}
-                onDrop={onDrop}
-                onClick={() => fileRef.current?.click()}
-                className={`border-2 border-dashed rounded-2xl p-12 flex flex-col items-center justify-center gap-3 cursor-pointer transition-all
-                  ${dragOver ? 'border-emerald-400 bg-emerald-50' : 'border-slate-300 hover:border-emerald-400 hover:bg-slate-50'}`}
-              >
+              <div onDragOver={e => { e.preventDefault(); setDragOver(true) }} onDragLeave={() => setDragOver(false)} onDrop={onDrop} onClick={() => fileRef.current?.click()}
+                className={`border-2 border-dashed rounded-2xl p-12 flex flex-col items-center justify-center gap-3 cursor-pointer transition-all ${dragOver ? 'border-emerald-400 bg-emerald-50' : 'border-slate-300 hover:border-emerald-400 hover:bg-slate-50'}`}>
                 <Upload size={32} className="text-slate-300" />
                 <p className="font-semibold text-slate-600">Drop your Excel / CSV file here</p>
-                <p className="text-xs text-slate-400">.xlsx  .xls  .csv  · max 500 rows</p>
+                <p className="text-xs text-slate-400">.xlsx .xls .csv · max 500 rows</p>
               </div>
-              <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden"
-                onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
-
-              {parseError && (
-                <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
-                  <AlertTriangle size={14} className="shrink-0" /> {parseError}
-                </div>
-              )}
+              <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
+              {parseError && (<div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm"><AlertTriangle size={14} className="shrink-0" /> {parseError}</div>)}
             </div>
           )}
 
-          {/* Step 2: Preview */}
           {step === 'preview' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <p className="font-bold text-slate-800">{questions.length} questions parsed
-                  <span className="ml-2 text-xs font-normal text-slate-400">— click any cell to edit, or delete rows</span>
-                </p>
-                {errors.length > 0 ? (
-                  <span className="flex items-center gap-1.5 px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-bold">
-                    <AlertTriangle size={11} /> {errors.length} row{errors.length > 1 ? 's' : ''} with errors
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-1.5 px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">
-                    <CheckCircle2 size={11} /> All rows valid
-                  </span>
-                )}
+                <p className="font-bold text-slate-800">{questions.length} questions parsed <span className="ml-2 text-xs font-normal text-slate-400">— click any cell to edit</span></p>
+                {errors.length > 0
+                  ? <span className="flex items-center gap-1.5 px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-bold"><AlertTriangle size={11} /> {errors.length} rows with errors</span>
+                  : <span className="flex items-center gap-1.5 px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold"><CheckCircle2 size={11} /> All rows valid</span>}
               </div>
 
-              {/* Error list */}
               {errors.length > 0 && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-xl space-y-1 max-h-24 overflow-y-auto">
-                  {errors.map(e => (
-                    <p key={e.row} className="text-xs text-red-700">
-                      <span className="font-bold">Row {e.row}:</span> {e.msgs.join(', ')}
-                    </p>
-                  ))}
+                  {errors.map(e => <p key={e.row} className="text-xs text-red-700"><span className="font-bold">Row {e.row}:</span> {e.msgs.join(', ')}</p>)}
                 </div>
               )}
 
-              {/* Editable preview table */}
               <div className="overflow-auto rounded-2xl border border-slate-200 max-h-96">
                 <table className="w-full text-xs border-collapse">
                   <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                     <tr>
                       <th className="px-2 py-2.5 text-left font-bold text-slate-500 w-8">#</th>
-                      {['Question *','A *','B *','C','D','E','✓ *','Explanation','Subject',''].map(h => (
+                      {['Question','A','B','C','D','E','Correct','Explanation','Subject',''].map(h => (
                         <th key={h} className="px-2 py-2.5 text-left font-bold text-slate-500 whitespace-nowrap">{h}</th>
                       ))}
                     </tr>
@@ -422,42 +333,28 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
                   <tbody>
                     {questions.map((q, i) => {
                       const hasError = errors.some(e => e.row === i + 2)
-                      const updateField = (field: string, val: string) =>
-                        setQuestions(prev => prev.map((row, idx) => idx === i ? { ...row, [field]: val } : row))
-                      const deleteRow = () =>
-                        setQuestions(prev => prev.filter((_, idx) => idx !== i))
-
+                      const update = (field: string, val: string) => setQuestions(prev => prev.map((row, idx) => idx === i ? { ...row, [field]: val } : row))
                       const cell = (field: string, placeholder = '', wide = false) => (
                         <td key={field} className={`p-0 border-r border-slate-100 ${wide ? 'min-w-48' : 'min-w-24'}`}>
-                          <input
-                            value={q[field] || ''}
-                            onChange={e => updateField(field, e.target.value)}
-                            placeholder={placeholder}
-                            className={`w-full px-2 py-1.5 text-xs bg-transparent outline-none focus:bg-blue-50 focus:ring-1 focus:ring-blue-300 rounded
-                              ${field === 'correct_option' ? 'font-bold text-emerald-700 text-center uppercase w-12' : 'text-slate-700'}
-                              ${hasError && !q[field] ? 'bg-red-50 placeholder:text-red-300' : ''}`}
-                          />
+                          <input value={q[field] || ''} onChange={e => update(field, e.target.value)} placeholder={placeholder}
+                            className={`w-full px-2 py-1.5 text-xs bg-transparent outline-none focus:bg-blue-50 rounded ${field === 'correct_option' ? 'font-bold text-emerald-700 text-center' : 'text-slate-700'} ${hasError && !q[field] ? 'bg-red-50 placeholder:text-red-300' : ''}`} />
                         </td>
                       )
-
                       return (
                         <tr key={i} className={`border-b border-slate-100 group ${hasError ? 'bg-red-50/40' : 'hover:bg-slate-50/60'}`}>
                           <td className="px-2 py-1.5 text-slate-400 font-mono text-center">{i + 1}</td>
-                          {cell('question',     'Question text…', true)}
-                          {cell('option_a',     'Option A…')}
-                          {cell('option_b',     'Option B…')}
-                          {cell('option_c',     'Option C')}
-                          {cell('option_d',     'Option D')}
-                          {cell('option_e',     'Option E')}
-                          {cell('correct_option','a/b/c')}
-                          {cell('explanation',  'Explanation…', true)}
-                          {cell('subject',      'Subject')}
+                          {cell('question', 'Question…', true)}
+                          {cell('option_a', 'A…')}
+                          {cell('option_b', 'B…')}
+                          {cell('option_c', 'C')}
+                          {cell('option_d', 'D')}
+                          {cell('option_e', 'E')}
+                          {cell('correct_option', 'a/b/c')}
+                          {cell('explanation', 'Explanation…', true)}
+                          {cell('subject', 'Subject')}
                           <td className="px-2 py-1.5">
-                            <button
-                              onClick={deleteRow}
-                              className="opacity-0 group-hover:opacity-100 w-6 h-6 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center transition-all"
-                              title="Delete row"
-                            >
+                            <button onClick={() => setQuestions(prev => prev.filter((_, idx) => idx !== i))}
+                              className="opacity-0 group-hover:opacity-100 w-6 h-6 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center transition-all">
                               <X size={11} className="text-red-400" />
                             </button>
                           </td>
@@ -468,92 +365,41 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
                 </table>
               </div>
 
-              {/* Add row button */}
-              <button
-                onClick={() => setQuestions(prev => [...prev, { question:'', option_a:'', option_b:'', option_c:'', option_d:'', option_e:'', correct_option:'a', explanation:'', subject: meta.subject || '' }])}
-                className="w-full py-2 text-xs text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-emerald-200 transition-colors font-semibold"
-              >
+              <button onClick={() => setQuestions(prev => [...prev, { question: '', option_a: '', option_b: '', option_c: '', option_d: '', option_e: '', correct_option: 'a', explanation: '', subject: meta.subject || '' }])}
+                className="w-full py-2 text-xs text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-emerald-200 transition-colors font-semibold">
                 <Plus size={12} /> Add Row
               </button>
 
-              {/* Quiz info summary — auto-filled from sheet, editable inline */}
               <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl space-y-3">
                 <p className="text-xs font-bold text-emerald-800 uppercase tracking-wide">Quiz Details — from your sheet</p>
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="col-span-2">
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Title *</label>
-                    <input value={meta.title} onChange={e => setMeta(m => ({ ...m, title: e.target.value }))}
-                      placeholder="Quiz title (from sheet or type here)" className="input w-full text-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Subject *</label>
-                    <input value={meta.subject} onChange={e => setMeta(m => ({ ...m, subject: e.target.value }))}
-                      placeholder="Subject" className="input text-sm w-full" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Type</label>
-                    <select value={meta.type} onChange={e => setMeta(m => ({ ...m, type: e.target.value }))} className="input text-sm w-full">
-                      <option value="topic">Topic</option>
-                      <option value="mock">Mock Test</option>
-                      <option value="daily">Daily</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Duration (mins)</label>
-                    <input type="number" value={meta.durationMins} onChange={e => setMeta(m => ({ ...m, durationMins: +e.target.value }))}
-                      className="input text-sm w-full" min={1} />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Passing Score (%)</label>
-                    <input type="number" value={meta.passingScore} onChange={e => setMeta(m => ({ ...m, passingScore: +e.target.value }))}
-                      className="input text-sm w-full" min={1} max={100} />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Coins Reward</label>
-                    <input type="number" value={meta.coinsReward} onChange={e => setMeta(m => ({ ...m, coinsReward: +e.target.value }))}
-                      className="input text-sm w-full" min={0} />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Status</label>
-                    <select value={meta.status} onChange={e => setMeta(m => ({ ...m, status: e.target.value }))} className="input text-sm w-full">
-                      <option value="published">Published — live</option>
-                      <option value="draft">Draft — hidden</option>
-                    </select>
-                  </div>
+                  <div className="col-span-2"><label className="block text-[10px] font-bold text-slate-500 mb-1">Title *</label><input value={meta.title} onChange={e => setMeta(m => ({ ...m, title: e.target.value }))} placeholder="Quiz title" className="input w-full text-sm" /></div>
+                  <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Subject *</label><input value={meta.subject} onChange={e => setMeta(m => ({ ...m, subject: e.target.value }))} placeholder="Subject" className="input text-sm w-full" /></div>
+                  <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Type</label><select value={meta.type} onChange={e => setMeta(m => ({ ...m, type: e.target.value }))} className="input text-sm w-full"><option value="topic">Topic</option><option value="mock">Mock Test</option><option value="daily">Daily</option></select></div>
+                  <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Duration (mins)</label><input type="number" value={meta.durationMins} onChange={e => setMeta(m => ({ ...m, durationMins: +e.target.value }))} className="input text-sm w-full" min={1} /></div>
+                  <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Passing Score (%)</label><input type="number" value={meta.passingScore} onChange={e => setMeta(m => ({ ...m, passingScore: +e.target.value }))} className="input text-sm w-full" min={1} max={100} /></div>
+                  <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Coins Reward</label><input type="number" value={meta.coinsReward} onChange={e => setMeta(m => ({ ...m, coinsReward: +e.target.value }))} className="input text-sm w-full" min={0} /></div>
+                  <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Status</label><select value={meta.status} onChange={e => setMeta(m => ({ ...m, status: e.target.value }))} className="input text-sm w-full"><option value="published">Published</option><option value="draft">Draft</option></select></div>
                 </div>
               </div>
 
-              {parseError && (
-                <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
-                  <AlertTriangle size={14} className="shrink-0" /> {parseError}
-                </div>
-              )}
+              {parseError && (<div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm"><AlertTriangle size={14} className="shrink-0" /> {parseError}</div>)}
 
               <div className="flex gap-2 justify-end">
-                <button onClick={() => { setStep('upload'); setQuestions([]) }} className="btn-secondary text-sm">← Re-upload</button>
-                <button onClick={submit}
-                  disabled={importing || !meta.title.trim() || !meta.subject.trim()}
-                  className="btn-primary text-sm disabled:opacity-40 min-w-44">
-                  {importing
-                    ? <><Loader2 size={14} className="animate-spin" /> Importing {questions.length} questions…</>
-                    : <><Upload size={14} /> Import {questions.length} Questions</>}
+                <button onClick={() => { setStep('upload'); setQuestions([]) }} className="btn-secondary text-sm">Re-upload</button>
+                <button onClick={submit} disabled={importing || !meta.title.trim() || !meta.subject.trim()} className="btn-primary text-sm disabled:opacity-40 min-w-44">
+                  {importing ? <><Loader2 size={14} className="animate-spin" /> Importing…</> : <><Upload size={14} /> Import {questions.length} Questions</>}
                 </button>
               </div>
             </div>
           )}
 
-          {/* Step 4: Done */}
           {step === 'done' && result && (
             <div className="flex flex-col items-center py-10 gap-4 text-center">
-              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
-                <CheckCircle2 size={32} className="text-green-600" />
-              </div>
+              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center"><CheckCircle2 size={32} className="text-green-600" /></div>
               <div>
                 <p className="text-xl font-black text-slate-800">Import Successful!</p>
-                <p className="text-slate-500 mt-1">
-                  <span className="font-bold text-emerald-600">{result.questionsInserted}</span> questions added to
-                  <span className="font-bold text-slate-700"> "{result.title}"</span>
-                </p>
+                <p className="text-slate-500 mt-1"><span className="font-bold text-emerald-600">{result.questionsInserted}</span> questions added to <span className="font-bold text-slate-700">"{result.title}"</span></p>
               </div>
               <button onClick={onClose} className="btn-primary mt-2">Done</button>
             </div>
@@ -747,10 +593,7 @@ export default function QuizzesPage() {
             </select>
           </div>
           <button onClick={load} className="btn-secondary px-3 py-2" title="Refresh"><RefreshCw size={13} /></button>
-          <button onClick={() => setShowBulk(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors">
-            <FileSpreadsheet size={14} /> Bulk Import
-          </button>
+          <button onClick={() => setShowBulk(true)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors"><FileSpreadsheet size={14} /> Bulk Import</button>
           <button onClick={openNew} className="btn-primary"><Plus size={14} /> Add Quiz</button>
         </div>
 
