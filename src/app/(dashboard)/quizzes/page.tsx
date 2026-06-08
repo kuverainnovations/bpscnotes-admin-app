@@ -111,12 +111,26 @@ function parseCSV(text: string): any[][] {
   return rows
 }
 
-async function parseFile(file: File): Promise<any[]> {
+// Extract quiz metadata from a sheet named "Quiz Info" (key-value pairs in col A/B)
+function extractMetaFromSheet(XLSX: any, wb: any): Record<string,string> {
+  const infoSheet = wb.Sheets['Quiz Info'] || wb.Sheets['quiz_info'] || wb.Sheets['QuizInfo']
+  if (!infoSheet) return {}
+  const rows: any[][] = XLSX.utils.sheet_to_json(infoSheet, { header: 1, defval: '' })
+  const meta: Record<string,string> = {}
+  for (const row of rows) {
+    const key = String(row[0] || '').trim().toLowerCase().replace(/\s+/g,'_')
+    const val = String(row[1] || '').trim()
+    if (key && val) meta[key] = val
+  }
+  return meta
+}
+
+async function parseFile(file: File): Promise<{ questions: any[]; quizMeta: Record<string,string> }> {
   const isCsv = file.name.toLowerCase().endsWith('.csv')
   let rows: any[][]
+  let quizMeta: Record<string,string> = {}
 
   if (!isCsv) {
-    // Try to load xlsx dynamically — works if npm install xlsx has been run
     let XLSX: any = null
     try { XLSX = await new Function('return import("xlsx")')() } catch { /* not installed */ }
     if (!XLSX) throw new Error('.xlsx/.xls requires the xlsx package.\nRun: npm install xlsx\nOr upload a .csv file instead.')
@@ -124,6 +138,8 @@ async function parseFile(file: File): Promise<any[]> {
     const wb  = XLSX.read(buf, { type: 'array' })
     const ws  = wb.Sheets[wb.SheetNames[0]]
     rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' })
+    // Try to read quiz info from dedicated sheet
+    quizMeta = extractMetaFromSheet(XLSX, wb)
   } else {
     rows = parseCSV(await file.text())
   }
@@ -133,20 +149,31 @@ async function parseFile(file: File): Promise<any[]> {
   const headers: string[] = (rows[0] as any[]).map((h: any) =>
     String(h).trim().toLowerCase().replace(/\s+/g, '_')
   )
+
+  // Check if first data row is a __quiz__ metadata row
+  const firstRow: any = {}
+  headers.forEach((h, j) => { firstRow[h] = String((rows[1] as any[])[j] ?? '').trim() })
+  const dataStartIdx = firstRow['question']?.toLowerCase() === '__quiz__' ? 2 : 1
+
+  // If no dedicated sheet, try to read quiz meta from __quiz__ row
+  if (Object.keys(quizMeta).length === 0 && dataStartIdx === 2) {
+    Object.assign(quizMeta, firstRow)
+  }
+
   const questions: any[] = []
-  for (let i = 1; i < rows.length; i++) {
+  for (let i = dataStartIdx; i < rows.length; i++) {
     const row = rows[i] as any[]
     if (row.every((c: any) => !String(c).trim())) continue
     const obj: any = {}
     headers.forEach((h, j) => { obj[h] = String(row[j] ?? '').trim() })
     questions.push(obj)
   }
-  return questions
+  return { questions, quizMeta }
 }
 
 // ─── Bulk Upload Modal ────────────────────────────────────────
 function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
-  const [step, setStep] = useState<'upload'|'preview'|'meta'|'done'>('upload')
+  const [step, setStep] = useState<'upload'|'preview'|'done'>('upload')
   const [questions, setQuestions] = useState<any[]>([])
   const [parseError, setParseError] = useState<string|null>(null)
   const [importing, setImporting] = useState(false)
@@ -185,11 +212,23 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
   const handleFile = async (file: File) => {
     setParseError(null)
     try {
-      const raw  = await parseFile(file)
+      const { questions: raw, quizMeta } = await parseFile(file)
       const norm = normalise(raw)
       if (norm.length === 0) throw new Error('No valid rows found')
       if (norm.length > 500) throw new Error('Maximum 500 questions per upload')
       setQuestions(norm)
+      // Auto-fill quiz metadata from sheet — no manual step needed
+      const TYPE_MAP: Record<string,string> = { topic:'topic', mock:'mock', daily:'daily', 'mock test':'mock' }
+      setMeta(m => ({
+        ...m,
+        title:        quizMeta['title']        || quizMeta['quiz_title']                                  || m.title,
+        subject:      quizMeta['subject']       || norm[0]?.subject                                        || m.subject,
+        type:         TYPE_MAP[String(quizMeta['type'] || '').toLowerCase()]                               || m.type,
+        durationMins: parseInt(quizMeta['duration_mins'] || quizMeta['duration'] || '0') || m.durationMins,
+        passingScore: parseInt(quizMeta['passing_score'] || quizMeta['pass_score'] || '0') || m.passingScore,
+        coinsReward:  parseInt(quizMeta['coins_reward']  || quizMeta['coins']     || '0') || m.coinsReward,
+        status:       quizMeta['status'] || m.status,
+      }))
       setStep('preview')
     } catch (e: any) {
       setParseError(e.message || 'Failed to parse file')
@@ -319,7 +358,9 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
           {step === 'preview' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <p className="font-bold text-slate-800">{questions.length} questions parsed</p>
+                <p className="font-bold text-slate-800">{questions.length} questions parsed
+                  <span className="ml-2 text-xs font-normal text-slate-400">— click any cell to edit, or delete rows</span>
+                </p>
                 {errors.length > 0 ? (
                   <span className="flex items-center gap-1.5 px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-bold">
                     <AlertTriangle size={11} /> {errors.length} row{errors.length > 1 ? 's' : ''} with errors
@@ -333,7 +374,7 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
 
               {/* Error list */}
               {errors.length > 0 && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-xl space-y-1 max-h-28 overflow-y-auto">
+                <div className="p-3 bg-red-50 border border-red-200 rounded-xl space-y-1 max-h-24 overflow-y-auto">
                   {errors.map(e => (
                     <p key={e.row} className="text-xs text-red-700">
                       <span className="font-bold">Row {e.row}:</span> {e.msgs.join(', ')}
@@ -342,97 +383,129 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
                 </div>
               )}
 
-              {/* Preview table */}
-              <div className="overflow-x-auto rounded-2xl border border-slate-200">
-                <table className="w-full text-xs">
-                  <thead className="bg-slate-50 border-b border-slate-200">
+              {/* Editable preview table */}
+              <div className="overflow-auto rounded-2xl border border-slate-200 max-h-96">
+                <table className="w-full text-xs border-collapse">
+                  <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                     <tr>
-                      {['#','Question','A','B','C','D','E','✓','Explanation','Subject','Difficulty'].map(h => (
-                        <th key={h} className="px-3 py-2.5 text-left font-bold text-slate-500 whitespace-nowrap">{h}</th>
+                      <th className="px-2 py-2.5 text-left font-bold text-slate-500 w-8">#</th>
+                      {['Question *','A *','B *','C','D','E','✓ *','Explanation','Subject','Difficulty',''].map(h => (
+                        <th key={h} className="px-2 py-2.5 text-left font-bold text-slate-500 whitespace-nowrap">{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {questions.slice(0, 10).map((q, i) => {
+                    {questions.map((q, i) => {
                       const hasError = errors.some(e => e.row === i + 2)
+                      const updateField = (field: string, val: string) =>
+                        setQuestions(prev => prev.map((row, idx) => idx === i ? { ...row, [field]: val } : row))
+                      const deleteRow = () =>
+                        setQuestions(prev => prev.filter((_, idx) => idx !== i))
+
+                      const cell = (field: string, placeholder = '', wide = false) => (
+                        <td key={field} className={`p-0 border-r border-slate-100 ${wide ? 'min-w-48' : 'min-w-24'}`}>
+                          <input
+                            value={q[field] || ''}
+                            onChange={e => updateField(field, e.target.value)}
+                            placeholder={placeholder}
+                            className={`w-full px-2 py-1.5 text-xs bg-transparent outline-none focus:bg-blue-50 focus:ring-1 focus:ring-blue-300 rounded
+                              ${field === 'correct_option' ? 'font-bold text-emerald-700 text-center uppercase w-12' : 'text-slate-700'}
+                              ${hasError && !q[field] ? 'bg-red-50 placeholder:text-red-300' : ''}`}
+                          />
+                        </td>
+                      )
+
                       return (
-                        <tr key={i} className={`border-b border-slate-50 ${hasError ? 'bg-red-50' : 'hover:bg-slate-50'}`}>
-                          <td className="px-3 py-2 text-slate-400 font-mono">{i + 1}</td>
-                          <td className="px-3 py-2 text-slate-800 max-w-48 truncate">{q.question}</td>
-                          {['option_a','option_b','option_c','option_d','option_e'].map(k => (
-                            <td key={k} className="px-3 py-2 text-slate-600 max-w-28 truncate">{q[k] || <span className="text-slate-200">—</span>}</td>
-                          ))}
-                          <td className="px-3 py-2 font-bold text-emerald-700 uppercase">{q.correct_option}</td>
-                          <td className="px-3 py-2 text-slate-500 max-w-32 truncate">{q.explanation || <span className="text-slate-200">—</span>}</td>
-                          <td className="px-3 py-2 text-slate-600">{q.subject}</td>
-                          <td className="px-3 py-2 text-slate-600">{q.difficulty || 'medium'}</td>
+                        <tr key={i} className={`border-b border-slate-100 group ${hasError ? 'bg-red-50/40' : 'hover:bg-slate-50/60'}`}>
+                          <td className="px-2 py-1.5 text-slate-400 font-mono text-center">{i + 1}</td>
+                          {cell('question',     'Question text…', true)}
+                          {cell('option_a',     'Option A…')}
+                          {cell('option_b',     'Option B…')}
+                          {cell('option_c',     'Option C')}
+                          {cell('option_d',     'Option D')}
+                          {cell('option_e',     'Option E')}
+                          {cell('correct_option','a/b/c')}
+                          {cell('explanation',  'Explanation…', true)}
+                          {cell('subject',      'Subject')}
+                          <td className="p-0 border-r border-slate-100 min-w-20">
+                            <select
+                              value={q.difficulty || 'medium'}
+                              onChange={e => updateField('difficulty', e.target.value)}
+                              className="w-full px-2 py-1.5 text-xs bg-transparent outline-none focus:bg-blue-50 text-slate-700"
+                            >
+                              <option value="easy">easy</option>
+                              <option value="medium">medium</option>
+                              <option value="hard">hard</option>
+                            </select>
+                          </td>
+                          <td className="px-2 py-1.5">
+                            <button
+                              onClick={deleteRow}
+                              className="opacity-0 group-hover:opacity-100 w-6 h-6 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center transition-all"
+                              title="Delete row"
+                            >
+                              <X size={11} className="text-red-400" />
+                            </button>
+                          </td>
                         </tr>
                       )
                     })}
                   </tbody>
                 </table>
-                {questions.length > 10 && (
-                  <p className="text-center text-xs text-slate-400 py-2">
-                    Showing first 10 of {questions.length} rows
-                  </p>
-                )}
               </div>
 
-              <div className="flex gap-2 justify-end">
-                <button onClick={() => { setStep('upload'); setQuestions([]) }} className="btn-secondary text-sm">← Re-upload</button>
-                <button onClick={() => setStep('meta')} disabled={errors.length > 0 && questions.length === 0}
-                  className="btn-primary text-sm disabled:opacity-40">
-                  Next: Quiz Details →
-                </button>
-              </div>
-            </div>
-          )}
+              {/* Add row button */}
+              <button
+                onClick={() => setQuestions(prev => [...prev, { question:'', option_a:'', option_b:'', option_c:'', option_d:'', option_e:'', correct_option:'a', explanation:'', subject: meta.subject || '', difficulty:'medium' }])}
+                className="w-full py-2 text-xs text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-emerald-200 transition-colors font-semibold"
+              >
+                <Plus size={12} /> Add Row
+              </button>
 
-          {/* Step 3: Quiz metadata */}
-          {step === 'meta' && (
-            <div className="space-y-4">
-              <p className="text-sm text-slate-500">These details apply to the new quiz that will be created for the {questions.length} imported questions.</p>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="col-span-2">
-                  <label className="block text-xs font-bold text-slate-500 mb-1.5">Quiz Title *</label>
-                  <input value={meta.title} onChange={e => setMeta(m => ({ ...m, title: e.target.value }))}
-                    placeholder="e.g. BPSC Polity 100 Questions" className="input w-full" autoFocus />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1.5">Subject *</label>
-                  <input value={meta.subject} onChange={e => setMeta(m => ({ ...m, subject: e.target.value }))}
-                    placeholder="e.g. Polity" className="input w-full" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1.5">Type</label>
-                  <select value={meta.type} onChange={e => setMeta(m => ({ ...m, type: e.target.value }))} className="input w-full">
-                    <option value="topic">Topic</option>
-                    <option value="mock">Mock Test</option>
-                    <option value="daily">Daily</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1.5">Duration (mins)</label>
-                  <input type="number" value={meta.durationMins} onChange={e => setMeta(m => ({ ...m, durationMins: +e.target.value }))}
-                    className="input w-full" min={1} />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1.5">Passing Score (%)</label>
-                  <input type="number" value={meta.passingScore} onChange={e => setMeta(m => ({ ...m, passingScore: +e.target.value }))}
-                    className="input w-full" min={1} max={100} />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1.5">Coins Reward</label>
-                  <input type="number" value={meta.coinsReward} onChange={e => setMeta(m => ({ ...m, coinsReward: +e.target.value }))}
-                    className="input w-full" min={0} />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1.5">Status</label>
-                  <select value={meta.status} onChange={e => setMeta(m => ({ ...m, status: e.target.value }))} className="input w-full">
-                    <option value="published">Published — live</option>
-                    <option value="draft">Draft — hidden</option>
-                  </select>
+              {/* Quiz info summary — auto-filled from sheet, editable inline */}
+              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl space-y-3">
+                <p className="text-xs font-bold text-emerald-800 uppercase tracking-wide">Quiz Details — from your sheet</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="col-span-2">
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Title *</label>
+                    <input value={meta.title} onChange={e => setMeta(m => ({ ...m, title: e.target.value }))}
+                      placeholder="Quiz title (from sheet or type here)" className="input w-full text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Subject *</label>
+                    <input value={meta.subject} onChange={e => setMeta(m => ({ ...m, subject: e.target.value }))}
+                      placeholder="Subject" className="input text-sm w-full" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Type</label>
+                    <select value={meta.type} onChange={e => setMeta(m => ({ ...m, type: e.target.value }))} className="input text-sm w-full">
+                      <option value="topic">Topic</option>
+                      <option value="mock">Mock Test</option>
+                      <option value="daily">Daily</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Duration (mins)</label>
+                    <input type="number" value={meta.durationMins} onChange={e => setMeta(m => ({ ...m, durationMins: +e.target.value }))}
+                      className="input text-sm w-full" min={1} />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Passing Score (%)</label>
+                    <input type="number" value={meta.passingScore} onChange={e => setMeta(m => ({ ...m, passingScore: +e.target.value }))}
+                      className="input text-sm w-full" min={1} max={100} />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Coins Reward</label>
+                    <input type="number" value={meta.coinsReward} onChange={e => setMeta(m => ({ ...m, coinsReward: +e.target.value }))}
+                      className="input text-sm w-full" min={0} />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Status</label>
+                    <select value={meta.status} onChange={e => setMeta(m => ({ ...m, status: e.target.value }))} className="input text-sm w-full">
+                      <option value="published">Published — live</option>
+                      <option value="draft">Draft — hidden</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
@@ -443,10 +516,10 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
               )}
 
               <div className="flex gap-2 justify-end">
-                <button onClick={() => setStep('preview')} className="btn-secondary text-sm">← Back</button>
+                <button onClick={() => { setStep('upload'); setQuestions([]) }} className="btn-secondary text-sm">← Re-upload</button>
                 <button onClick={submit}
                   disabled={importing || !meta.title.trim() || !meta.subject.trim()}
-                  className="btn-primary text-sm disabled:opacity-40 min-w-40">
+                  className="btn-primary text-sm disabled:opacity-40 min-w-44">
                   {importing
                     ? <><Loader2 size={14} className="animate-spin" /> Importing {questions.length} questions…</>
                     : <><Upload size={14} /> Import {questions.length} Questions</>}
