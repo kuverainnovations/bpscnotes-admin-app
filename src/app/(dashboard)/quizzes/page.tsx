@@ -1,5 +1,9 @@
 'use client'
-import * as XLSX from 'xlsx'
+// xlsx is used for .xlsx/.xls parsing — install with: npm install xlsx
+// CSV files work without it via the built-in parser below
+let XLSXLib: any = null
+try { XLSXLib = require('xlsx') } catch { /* xlsx not installed — CSV only mode */ }
+
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Header from '@/components/layout/Header'
 import api from '@/lib/api'
@@ -91,24 +95,52 @@ function downloadTemplate() {
 }
 
 // ─── Parse uploaded CSV/Excel into question rows ──────────────
+function parseCSV(text: string): any[][] {
+  const rows: any[][] = []
+  for (const line of text.split(/\r?\n/)) {
+    if (!line.trim()) continue
+    const cols: string[] = []
+    let cur = '', inQuote = false
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i]
+      if (ch === '"') { inQuote = !inQuote }
+      else if (ch === ',' && !inQuote) { cols.push(cur); cur = '' }
+      else cur += ch
+    }
+    cols.push(cur)
+    rows.push(cols.map(c => c.replace(/^"|"$/g, '').trim()))
+  }
+  return rows
+}
+
 async function parseFile(file: File): Promise<any[]> {
-  // Use xlsx library (already imported at top of file)
-  const buf  = await file.arrayBuffer()
-  const wb   = XLSX.read(buf, { type: 'array' })
-  const ws   = wb.Sheets[wb.SheetNames[0]]
-  const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' })
+  const isCsv = file.name.toLowerCase().endsWith('.csv')
+
+  let rows: any[][]
+  if (!isCsv && XLSXLib) {
+    // Excel file — use xlsx library
+    const buf = await file.arrayBuffer()
+    const wb  = XLSXLib.read(buf, { type: 'array' })
+    const ws  = wb.Sheets[wb.SheetNames[0]]
+    rows = XLSXLib.utils.sheet_to_json(ws, { header: 1, defval: '' })
+  } else if (!isCsv && !XLSXLib) {
+    throw new Error('.xlsx/.xls requires the xlsx package. Run: npm install xlsx\nOr upload a .csv file instead.')
+  } else {
+    // CSV — built-in parser, no dependency
+    const text = await file.text()
+    rows = parseCSV(text)
+  }
 
   if (rows.length < 2) throw new Error('File is empty or has no data rows')
 
-  // First row = headers (case-insensitive, trim)
   const headers: string[] = (rows[0] as any[]).map((h: any) =>
-    String(h).trim().toLowerCase().replace(/\s+/g,'_')
+    String(h).trim().toLowerCase().replace(/\s+/g, '_')
   )
 
   const questions: any[] = []
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i] as any[]
-    if (row.every((c: any) => !String(c).trim())) continue // skip blank rows
+    if (row.every((c: any) => !String(c).trim())) continue
     const obj: any = {}
     headers.forEach((h, j) => { obj[h] = String(row[j] ?? '').trim() })
     questions.push(obj)
