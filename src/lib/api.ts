@@ -144,6 +144,35 @@ export const api = {
                       request(`/admin/courses/${courseId}/lessons/${lessonId}`, { method: 'DELETE' }),
     unlockFreeLessons: (courseId: string) => request(`/admin/courses/${courseId}/unlock-free-lessons`, { method: 'POST' }),
     bulkFixFreeLocks:  () => request('/admin/courses/bulk-fix-free-locks', { method: 'POST' }),
+    // File uploads for lessons — returns { data: { fileUrl, fileSizeBytes } }
+    uploadLessonFile: (courseId: string, file: File, onProgress?: (pct: number) => void): Promise<{ fileUrl: string; fileSizeBytes: number }> => {
+      return new Promise((resolve, reject) => {
+        const token = getToken()
+        const fd = new FormData()
+        fd.append('file', file)
+        const xhr = new XMLHttpRequest()
+        xhr.open('POST', `${BASE_URL}/admin/courses/${courseId}/lessons/upload-file`)
+        if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`)
+        if (onProgress) {
+          xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100))
+          }
+        }
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const json = JSON.parse(xhr.responseText)
+              resolve(json.data ?? json)
+            } catch { reject(new Error('Invalid response')) }
+          } else {
+            try { reject(new Error(JSON.parse(xhr.responseText).message || 'Upload failed')) }
+            catch { reject(new Error('Upload failed')) }
+          }
+        }
+        xhr.onerror = () => reject(new Error('Network error during upload'))
+        xhr.send(fd)
+      })
+    },
     // Subjects
     subjects:       () => request('/admin/subjects'),
     affairCategories: () => request('/admin/affair-categories'),
