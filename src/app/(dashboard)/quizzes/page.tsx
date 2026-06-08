@@ -67,29 +67,59 @@ function emptyQ(optCount=4) {
   }
 }
 
-// ─── Excel template column definition ────────────────────────
-const TEMPLATE_HEADERS = [
-  'question','option_a','option_b','option_c','option_d','option_e',
-  'correct_option','explanation','subject',
-]
-const TEMPLATE_EXAMPLE = [
-  'What is the capital of Bihar?','Patna','Ranchi','Lucknow','Bhopal','','a',
-  'Patna is the capital of Bihar','Bihar GK','easy',
-]
+// ─── Download the same .xlsx template that matches the upload format ─────────
+async function downloadTemplate() {
+  let XLSX: any = null
+  try { XLSX = await (new Function('return import("xlsx")')()) } catch { alert('xlsx package not loaded. Try refreshing the page.'); return }
 
-function downloadTemplate() {
-  // Build a CSV template the admin can fill in Excel / Google Sheets
-  const rows = [
-    TEMPLATE_HEADERS,
-    TEMPLATE_EXAMPLE,
-    ['Your question here...','Option 1','Option 2','Option 3','Option 4','(optional 5th)','b','Explanation (optional)','Subject','medium'],
+  const wb = XLSX.utils.book_new()
+
+  // ── Sheet 1: Quiz Info ──────────────────────────────────────
+  const infoRows = [
+    ['Field', 'Your Value  ← Fill here', 'Allowed values / notes'],
+    ['title *',       'BPSC Polity Practice Set — 100 MCQs',  'Required. Quiz name shown in the app.'],
+    ['subject *',     'Polity',                               'Required. e.g. Polity, History, Bihar GK, Economy'],
+    ['type',          'topic',                                'topic  /  mock  /  daily   (default: topic)'],
+    ['duration_mins', '60',                                   'Duration in minutes  (default: 15)'],
+    ['passing_score', '60',                                   'Pass percentage threshold  (default: 60)'],
+    ['coins_reward',  '20',                                   'Coins given on completion  (default: 10)'],
+    ['status',        'published',                            'published  (live in app)  or  draft  (hidden)'],
   ]
-  const csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n')
-  const blob = new Blob([csv], { type: 'text/csv' })
-  const url  = URL.createObjectURL(blob)
-  const a    = document.createElement('a')
-  a.href = url; a.download = 'quiz_bulk_upload_template.csv'; a.click()
-  URL.revokeObjectURL(url)
+  const wsInfo = XLSX.utils.aoa_to_sheet(infoRows)
+  wsInfo['!cols'] = [{ wch: 22 }, { wch: 40 }, { wch: 38 }]
+  XLSX.utils.book_append_sheet(wb, wsInfo, 'Quiz Info')
+
+  // ── Sheet 2: Quiz Questions ─────────────────────────────────
+  const qRows = [
+    ['question *', 'option_a *', 'option_b *', 'option_c', 'option_d', 'option_e', 'correct_option *', 'explanation', 'subject'],
+    // 20 sample BPSC questions
+    ['What is the capital of Bihar?', 'Patna', 'Ranchi', 'Gaya', 'Muzaffarpur', '', 'a', 'Patna has been the capital of Bihar since ancient times.', 'Bihar GK'],
+    ['Who was the first Chief Minister of Bihar?', 'Shri Krishna Sinha', 'Anugrah Narayan Sinha', 'Binodanand Jha', 'Mahamaya Prasad Sinha', '', 'a', 'Sri Krishna Sinha became the first CM of Bihar in 1946.', 'Bihar GK'],
+    ['Which river flows through Patna?', 'Ganga', 'Yamuna', 'Godavari', 'Kaveri', '', 'a', 'The Ganga river flows through Patna.', 'Geography'],
+    ['Article 370 was related to which state?', 'Jammu & Kashmir', 'Himachal Pradesh', 'Uttarakhand', 'Sikkim', '', 'a', 'Article 370 granted special status to J&K, abrogated in 2019.', 'Polity'],
+    ['Fundamental Rights are in which Part of the Constitution?', 'Part III', 'Part IV', 'Part II', 'Part V', '', 'a', 'Part III (Articles 12–35) contains Fundamental Rights.', 'Polity'],
+    ['Full form of BPSC?', 'Bihar Public Service Commission', 'Bihar Police Service Commission', 'Bengal Public Service Commission', 'Bihar Provincial Committee', '', 'a', 'BPSC = Bihar Public Service Commission.', 'General Studies'],
+    ['Photosynthesis occurs in which organelle?', 'Chloroplast', 'Mitochondria', 'Nucleus', 'Ribosome', '', 'a', 'Chloroplasts contain chlorophyll used in photosynthesis.', 'Science & Technology'],
+    ['Who is known as the Iron Man of India?', 'Sardar Vallabhbhai Patel', 'Subhas Chandra Bose', 'Bal Gangadhar Tilak', 'Lal Bahadur Shastri', '', 'a', 'Sardar Patel unified the princely states.', 'History'],
+    ['Which Five Year Plan focused on poverty alleviation?', 'Fifth', 'First', 'Third', 'Seventh', '', 'a', 'The Fifth FYP (1974–79) focused on poverty alleviation.', 'Economy'],
+    ['Directive Principles borrowed from which country?', 'Ireland', 'USA', 'UK', 'Australia', '', 'a', 'Directive Principles borrowed from the Irish Constitution.', 'Polity'],
+    ['Which Amendment gave constitutional status to Panchayati Raj?', '73rd', '42nd', '44th', '86th', '', 'a', 'The 73rd Constitutional Amendment (1992).', 'Polity'],
+    ['CRR stands for?', 'Cash Reserve Ratio', 'Credit Reserve Rate', 'Central Reserve Ratio', 'Cash Return Rate', '', 'a', 'CRR is the minimum cash banks must hold with RBI.', 'Economy'],
+    ['Longest river flowing entirely within India?', 'Ganga', 'Godavari', 'Brahmaputra', 'Krishna', '', 'a', 'The Ganga is the longest river flowing entirely within India.', 'Geography'],
+    ['Article 21A provides for?', 'Right to Education', 'Right to Life', 'Right to Property', 'Right to Work', '', 'a', 'Article 21A (86th Amendment) — free education for children 6–14.', 'Polity'],
+    ['GST was implemented in India from?', '1 July 2017', '1 April 2016', '1 January 2018', '26 January 2017', '', 'a', 'GST was rolled out on 1 July 2017.', 'Economy'],
+    ['Father of the Indian Constitution?', 'B.R. Ambedkar', 'Jawaharlal Nehru', 'Mahatma Gandhi', 'Sardar Patel', '', 'a', 'Dr B.R. Ambedkar chaired the Drafting Committee.', 'Polity'],
+    ['Planet closest to the Sun?', 'Mercury', 'Venus', 'Earth', 'Mars', '', 'a', 'Mercury is the closest planet to the Sun.', 'Science & Technology'],
+    ['Sarnath is associated with which religion?', 'Buddhism', 'Hinduism', 'Jainism', 'Sikhism', '', 'a', 'Buddha delivered his first sermon at Sarnath.', 'History'],
+    ['Most abundant gas in Earth\'s atmosphere?', 'Nitrogen', 'Oxygen', 'Carbon Dioxide', 'Argon', '', 'a', 'Nitrogen makes up about 78% of Earth\'s atmosphere.', 'Science & Technology'],
+    ['Who wrote Arthashastra?', 'Chanakya', 'Ashoka', 'Chandragupta', 'Vikramaditya', '', 'a', 'Chanakya (Kautilya) wrote the Arthashastra.', 'History'],
+  ]
+  const wsQ = XLSX.utils.aoa_to_sheet(qRows)
+  wsQ['!cols'] = [{ wch: 36 }, { wch: 22 }, { wch: 22 }, { wch: 22 }, { wch: 22 }, { wch: 16 }, { wch: 14 }, { wch: 32 }, { wch: 18 }]
+  XLSX.utils.book_append_sheet(wb, wsQ, 'Quiz Questions')
+
+  // Download
+  XLSX.writeFile(wb, 'quiz_bulk_upload_template.xlsx')
 }
 
 // ─── Parse uploaded CSV/Excel into question rows ──────────────
@@ -132,7 +162,7 @@ async function parseFile(file: File): Promise<{ questions: any[]; quizMeta: Reco
 
   if (!isCsv) {
     let XLSX: any = null
-    try { XLSX = await new Function('return import("xlsx")')() } catch { /* not installed */ }
+    try { XLSX = await (new Function('return import("xlsx")')()) } catch { /* not installed */ }
     if (!XLSX) throw new Error('.xlsx/.xls requires the xlsx package.\nRun: npm install xlsx\nOr upload a .csv file instead.')
     const buf = await file.arrayBuffer()
     const wb  = XLSX.read(buf, { type: 'array' })
@@ -298,11 +328,11 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
               <div className="flex items-center justify-between p-4 bg-blue-50 rounded-2xl border border-blue-100">
                 <div>
                   <p className="font-semibold text-blue-800 text-sm">📋 Download Template First</p>
-                  <p className="text-xs text-blue-600 mt-0.5">Fill in the CSV/Excel template and upload it back</p>
+                  <p className="text-xs text-blue-600 mt-0.5">Fill in the .xlsx template (Quiz Info + Questions sheets) and upload it back</p>
                 </div>
-                <button onClick={downloadTemplate}
+                <button onClick={() => downloadTemplate()}
                   className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors">
-                  <Download size={13} /> Template
+                  <Download size={13} /> Download .xlsx
                 </button>
               </div>
 
