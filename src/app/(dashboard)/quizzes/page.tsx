@@ -140,6 +140,8 @@ function parseCSV(text: string): any[][] {
 
 // Extract quiz metadata from a sheet named "Quiz Info" (key-value pairs in col A/B)
 // Skips banner/title rows — only reads rows where col A is a known field name
+
+
 function extractMetaFromSheet(wb: any): Record<string,string> {
   const infoSheet = wb.Sheets['Quiz Info'] || wb.Sheets['quiz_info'] || wb.Sheets['QuizInfo']
   if (!infoSheet) return {}
@@ -163,7 +165,6 @@ async function parseFile(file: File): Promise<{ questions: any[]; quizMeta: Reco
     const buf = await file.arrayBuffer()
     const wb  = XLSX.read(buf, { type: 'array' })
     quizMeta  = extractMetaFromSheet(wb)
-    // Find questions sheet by name, fall back to last sheet (in case Quiz Info is first)
     const qSheetName = wb.SheetNames.find((n: string) =>
       n.toLowerCase().includes('question')
     ) || wb.SheetNames[wb.SheetNames.length - 1]
@@ -174,7 +175,7 @@ async function parseFile(file: File): Promise<{ questions: any[]; quizMeta: Reco
 
   if (rows.length < 2) throw new Error('File is empty or has no data rows')
 
-  // Find the actual header row — scan until we find a row containing 'question'
+  // Scan for actual header row — skips banner/legend rows
   let headerIdx = 0
   for (let i = 0; i < Math.min(rows.length, 10); i++) {
     const rowLower = (rows[i] as any[]).map(c => String(c).trim().toLowerCase())
@@ -198,7 +199,6 @@ async function parseFile(file: File): Promise<{ questions: any[]; quizMeta: Reco
   }
   return { questions, quizMeta }
 }
-
 // ─── Bulk Upload Modal ────────────────────────────────────────
 function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
   const [step, setStep] = useState<'upload'|'preview'|'done'>('upload')
