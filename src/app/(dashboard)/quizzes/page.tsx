@@ -139,15 +139,17 @@ function parseCSV(text: string): any[][] {
 }
 
 // Extract quiz metadata from a sheet named "Quiz Info" (key-value pairs in col A/B)
-function extractMetaFromSheet(XLSX: any, wb: any): Record<string,string> {
+// Skips banner/title rows — only reads rows where col A is a known field name
+function extractMetaFromSheet(wb: any): Record<string,string> {
   const infoSheet = wb.Sheets['Quiz Info'] || wb.Sheets['quiz_info'] || wb.Sheets['QuizInfo']
   if (!infoSheet) return {}
   const rows: any[][] = XLSX.utils.sheet_to_json(infoSheet, { header: 1, defval: '' })
+  const KNOWN = ['title','subject','type','duration_mins','duration','passing_score','pass_score','coins_reward','coins','status']
   const meta: Record<string,string> = {}
   for (const row of rows) {
-    const key = String(row[0] || '').trim().toLowerCase().replace(/\s+/g,'_')
+    const key = String(row[0] || '').trim().toLowerCase().replace(/\s+/g,'_').replace(/\s*\*$/,'')
     const val = String(row[1] || '').trim()
-    if (key && val) meta[key] = val
+    if (KNOWN.includes(key) && val) meta[key] = val
   }
   return meta
 }
@@ -158,43 +160,40 @@ async function parseFile(file: File): Promise<{ questions: any[]; quizMeta: Reco
   let quizMeta: Record<string,string> = {}
 
   if (!isCsv) {
-    // XLSX is imported at top of file
     const buf = await file.arrayBuffer()
     const wb  = XLSX.read(buf, { type: 'array' })
-    // Read quiz meta from dedicated sheet first
-    quizMeta = extractMetaFromSheet(XLSX, wb)
-    // Find questions sheet by name, fall back to first sheet
+    quizMeta  = extractMetaFromSheet(wb)
+    // Find questions sheet by name, fall back to last sheet (in case Quiz Info is first)
     const qSheetName = wb.SheetNames.find((n: string) =>
-      n.toLowerCase().includes('question') || n.toLowerCase().includes('quiz question')
-    ) || wb.SheetNames[0]
-    const ws = wb.Sheets[qSheetName]
-    rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' })
+      n.toLowerCase().includes('question')
+    ) || wb.SheetNames[wb.SheetNames.length - 1]
+    rows = XLSX.utils.sheet_to_json(wb.Sheets[qSheetName], { header: 1, defval: '' })
   } else {
     rows = parseCSV(await file.text())
   }
 
   if (rows.length < 2) throw new Error('File is empty or has no data rows')
 
-  const headers: string[] = (rows[0] as any[]).map((h: any) =>
-    String(h).trim().toLowerCase().replace(/\s+/g, '_')
-  )
-
-  // Check if first data row is a __quiz__ metadata row
-  const firstRow: any = {}
-  headers.forEach((h, j) => { firstRow[h] = String((rows[1] as any[])[j] ?? '').trim() })
-  const dataStartIdx = firstRow['question']?.toLowerCase() === '__quiz__' ? 2 : 1
-
-  // If no dedicated sheet, try to read quiz meta from __quiz__ row
-  if (Object.keys(quizMeta).length === 0 && dataStartIdx === 2) {
-    Object.assign(quizMeta, firstRow)
+  // Find the actual header row — scan until we find a row containing 'question'
+  let headerIdx = 0
+  for (let i = 0; i < Math.min(rows.length, 10); i++) {
+    const rowLower = (rows[i] as any[]).map(c => String(c).trim().toLowerCase())
+    if (rowLower.some(c => c === 'question' || c === 'question *' || c === 'question_text')) {
+      headerIdx = i
+      break
+    }
   }
 
+  const headers: string[] = (rows[headerIdx] as any[]).map((h: any) =>
+    String(h).trim().toLowerCase().replace(/\s+/g, '_').replace(/\s*\*$/, '').replace(/\*$/, '')
+  )
+
   const questions: any[] = []
-  for (let i = dataStartIdx; i < rows.length; i++) {
+  for (let i = headerIdx + 1; i < rows.length; i++) {
     const row = rows[i] as any[]
     if (row.every((c: any) => !String(c).trim())) continue
     const obj: any = {}
-    headers.forEach((h, j) => { obj[h] = String(row[j] ?? '').trim() })
+    headers.forEach((h, j) => { if (h) obj[h] = String(row[j] ?? '').trim() })
     questions.push(obj)
   }
   return { questions, quizMeta }
