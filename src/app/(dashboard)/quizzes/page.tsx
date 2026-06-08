@@ -1,6 +1,5 @@
 'use client'
-// NOTE: install xlsx for Excel support: npm install xlsx
-// CSV files work without it — built-in parser used automatically
+import * as XLSX from 'xlsx'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Header from '@/components/layout/Header'
@@ -68,9 +67,7 @@ function emptyQ(optCount=4) {
 }
 
 // ─── Download the same .xlsx template that matches the upload format ─────────
-async function downloadTemplate() {
-  let XLSX: any = null
-  try { XLSX = await (new Function('return import("xlsx")')()) } catch { alert('xlsx package not loaded. Try refreshing the page.'); return }
+function downloadTemplate() {
 
   const wb = XLSX.utils.book_new()
 
@@ -161,9 +158,7 @@ async function parseFile(file: File): Promise<{ questions: any[]; quizMeta: Reco
   let quizMeta: Record<string,string> = {}
 
   if (!isCsv) {
-    let XLSX: any = null
-    try { XLSX = await (new Function('return import("xlsx")')()) } catch { /* not installed */ }
-    if (!XLSX) throw new Error('.xlsx/.xls requires the xlsx package.\nRun: npm install xlsx\nOr upload a .csv file instead.')
+    // XLSX is imported at top of file
     const buf = await file.arrayBuffer()
     const wb  = XLSX.read(buf, { type: 'array' })
     const ws  = wb.Sheets[wb.SheetNames[0]]
