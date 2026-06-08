@@ -208,6 +208,9 @@ export const api = {
     // Bulk import: creates quiz shell + all questions in one transaction
     bulkImport: (data: { quiz: any; questions: any[] }) =>
                     request('/admin/quizzes/bulk-import', { method: 'POST', body: JSON.stringify(data) }),
+    // Bulk import multiple quizzes: groups questions by quiz_title column
+    bulkImportMulti: (groups: { quiz: any; questions: any[] }[]) =>
+                    request('/admin/quizzes/bulk-import-multi', { method: 'POST', body: JSON.stringify({ groups }) }),
     updateQuestion:   (questionId: string, d: any)   => request(`/admin/questions/${questionId}`, { method: 'PUT',    body: JSON.stringify(d) }),
     deleteQuestion:   (questionId: string)            => request(`/admin/questions/${questionId}`, { method: 'DELETE' }),
   },

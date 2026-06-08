@@ -85,20 +85,20 @@ function downloadTemplate() {
   XLSX.utils.book_append_sheet(wb, wsInfo, 'Quiz Info')
 
   const qRows = [
-    ['question', 'option_a', 'option_b', 'option_c', 'option_d', 'option_e', 'correct_option', 'explanation', 'subject'],
-    ['What is the capital of Bihar?', 'Patna', 'Ranchi', 'Gaya', 'Muzaffarpur', '', 'a', 'Patna has been the capital since ancient times.', 'Bihar GK'],
-    ['Who was the first Chief Minister of Bihar?', 'Shri Krishna Sinha', 'Anugrah Narayan Sinha', 'Binodanand Jha', 'Mahamaya Prasad Sinha', '', 'a', 'Sri Krishna Sinha became the first CM in 1946.', 'Bihar GK'],
-    ['Which river flows through Patna?', 'Ganga', 'Yamuna', 'Godavari', 'Kaveri', '', 'a', 'The Ganga river flows through Patna.', 'Geography'],
-    ['Article 370 was related to which state?', 'Jammu & Kashmir', 'Himachal Pradesh', 'Uttarakhand', 'Sikkim', '', 'a', 'Article 370 granted special status to J&K.', 'Polity'],
-    ['Fundamental Rights are in which Part of the Constitution?', 'Part III', 'Part IV', 'Part II', 'Part V', '', 'a', 'Part III (Articles 12-35) contains Fundamental Rights.', 'Polity'],
-    ['Full form of BPSC?', 'Bihar Public Service Commission', 'Bihar Police Service Commission', 'Bengal Public Service Commission', 'Bihar Provincial Committee', '', 'a', 'BPSC = Bihar Public Service Commission.', 'General Studies'],
-    ['Photosynthesis occurs in which organelle?', 'Chloroplast', 'Mitochondria', 'Nucleus', 'Ribosome', '', 'a', 'Chloroplasts contain chlorophyll for photosynthesis.', 'Science & Technology'],
-    ['Who is the Iron Man of India?', 'Sardar Vallabhbhai Patel', 'Subhas Chandra Bose', 'Bal Gangadhar Tilak', 'Lal Bahadur Shastri', '', 'a', 'Sardar Patel unified the princely states.', 'History'],
-    ['Which Five Year Plan focused on poverty alleviation?', 'Fifth', 'First', 'Third', 'Seventh', '', 'a', 'Fifth FYP (1974-79) focused on poverty alleviation.', 'Economy'],
-    ['Directive Principles borrowed from which country?', 'Ireland', 'USA', 'UK', 'Australia', '', 'a', 'Directive Principles from the Irish Constitution.', 'Polity'],
+    ['quiz_title', 'question', 'option_a', 'option_b', 'option_c', 'option_d', 'option_e', 'correct_option', 'explanation', 'subject'],
+    ['Polity Quiz 1', 'What is the capital of Bihar?', 'Patna', 'Ranchi', 'Gaya', 'Muzaffarpur', '', 'a', 'Patna has been the capital since ancient times.', 'Bihar GK'],
+    ['Polity Quiz 1', 'Who was the first Chief Minister of Bihar?', 'Shri Krishna Sinha', 'Anugrah Narayan Sinha', 'Binodanand Jha', 'Mahamaya Prasad Sinha', '', 'a', 'Sri Krishna Sinha became the first CM in 1946.', 'Bihar GK'],
+    ['Polity Quiz 1', 'Which river flows through Patna?', 'Ganga', 'Yamuna', 'Godavari', 'Kaveri', '', 'a', 'The Ganga river flows through Patna.', 'Geography'],
+    ['Polity Quiz 1', 'Article 370 was related to which state?', 'Jammu & Kashmir', 'Himachal Pradesh', 'Uttarakhand', 'Sikkim', '', 'a', 'Article 370 granted special status to J&K.', 'Polity'],
+    ['Polity Quiz 1', 'Fundamental Rights are in which Part?', 'Part III', 'Part IV', 'Part II', 'Part V', '', 'a', 'Part III (Articles 12-35) contains Fundamental Rights.', 'Polity'],
+    ['History Quiz 1', 'Who is the Iron Man of India?', 'Sardar Vallabhbhai Patel', 'Subhas Chandra Bose', 'Bal Gangadhar Tilak', 'Lal Bahadur Shastri', '', 'a', 'Sardar Patel unified the princely states.', 'History'],
+    ['History Quiz 1', 'Who wrote Arthashastra?', 'Chanakya', 'Ashoka', 'Chandragupta', 'Vikramaditya', '', 'a', 'Chanakya (Kautilya) wrote the Arthashastra.', 'History'],
+    ['History Quiz 1', 'Sarnath is associated with which religion?', 'Buddhism', 'Hinduism', 'Jainism', 'Sikhism', '', 'a', 'Buddha delivered his first sermon at Sarnath.', 'History'],
+    ['Economy Quiz 1', 'CRR stands for?', 'Cash Reserve Ratio', 'Credit Reserve Rate', 'Central Reserve Ratio', 'Cash Return Rate', '', 'a', 'CRR is the minimum cash banks must hold with RBI.', 'Economy'],
+    ['Economy Quiz 1', 'GST was implemented from?', '1 July 2017', '1 April 2016', '1 January 2018', '26 January 2017', '', 'a', 'GST was rolled out on 1 July 2017.', 'Economy'],
   ]
   const wsQ = XLSX.utils.aoa_to_sheet(qRows)
-  wsQ['!cols'] = [{ wch: 36 }, { wch: 22 }, { wch: 22 }, { wch: 22 }, { wch: 22 }, { wch: 16 }, { wch: 14 }, { wch: 32 }, { wch: 18 }]
+  wsQ['!cols'] = [{ wch: 18 }, { wch: 36 }, { wch: 22 }, { wch: 22 }, { wch: 22 }, { wch: 22 }, { wch: 16 }, { wch: 14 }, { wch: 32 }, { wch: 18 }]
   XLSX.utils.book_append_sheet(wb, wsQ, 'Quiz Questions')
   XLSX.writeFile(wb, 'quiz_bulk_upload_template.xlsx')
 }
@@ -191,6 +191,7 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
   const [meta, setMeta] = useState({ title: '', subject: '', type: 'topic', durationMins: 15, passingScore: 60, coinsReward: 10, status: 'published' })
 
   const FIELD_MAP: Record<string, string> = {
+    quiz_title: 'quiz_title', quiz: 'quiz_title',
     question: 'question', question_text: 'question', q: 'question',
     option_a: 'option_a', a: 'option_a',
     option_b: 'option_b', b: 'option_b',
@@ -237,17 +238,39 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
   const onDrop = (e: React.DragEvent) => { e.preventDefault(); setDragOver(false); const file = e.dataTransfer.files?.[0]; if (file) handleFile(file) }
 
   const submit = async () => {
-    if (!meta.title.trim() || !meta.subject.trim()) return
+    const hasQuizTitle = questions.some(q => q.quiz_title?.trim())
+    if (!hasQuizTitle && !meta.title.trim()) return
+    if (!meta.subject.trim()) return
     setImporting(true)
     try {
-      const res = await (api.quizzes as any).bulkImport({ quiz: meta, questions })
-      setResult(res.data)
+      const hasQuizTitle = questions.some(q => q.quiz_title?.trim())
+      if (hasQuizTitle) {
+        // Group by quiz_title
+        const groupMap: Record<string, any[]> = {}
+        for (const q of questions) {
+          const key = q.quiz_title?.trim() || meta.title || 'Untitled Quiz'
+          if (!groupMap[key]) groupMap[key] = []
+          const { quiz_title, ...rest } = q
+          groupMap[key].push(rest)
+        }
+        const groups = Object.entries(groupMap).map(([title, qs]) => ({
+          quiz: { ...meta, title, subject: qs[0]?.subject || meta.subject },
+          questions: qs,
+        }))
+        const res = await (api.quizzes as any).bulkImportMulti(groups)
+        setResult({ multi: true, ...res.data })
+      } else {
+        const res = await (api.quizzes as any).bulkImport({ quiz: meta, questions })
+        setResult({ multi: false, ...res.data })
+      }
       setStep('done')
       onSuccess()
     } catch (e: any) { setParseError(e.message || 'Import failed'); setImporting(false) }
   }
 
   const LETTERS = ['a', 'b', 'c', 'd', 'e']
+  const isMultiMode = questions.some(q => q.quiz_title?.trim())
+  const uniqueQuizTitles = Array.from(new Set(questions.map((q: any) => q.quiz_title).filter(Boolean)))
   const errors = questions.map((q, i) => {
     const msgs: string[] = []
     if (!q.question) msgs.push('question missing')
@@ -285,7 +308,7 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs space-y-2">
                 <p className="font-bold text-slate-700">Column Reference</p>
                 <div className="grid grid-cols-2 gap-1.5">
-                  {[['question','The question text'],['option_a','First option'],['option_b','Second option'],['option_c','Third (optional)'],['option_d','Fourth (optional)'],['option_e','Fifth (optional)'],['correct_option','a/b/c/d/e or 1/2/3/4'],['explanation','Shown after answering (optional)'],['subject','Per-question subject (optional)']].map(([col, desc]) => (
+                  {[['quiz_title','Quiz name — groups rows into separate quizzes'],['question','The question text'],['option_a','First option'],['option_b','Second option'],['option_c','Third (optional)'],['option_d','Fourth (optional)'],['option_e','Fifth (optional)'],['correct_option','a/b/c/d/e or 1/2/3/4'],['explanation','Shown after answering (optional)'],['subject','Per-question subject (optional)']].map(([col, desc]) => (
                     <div key={col} className="flex gap-1.5">
                       <code className="bg-white border border-slate-200 px-1.5 py-0.5 rounded text-emerald-700 font-mono shrink-0">{col}</code>
                       <span className="text-slate-500">{desc}</span>
@@ -325,7 +348,7 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
                   <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                     <tr>
                       <th className="px-2 py-2.5 text-left font-bold text-slate-500 w-8">#</th>
-                      {['Question','A','B','C','D','E','Correct','Explanation','Subject',''].map(h => (
+                      {(questions.some(q => q.quiz_title) ? ['Quiz Title','Question','A','B','C','D','E','Correct','Explanation','Subject',''] : ['Question','A','B','C','D','E','Correct','Explanation','Subject','']).map(h => (
                         <th key={h} className="px-2 py-2.5 text-left font-bold text-slate-500 whitespace-nowrap">{h}</th>
                       ))}
                     </tr>
@@ -343,6 +366,7 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
                       return (
                         <tr key={i} className={`border-b border-slate-100 group ${hasError ? 'bg-red-50/40' : 'hover:bg-slate-50/60'}`}>
                           <td className="px-2 py-1.5 text-slate-400 font-mono text-center">{i + 1}</td>
+                          {questions.some(q => q.quiz_title) && cell('quiz_title', 'Quiz title…', true)}
                           {cell('question', 'Question…', true)}
                           {cell('option_a', 'A…')}
                           {cell('option_b', 'B…')}
@@ -371,9 +395,20 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
               </button>
 
               <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl space-y-3">
-                <p className="text-xs font-bold text-emerald-800 uppercase tracking-wide">Quiz Details — from your sheet</p>
+                <p className="text-xs font-bold text-emerald-800 uppercase tracking-wide">
+                  {questions.some(q => q.quiz_title)
+                    ? `Quiz Details — ${uniqueQuizTitles.length} quizzes detected from quiz_title column`
+                    : 'Quiz Details — from your sheet'}
+                </p>
+                {questions.some(q => q.quiz_title) && (
+                  <div className="p-2.5 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-700">
+                    Titles are taken from the <code className="font-mono bg-white px-1 rounded">quiz_title</code> column. The settings below (type, duration, etc.) apply to all quizzes.
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="col-span-2"><label className="block text-[10px] font-bold text-slate-500 mb-1">Title *</label><input value={meta.title} onChange={e => setMeta(m => ({ ...m, title: e.target.value }))} placeholder="Quiz title" className="input w-full text-sm" /></div>
+                  {!questions.some(q => q.quiz_title) && (
+                    <div className="col-span-2"><label className="block text-[10px] font-bold text-slate-500 mb-1">Title *</label><input value={meta.title} onChange={e => setMeta(m => ({ ...m, title: e.target.value }))} placeholder="Quiz title" className="input w-full text-sm" /></div>
+                  )}
                   <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Subject *</label><input value={meta.subject} onChange={e => setMeta(m => ({ ...m, subject: e.target.value }))} placeholder="Subject" className="input text-sm w-full" /></div>
                   <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Type</label><select value={meta.type} onChange={e => setMeta(m => ({ ...m, type: e.target.value }))} className="input text-sm w-full"><option value="topic">Topic</option><option value="mock">Mock Test</option><option value="daily">Daily</option></select></div>
                   <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Duration (mins)</label><input type="number" value={meta.durationMins} onChange={e => setMeta(m => ({ ...m, durationMins: +e.target.value }))} className="input text-sm w-full" min={1} /></div>
@@ -387,8 +422,10 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
 
               <div className="flex gap-2 justify-end">
                 <button onClick={() => { setStep('upload'); setQuestions([]) }} className="btn-secondary text-sm">Re-upload</button>
-                <button onClick={submit} disabled={importing || !meta.title.trim() || !meta.subject.trim()} className="btn-primary text-sm disabled:opacity-40 min-w-44">
-                  {importing ? <><Loader2 size={14} className="animate-spin" /> Importing…</> : <><Upload size={14} /> Import {questions.length} Questions</>}
+                <button onClick={submit} disabled={importing || (!isMultiMode && !meta.title.trim()) || !meta.subject.trim()} className="btn-primary text-sm disabled:opacity-40 min-w-44">
+                  {importing ? <><Loader2 size={14} className="animate-spin" /> Importing…</> : questions.some(q => q.quiz_title)
+                    ? <><Upload size={14} /> Import {uniqueQuizTitles.length} Quizzes ({questions.length} Qs)</>
+                    : <><Upload size={14} /> Import {questions.length} Questions</>}
                 </button>
               </div>
             </div>
@@ -399,7 +436,21 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
               <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center"><CheckCircle2 size={32} className="text-green-600" /></div>
               <div>
                 <p className="text-xl font-black text-slate-800">Import Successful!</p>
-                <p className="text-slate-500 mt-1"><span className="font-bold text-emerald-600">{result.questionsInserted}</span> questions added to <span className="font-bold text-slate-700">"{result.title}"</span></p>
+                {result.multi ? (
+                  <div className="mt-2 space-y-1">
+                    <p className="text-slate-500"><span className="font-bold text-emerald-600">{result.totalQuizzes}</span> quizzes created with <span className="font-bold text-emerald-600">{result.totalQuestions}</span> total questions</p>
+                    <div className="mt-3 text-left space-y-1 max-h-40 overflow-y-auto">
+                      {result.quizzes?.map((q: any, i: number) => (
+                        <div key={i} className="flex items-center justify-between px-3 py-1.5 bg-slate-50 rounded-lg text-xs">
+                          <span className="font-medium text-slate-700">{q.title}</span>
+                          <span className="text-emerald-600 font-bold">{q.questionsInserted} Qs</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-slate-500 mt-1"><span className="font-bold text-emerald-600">{result.questionsInserted}</span> questions added to <span className="font-bold text-slate-700">"{result.title}"</span></p>
+                )}
               </div>
               <button onClick={onClose} className="btn-primary mt-2">Done</button>
             </div>
