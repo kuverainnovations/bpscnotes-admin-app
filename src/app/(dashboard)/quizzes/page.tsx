@@ -70,7 +70,7 @@ function emptyQ(optCount=4) {
 // ─── Excel template column definition ────────────────────────
 const TEMPLATE_HEADERS = [
   'question','option_a','option_b','option_c','option_d','option_e',
-  'correct_option','explanation','subject','difficulty',
+  'correct_option','explanation','subject',
 ]
 const TEMPLATE_EXAMPLE = [
   'What is the capital of Bihar?','Patna','Ranchi','Lucknow','Bhopal','','a',
@@ -196,7 +196,7 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
     option_e:'option_e', e:'option_e', opt_e:'option_e',
     correct_option:'correct_option', answer:'correct_option', correct:'correct_option',
     explanation:'explanation', hint:'explanation',
-    subject:'subject', difficulty:'difficulty',
+    subject:'subject',
   }
 
   const normalise = (rows: any[]) =>
@@ -318,9 +318,6 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
                     ['option_d','Fourth option (optional)'],
                     ['option_e','Fifth option (optional)'],
                     ['correct_option *','a / b / c / d / e  or  1 / 2 / 3 / 4'],
-                    ['explanation','Shown after answering (optional)'],
-                    ['subject','Overrides quiz subject per-question'],
-                    ['difficulty','easy / medium / hard (default: medium)'],
                   ].map(([col, desc]) => (
                     <div key={col} className="flex gap-1.5">
                       <code className="bg-white border border-slate-200 px-1.5 py-0.5 rounded text-emerald-700 font-mono shrink-0">{col}</code>
@@ -389,7 +386,7 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
                   <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                     <tr>
                       <th className="px-2 py-2.5 text-left font-bold text-slate-500 w-8">#</th>
-                      {['Question *','A *','B *','C','D','E','✓ *','Explanation','Subject','Difficulty',''].map(h => (
+                      {['Question *','A *','B *','C','D','E','✓ *','Explanation','Subject',''].map(h => (
                         <th key={h} className="px-2 py-2.5 text-left font-bold text-slate-500 whitespace-nowrap">{h}</th>
                       ))}
                     </tr>
@@ -427,17 +424,6 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
                           {cell('correct_option','a/b/c')}
                           {cell('explanation',  'Explanation…', true)}
                           {cell('subject',      'Subject')}
-                          <td className="p-0 border-r border-slate-100 min-w-20">
-                            <select
-                              value={q.difficulty || 'medium'}
-                              onChange={e => updateField('difficulty', e.target.value)}
-                              className="w-full px-2 py-1.5 text-xs bg-transparent outline-none focus:bg-blue-50 text-slate-700"
-                            >
-                              <option value="easy">easy</option>
-                              <option value="medium">medium</option>
-                              <option value="hard">hard</option>
-                            </select>
-                          </td>
                           <td className="px-2 py-1.5">
                             <button
                               onClick={deleteRow}
@@ -456,7 +442,7 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
 
               {/* Add row button */}
               <button
-                onClick={() => setQuestions(prev => [...prev, { question:'', option_a:'', option_b:'', option_c:'', option_d:'', option_e:'', correct_option:'a', explanation:'', subject: meta.subject || '', difficulty:'medium' }])}
+                onClick={() => setQuestions(prev => [...prev, { question:'', option_a:'', option_b:'', option_c:'', option_d:'', option_e:'', correct_option:'a', explanation:'', subject: meta.subject || '' }])}
                 className="w-full py-2 text-xs text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-emerald-200 transition-colors font-semibold"
               >
                 <Plus size={12} /> Add Row
