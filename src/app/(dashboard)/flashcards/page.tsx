@@ -313,17 +313,7 @@ export default function FlashcardsPage() {
             </div>
 
             <div className="overflow-y-auto flex-1 p-6 space-y-5">
-              {/* Subject + Topic */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1.5">Subject *</label>
-                  <DynamicSelect type="subjects" value={form.subject} onChange={v => setForm((f:any)=>({...f,subject:v}))} placeholder="Subject…" required/>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1.5">Topic <span className="font-normal text-slate-400">(optional)</span></label>
-                  <input value={form.topic} onChange={e => setForm((f:any)=>({...f,topic:e.target.value}))} className="input" placeholder="e.g. Fundamental Rights"/>
-                </div>
-              </div>
+              {/* Subject + Topic removed — not required */}
 
               {/* Front */}
               <div className="border-2 border-blue-200 rounded-2xl overflow-hidden">
