@@ -11,7 +11,8 @@ import {
   Shield, GraduationCap, ChevronRight, ChevronDown, LogOut,
   Zap, Brain, Layers, AlertTriangle, Star, LibraryBig,
   Coins,
-  TrendingUp
+  TrendingUp,
+  Activity
 } from 'lucide-react'
 
 type NavItem = {
@@ -58,6 +59,7 @@ const NAV: NavGroup[] = [
     { href:'/banners',          icon:Image,           label:'Banners & Offers' },
   ]},
   { group:'System', items:[
+    { href:'/activity',  icon:Activity,   label:'Activity Log' },
     { href:'/settings', icon:Settings, label:'App Settings' },
   ]},
 ]

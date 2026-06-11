@@ -351,6 +351,10 @@ export const api = {
   },
 
   // ── Settings ──────────────────────────────────────────────
+  activity: {
+    list: (qs = '') => request(`/admin/activity?${qs}`),
+  },
+
   settings: {
     getAll: () => request('/admin/settings'),
     update: (settings: Record<string, string>) =>
