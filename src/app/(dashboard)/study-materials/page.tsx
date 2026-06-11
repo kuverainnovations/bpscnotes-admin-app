@@ -321,11 +321,14 @@ export default function StudyMaterialsAdminPage() {
                         </span>
                       </div>
 
-                      {m.status === 'rejected' && m.rejectionReason && (
-                        <p className="text-xs text-red-500 mt-1.5 flex items-start gap-1">
-                          <XCircle size={11} className="shrink-0 mt-0.5" />
-                          Rejection reason: {m.rejectionReason || m.rejection_reason}
-                        </p>
+                      {m.status === 'rejected' && (m.rejection_reason || m.rejectionReason) && (
+                        <div className="mt-2 flex items-start gap-1.5 bg-red-50 border border-red-200 rounded-lg px-2.5 py-2">
+                          <XCircle size={12} className="shrink-0 mt-0.5 text-red-500" />
+                          <p className="text-xs text-red-700 font-medium">
+                            <span className="text-red-400">Reason: </span>
+                            {m.rejection_reason || m.rejectionReason}
+                          </p>
+                        </div>
                       )}
                     </div>
 
