@@ -44,8 +44,9 @@ const NAV: NavGroup[] = [
     { href:'/coupons',          icon:Tag,             label:'Coupon Codes' },
     { href:'/coins',            icon:Coins,           label:'Coins & Rewards' },
   ]},
-  { group:'Engagement', items:[
+  { group:'Engagement', defaultOpen:true, items:[
     { href:'/analytics',        icon:TrendingUp,      label:'Analytics' },
+    { href:'/activity',         icon:Activity,        label:'Activity Log' },
     { href:'/notifications',    icon:Bell,            label:'Notifications' },
     { href:'/tier-rooms',       icon:Layers,          label:'Tier Room System' },
     { href:'/tier-rooms/flagged',icon:AlertTriangle,  label:'Anti-Cheat Review' },
@@ -56,8 +57,7 @@ const NAV: NavGroup[] = [
     { href:'/certificates',     icon:Award,           label:'Certificates' },
     { href:'/banners',          icon:Image,           label:'Banners & Offers' },
   ]},
-  { group:'System', items:[
-    { href:'/activity',  icon:Activity,   label:'Activity Log' },
+  { group:'System', defaultOpen:true, items:[
     { href:'/settings', icon:Settings, label:'App Settings' },
   ]},
 ]
