@@ -192,8 +192,10 @@ export default function ContentPage() {
   // ── Course review queue ──────────────────────────────────
   const [reviewList, setReviewList]     = useState<any[]>([])
   const [reviewLoading, setReviewLoading] = useState(false)
+  const [reviewOpen, setReviewOpen]     = useState(true)
   const [rejectCourse, setRejectCourse] = useState<any>(null)
   const [rejectReason, setRejectReason] = useState('')
+  const [previewCourse, setPreviewCourse] = useState<any>(null)
 
   const loadReviews = useCallback(async () => {
     setReviewLoading(true)
@@ -380,57 +382,82 @@ export default function ContentPage() {
 
       <div className="p-6 max-w-7xl mx-auto space-y-6">
 
-        {/* ── Course Review Queue ──────────────────────────── */}
+        {/* ── Course Review Queue — collapsible ─────────────── */}
         {(reviewLoading || reviewList.length > 0) && (
           <div className="card border-2 border-amber-200 bg-amber-50/50">
-            <div className="p-4 border-b border-amber-200 flex items-center justify-between">
+            {/* Header — click to collapse/expand */}
+            <button
+              className="w-full p-4 flex items-center justify-between hover:bg-amber-50/80 transition-colors"
+              onClick={() => setReviewOpen(o => !o)}
+            >
               <div className="flex items-center gap-2">
                 <span className="text-lg">⏳</span>
-                <div>
-                  <p className="font-bold text-amber-900 text-sm">Course Review Queue</p>
-                  <p className="text-xs text-amber-700">{reviewList.length} course{reviewList.length !== 1 ? 's' : ''} waiting for approval</p>
+                <div className="text-left">
+                  <p className="font-bold text-amber-900 text-sm">
+                    Course Review Queue
+                    {reviewList.length > 0 && (
+                      <span className="ml-2 bg-amber-500 text-white text-xs font-black px-2 py-0.5 rounded-full">{reviewList.length}</span>
+                    )}
+                  </p>
+                  <p className="text-xs text-amber-700">
+                    {reviewOpen ? 'Click to collapse' : `${reviewList.length} course${reviewList.length !== 1 ? 's' : ''} waiting — click to review`}
+                  </p>
                 </div>
               </div>
-              <button onClick={loadReviews} className="text-amber-600 hover:text-amber-800 p-1">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-              </button>
-            </div>
-            {reviewLoading ? (
-              <div className="p-8 text-center text-amber-600 text-sm">Loading...</div>
-            ) : (
-              <div className="divide-y divide-amber-100">
-                {reviewList.map((c: any) => (
-                  <div key={c.id} className="p-4 flex items-start gap-3 hover:bg-amber-50">
-                    {c.thumbnail_url && (
-                      <img src={c.thumbnail_url} className="w-12 h-12 rounded-xl object-cover shrink-0" alt=""/>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold text-slate-900 text-sm leading-snug">{c.title}</p>
-                      <div className="flex items-center gap-2 mt-1 flex-wrap">
-                        {c.subject && <span className="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded">{c.subject}</span>}
-                        {c.language && <span className="text-xs text-slate-500">{c.language}</span>}
-                        {c.is_premium && <span className="text-xs text-amber-700 bg-amber-100 px-2 py-0.5 rounded font-medium">💎 Premium</span>}
-                        <span className="text-xs text-slate-400">{c.lesson_count || 0} lessons</span>
-                      </div>
-                      {c.description && (
-                        <p className="text-xs text-slate-500 mt-1 line-clamp-2">{c.description}</p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        onClick={() => { setRejectCourse(c); setRejectReason('') }}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-white border border-red-200 text-red-600 text-xs font-bold rounded-lg hover:bg-red-50">
-                        ✕ Reject
-                      </button>
-                      <button
-                        onClick={() => approveCourse(c.id)}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-xs font-bold rounded-lg hover:bg-green-700">
-                        ✓ Publish
-                      </button>
-                    </div>
-                  </div>
-                ))}
+              <div className="flex items-center gap-2">
+                <button onClick={e => { e.stopPropagation(); loadReviews() }} className="text-amber-600 hover:text-amber-800 p-1">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                </button>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+                  className={`text-amber-600 transition-transform duration-200 ${reviewOpen ? 'rotate-180' : ''}`}>
+                  <path d="M6 9l6 6 6-6"/>
+                </svg>
               </div>
+            </button>
+
+            {/* Collapsible content */}
+            {reviewOpen && (
+              reviewLoading ? (
+                <div className="p-8 text-center text-amber-600 text-sm border-t border-amber-200">Loading...</div>
+              ) : (
+                <div className="border-t border-amber-200 divide-y divide-amber-100 max-h-96 overflow-y-auto">
+                  {reviewList.map((c: any) => (
+                    <div key={c.id} className="p-3 flex items-center gap-3 hover:bg-amber-50 group">
+                      {c.thumbnail_url
+                        ? <img src={c.thumbnail_url} className="w-10 h-10 rounded-lg object-cover shrink-0" alt=""/>
+                        : <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center shrink-0 text-lg">📚</div>
+                      }
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-slate-900 text-sm leading-snug truncate">{c.title}</p>
+                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                          {c.subject && <span className="text-xs text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">{c.subject}</span>}
+                          {c.language && <span className="text-xs text-slate-400">{c.language}</span>}
+                          {c.is_premium && <span className="text-xs text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded font-medium">💎 Premium</span>}
+                          <span className="text-xs text-slate-400">{c.lesson_count || 0} lessons</span>
+                          {c.price > 0 && <span className="text-xs text-green-700">₹{c.price}</span>}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          onClick={() => setPreviewCourse(c)}
+                          className="px-2.5 py-1.5 bg-blue-50 border border-blue-200 text-blue-600 text-xs font-bold rounded-lg hover:bg-blue-100">
+                          👁 Preview
+                        </button>
+                        <button
+                          onClick={() => { setRejectCourse(c); setRejectReason('') }}
+                          className="px-2.5 py-1.5 bg-white border border-red-200 text-red-600 text-xs font-bold rounded-lg hover:bg-red-50">
+                          ✕ Reject
+                        </button>
+                        <button
+                          onClick={() => approveCourse(c.id)}
+                          className="px-2.5 py-1.5 bg-green-600 text-white text-xs font-bold rounded-lg hover:bg-green-700">
+                          ✓ Publish
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
             )}
           </div>
         )}
@@ -1084,6 +1111,112 @@ export default function ContentPage() {
           </div>
         </div>
       )}
+      {/* ── Course Preview Modal ──────────────────────────── */}
+      {previewCourse && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setPreviewCourse(null)}>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4 flex items-start justify-between shrink-0">
+              <div className="flex items-start gap-3">
+                {previewCourse.thumbnail_url && (
+                  <img src={previewCourse.thumbnail_url} className="w-14 h-14 rounded-xl object-cover shrink-0 border-2 border-white/20" alt=""/>
+                )}
+                <div>
+                  <p className="font-bold text-white text-base leading-snug">{previewCourse.title}</p>
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    {previewCourse.subject && <span className="text-xs text-white/70 bg-white/10 px-2 py-0.5 rounded">{previewCourse.subject}</span>}
+                    {previewCourse.language && <span className="text-xs text-white/60">{previewCourse.language}</span>}
+                    {previewCourse.is_premium && <span className="text-xs text-amber-300 bg-amber-400/20 px-2 py-0.5 rounded font-bold">💎 Premium</span>}
+                    <span className="text-xs text-amber-400 font-bold bg-amber-500/20 px-2 py-0.5 rounded">⏳ Under Review</span>
+                  </div>
+                </div>
+              </div>
+              <button onClick={() => setPreviewCourse(null)} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white shrink-0 ml-2">✕</button>
+            </div>
+
+            {/* Body */}
+            <div className="overflow-y-auto flex-1 p-6 space-y-5">
+              {/* Key stats */}
+              <div className="grid grid-cols-4 gap-3">
+                {[
+                  { label: 'Lessons',  value: previewCourse.lesson_count || 0,    emoji: '📖' },
+                  { label: 'Hours',    value: previewCourse.total_hours || 0,      emoji: '⏱' },
+                  { label: 'Price',    value: previewCourse.price > 0 ? `₹${previewCourse.price}` : 'Free', emoji: '💰' },
+                  { label: 'Chapters', value: previewCourse.chapter_count || '—',  emoji: '📑' },
+                ].map(s => (
+                  <div key={s.label} className="bg-slate-50 rounded-xl p-3 text-center">
+                    <p className="text-xl">{s.emoji}</p>
+                    <p className="font-bold text-slate-900 text-sm mt-1">{s.value}</p>
+                    <p className="text-xs text-slate-400">{s.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Description */}
+              {previewCourse.description && (
+                <div>
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Description</p>
+                  <p className="text-sm text-slate-700 leading-relaxed">{previewCourse.description}</p>
+                </div>
+              )}
+
+              {/* What you learn */}
+              {previewCourse.what_you_learn?.length > 0 && (
+                <div>
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">What you'll learn</p>
+                  <ul className="space-y-1.5">
+                    {previewCourse.what_you_learn.map((item: string, i: number) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-slate-700">
+                        <span className="text-green-500 mt-0.5 shrink-0">✓</span> {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Instructor */}
+              {previewCourse.instructor && (
+                <div className="bg-slate-50 rounded-xl p-4 flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold shrink-0">
+                    {previewCourse.instructor[0]?.toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-900 text-sm">{previewCourse.instructor}</p>
+                    {previewCourse.instructor_bio && <p className="text-xs text-slate-500 mt-0.5 line-clamp-3">{previewCourse.instructor_bio}</p>}
+                  </div>
+                </div>
+              )}
+
+              {/* Exam tags */}
+              {previewCourse.exam_tags?.length > 0 && (
+                <div>
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Exam Tags</p>
+                  <div className="flex flex-wrap gap-2">
+                    {previewCourse.exam_tags.map((tag: string) => (
+                      <span key={tag} className="text-xs bg-brand-50 text-brand-700 border border-brand-200 px-2.5 py-1 rounded-full font-medium">{tag}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer actions */}
+            <div className="px-6 py-4 border-t border-slate-100 flex gap-3 shrink-0 bg-slate-50">
+              <button
+                onClick={() => { setRejectCourse(previewCourse); setRejectReason(''); setPreviewCourse(null) }}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-white border border-red-200 text-red-600 text-sm font-bold rounded-xl hover:bg-red-50">
+                ✕ Reject
+              </button>
+              <button
+                onClick={() => { approveCourse(previewCourse.id); setPreviewCourse(null) }}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-green-600 text-white text-sm font-bold rounded-xl hover:bg-green-700">
+                ✓ Publish Course
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Course Rejection Modal ─────────────────────────── */}
       {rejectCourse && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
