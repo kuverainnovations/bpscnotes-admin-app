@@ -189,6 +189,41 @@ export default function ContentPage() {
   const [total, setTotal]         = useState(0)
   const LIMIT = 12
 
+  // ── Course review queue ──────────────────────────────────
+  const [reviewList, setReviewList]     = useState<any[]>([])
+  const [reviewLoading, setReviewLoading] = useState(false)
+  const [rejectCourse, setRejectCourse] = useState<any>(null)
+  const [rejectReason, setRejectReason] = useState('')
+
+  const loadReviews = useCallback(async () => {
+    setReviewLoading(true)
+    try {
+      const res = await api.courses.listReview()
+      setReviewList(res.data?.courses || [])
+    } catch (_) {}
+    finally { setReviewLoading(false) }
+  }, [])
+
+  useEffect(() => { loadReviews() }, [loadReviews])
+
+  const approveCourse = async (id: string) => {
+    try {
+      await api.courses.publish(id)
+      showToast('Course published ✅')
+      loadReviews(); load()
+    } catch (e: any) { showToast(e.message || 'Failed', 'error') }
+  }
+
+  const confirmRejectCourse = async () => {
+    if (!rejectCourse) return
+    try {
+      await api.courses.reject(rejectCourse.id, rejectReason)
+      showToast('Course sent back to draft')
+      setRejectCourse(null); setRejectReason('')
+      loadReviews(); load()
+    } catch (e: any) { showToast(e.message || 'Failed', 'error') }
+  }
+
   const load = useCallback(async () => {
     setLoading(true)
     try {
@@ -344,6 +379,61 @@ export default function ContentPage() {
       <Header title="Courses" subtitle="Create and manage your learning catalogue" />
 
       <div className="p-6 max-w-7xl mx-auto space-y-6">
+
+        {/* ── Course Review Queue ──────────────────────────── */}
+        {(reviewLoading || reviewList.length > 0) && (
+          <div className="card border-2 border-amber-200 bg-amber-50/50">
+            <div className="p-4 border-b border-amber-200 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">⏳</span>
+                <div>
+                  <p className="font-bold text-amber-900 text-sm">Course Review Queue</p>
+                  <p className="text-xs text-amber-700">{reviewList.length} course{reviewList.length !== 1 ? 's' : ''} waiting for approval</p>
+                </div>
+              </div>
+              <button onClick={loadReviews} className="text-amber-600 hover:text-amber-800 p-1">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+              </button>
+            </div>
+            {reviewLoading ? (
+              <div className="p-8 text-center text-amber-600 text-sm">Loading...</div>
+            ) : (
+              <div className="divide-y divide-amber-100">
+                {reviewList.map((c: any) => (
+                  <div key={c.id} className="p-4 flex items-start gap-3 hover:bg-amber-50">
+                    {c.thumbnail_url && (
+                      <img src={c.thumbnail_url} className="w-12 h-12 rounded-xl object-cover shrink-0" alt=""/>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-slate-900 text-sm leading-snug">{c.title}</p>
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        {c.subject && <span className="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded">{c.subject}</span>}
+                        {c.language && <span className="text-xs text-slate-500">{c.language}</span>}
+                        {c.is_premium && <span className="text-xs text-amber-700 bg-amber-100 px-2 py-0.5 rounded font-medium">💎 Premium</span>}
+                        <span className="text-xs text-slate-400">{c.lesson_count || 0} lessons</span>
+                      </div>
+                      {c.description && (
+                        <p className="text-xs text-slate-500 mt-1 line-clamp-2">{c.description}</p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={() => { setRejectCourse(c); setRejectReason('') }}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-white border border-red-200 text-red-600 text-xs font-bold rounded-lg hover:bg-red-50">
+                        ✕ Reject
+                      </button>
+                      <button
+                        onClick={() => approveCourse(c.id)}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-xs font-bold rounded-lg hover:bg-green-700">
+                        ✓ Publish
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ── Filters bar ───────────────────────────────────── */}
         <div className="card p-4 flex flex-wrap items-center gap-3">
@@ -994,6 +1084,32 @@ export default function ContentPage() {
           </div>
         </div>
       )}
+      {/* ── Course Rejection Modal ─────────────────────────── */}
+      {rejectCourse && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Reject Course</h3>
+                <p className="text-sm text-slate-500 mt-0.5 line-clamp-1">"{rejectCourse.title}"</p>
+              </div>
+              <button onClick={() => setRejectCourse(null)} className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200">✕</button>
+            </div>
+            <p className="text-sm text-slate-600 mb-3">Tell the creator what needs to be fixed:</p>
+            <textarea
+              value={rejectReason}
+              onChange={e => setRejectReason(e.target.value)}
+              placeholder="e.g. Missing lesson content, incorrect pricing, thumbnail needed..."
+              className="w-full border border-slate-200 rounded-xl p-3 text-sm resize-none h-24 focus:outline-none focus:ring-2 focus:ring-red-200"
+            />
+            <div className="flex gap-3 mt-4">
+              <button onClick={() => setRejectCourse(null)} className="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50">Cancel</button>
+              <button onClick={confirmRejectCourse} className="flex-1 py-2.5 bg-red-500 text-white rounded-xl text-sm font-bold hover:bg-red-600">Send Back to Draft</button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }

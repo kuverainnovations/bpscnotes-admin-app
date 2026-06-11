@@ -144,6 +144,9 @@ export const api = {
                       request(`/admin/courses/${courseId}/lessons/${lessonId}`, { method: 'DELETE' }),
     unlockFreeLessons: (courseId: string) => request(`/admin/courses/${courseId}/unlock-free-lessons`, { method: 'POST' }),
     bulkFixFreeLocks:  () => request('/admin/courses/bulk-fix-free-locks', { method: 'POST' }),
+    publish:   (id: string) => request(`/admin/courses/${id}`, { method: 'PUT', body: JSON.stringify({ status: 'published' }) }),
+    reject:    (id: string, reason: string) => request(`/admin/courses/${id}`, { method: 'PUT', body: JSON.stringify({ status: 'draft', rejection_reason: reason }) }),
+    listReview:() => request('/admin/courses?status=review&limit=50'),
     // Subjects
     subjects:       () => request('/admin/subjects'),
     affairCategories: () => request('/admin/affair-categories'),
@@ -164,8 +167,8 @@ export const api = {
     update:    (id: string, data: any) => request(`/admin/library/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete:    (id: string) => request(`/admin/library/${id}`, { method: 'DELETE' }),
     getPending:() => request('/admin/library/pending-reviews'),
-    review:    (id: string, action: string) =>
-                 request(`/admin/library/${id}/review`, { method: 'PUT', body: JSON.stringify({ action }) }),
+    review:    (id: string, action: string, reason?: string) =>
+                 request(`/admin/library/${id}/review`, { method: 'PUT', body: JSON.stringify({ action, reason }) }),
   },
 
   studyMaterials: {
