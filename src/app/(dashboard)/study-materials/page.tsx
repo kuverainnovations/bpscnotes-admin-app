@@ -330,6 +330,17 @@ export default function StudyMaterialsAdminPage() {
                           </p>
                         </div>
                       )}
+
+                      {/* Student's message to admin */}
+                      {(m.description) && m.status === 'pending' && (
+                        <div className="mt-2 flex items-start gap-1.5 bg-blue-50 border border-blue-200 rounded-lg px-2.5 py-2">
+                          <span className="text-[11px] shrink-0 mt-0.5">💬</span>
+                          <p className="text-xs text-blue-700">
+                            <span className="font-semibold text-blue-500">Student note: </span>
+                            {m.description}
+                          </p>
+                        </div>
+                      )}
                     </div>
 
                     {/* Actions */}
