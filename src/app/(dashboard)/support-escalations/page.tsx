@@ -131,8 +131,18 @@ export default function SupportEscalationsPage() {
                     </div>
                     <p className="text-sm text-slate-500 mt-1 line-clamp-2">{e.reason}</p>
                     <p className="text-xs text-slate-400 mt-1">
-                      Buyer: {e.buyer_name} ({e.buyer_mobile}) · Seller: {e.uploader_name} · {e.created_at ? new Date(e.created_at).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) : ''}
+                      Buyer: {e.buyer_name} ({e.buyer_mobile}) · Seller: {e.uploader_name}
                     </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-xs text-slate-400 whitespace-nowrap">
+                      {e.created_at ? new Date(e.created_at).toLocaleString('en-IN', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—'}
+                    </p>
+                    {e.resolved_at && (
+                      <p className="text-xs text-emerald-500 whitespace-nowrap mt-1">
+                        Resolved {new Date(e.resolved_at).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })}
+                      </p>
+                    )}
                   </div>
                 </div>
               )
@@ -202,6 +212,9 @@ export default function SupportEscalationsPage() {
                       <div className={`max-w-[75%] rounded-xl px-3 py-2 ${m.sender_role === 'buyer' ? 'bg-slate-100' : 'bg-brand-50'}`}>
                         <p className="text-[10px] font-semibold text-slate-400 mb-0.5">{m.sender_role === 'buyer' ? 'Buyer' : 'Seller'}</p>
                         <p className="text-sm text-slate-700">{m.message}</p>
+                        <p className="text-[10px] text-slate-400 mt-1 text-right">
+                          {m.created_at ? new Date(m.created_at).toLocaleString('en-IN', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }) : ''}
+                        </p>
                       </div>
                     </div>
                   ))}

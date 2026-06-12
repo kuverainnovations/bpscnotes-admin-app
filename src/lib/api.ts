@@ -214,6 +214,10 @@ export const api = {
     getWalletTransactions: (userId: string, params: any = {}) =>
       request(`/admin/study-materials/wallets/${userId}/transactions?${qs(params)}`),
 
+    // ── Per-material platform revenue (Phase 3 follow-up) ──
+    getMaterialRevenue: (params: any = {}) =>
+      request(`/admin/study-materials/revenue?${qs(params)}`),
+
   
     toggleFeatured: (id: string) =>
       request(`/admin/study-materials/${id}/toggle-featured`, { method: 'POST' }),

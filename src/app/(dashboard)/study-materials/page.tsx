@@ -135,7 +135,7 @@ function PreviewModal({ url, title, type, onClose }: { url:string; title:string;
 
 export default function StudyMaterialsAdminPage() {
   const { showToast, ToastComponent } = useToast()
-  const [view, setView]           = useState<'materials' | 'wallets'>('materials')
+  const [view, setView]           = useState<'materials' | 'wallets' | 'revenue'>('materials')
   const [status,    setStatus]    = useState('pending')
   const [search,    setSearch]    = useState('')
   const [materials, setMaterials] = useState<any[]>([])
@@ -152,6 +152,13 @@ export default function StudyMaterialsAdminPage() {
   const [walletSearch, setWalletSearch] = useState('')
   const [walletDetail, setWalletDetail] = useState<any>(null)  // selected seller's transaction view
   const [walletDetailLoading, setWalletDetailLoading] = useState(false)
+  // Per-material platform revenue
+  const [revenueRows, setRevenueRows]   = useState<any[]>([])
+  const [revenueTotals, setRevenueTotals] = useState<any>(null)
+  const [revenueLoading, setRevenueLoading] = useState(false)
+  const [revenuePage, setRevenuePage]   = useState(1)
+  const [revenueTotal, setRevenueTotal] = useState(0)
+  const [revenueSearch, setRevenueSearch] = useState('')
   const [previewItem, setPreviewItem] = useState<any>(null)
   const [rejectTarget, setRejectTarget] = useState<any>(null)
   const [rejectReason, setRejectReason] = useState('')
@@ -195,6 +202,21 @@ export default function StudyMaterialsAdminPage() {
 
   useEffect(() => { setWalletPage(1) }, [walletSearch])
   useEffect(() => { if (view === 'wallets') loadWallets() }, [loadWallets, view])
+
+  // ── Per-material platform revenue ───────────────────────────
+  const loadRevenue = useCallback(async () => {
+    setRevenueLoading(true)
+    try {
+      const res = await api.studyMaterials.getMaterialRevenue({ page: revenuePage, limit: LIMIT, search: revenueSearch || undefined })
+      setRevenueRows(res.data?.materials ?? [])
+      setRevenueTotals(res.data?.totals ?? null)
+      setRevenueTotal(res.meta?.total ?? res.data?.meta?.total ?? 0)
+    } catch (e: any) { showToast(e.message || 'Failed to load revenue', 'error') }
+    finally { setRevenueLoading(false) }
+  }, [revenuePage, revenueSearch])
+
+  useEffect(() => { setRevenuePage(1) }, [revenueSearch])
+  useEffect(() => { if (view === 'revenue') loadRevenue() }, [loadRevenue, view])
 
   const openWalletDetail = async (userId: string) => {
     setWalletDetailLoading(true)
@@ -277,6 +299,10 @@ export default function StudyMaterialsAdminPage() {
   const walletFrom = walletTotal === 0 ? 0 : (walletPage - 1) * LIMIT + 1
   const walletTo   = Math.min(walletPage * LIMIT, walletTotal)
 
+  const revenueTotalPages = Math.ceil(revenueTotal / LIMIT)
+  const revenueFrom = revenueTotal === 0 ? 0 : (revenuePage - 1) * LIMIT + 1
+  const revenueTo   = Math.min(revenuePage * LIMIT, revenueTotal)
+
   return (
     <div className="min-h-screen">
       {ToastComponent}
@@ -306,7 +332,7 @@ export default function StudyMaterialsAdminPage() {
           </div>
         )}
 
-        {/* View toggle: Materials vs Seller Wallets */}
+        {/* View toggle: Materials vs Seller Wallets vs Revenue */}
         <div className="flex items-center gap-2">
           <button onClick={() => setView('materials')}
             className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all
@@ -318,7 +344,13 @@ export default function StudyMaterialsAdminPage() {
               ${view === 'wallets' ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-slate-600 bg-white border-slate-200 hover:bg-slate-50'}`}>
             💰 Seller Wallets
           </button>
+          <button onClick={() => setView('revenue')}
+            className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all
+              ${view === 'revenue' ? 'text-amber-700 bg-amber-50 border-amber-200' : 'text-slate-600 bg-white border-slate-200 hover:bg-slate-50'}`}>
+            📊 Platform Revenue
+          </button>
         </div>
+
 
         {/* Search + Tabs */}
         {view === 'materials' && (
@@ -687,6 +719,106 @@ export default function StudyMaterialsAdminPage() {
             )}
           </>
         )}
+
+        {/* ── Per-material Platform Revenue view ──────────────── */}
+        {view === 'revenue' && (
+          <>
+            {revenueTotals && (
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                <div className="card p-4">
+                  <p className="text-xs text-slate-500 font-medium">Total Collected</p>
+                  <p className="text-xl font-black text-slate-700">₹{(revenueTotals.total_collected ?? 0).toLocaleString()}</p>
+                </div>
+                <div className="card p-4">
+                  <p className="text-xs text-slate-500 font-medium">Paid to Sellers</p>
+                  <p className="text-xl font-black text-emerald-600">₹{(revenueTotals.total_seller_payout ?? 0).toLocaleString()}</p>
+                </div>
+                <div className="card p-4">
+                  <p className="text-xs text-slate-500 font-medium">Platform Revenue</p>
+                  <p className="text-xl font-black text-amber-600">₹{(revenueTotals.total_platform_revenue ?? 0).toLocaleString()}</p>
+                </div>
+                <div className="card p-4">
+                  <p className="text-xs text-slate-500 font-medium">Total Sales</p>
+                  <p className="text-xl font-black text-slate-700">{(revenueTotals.total_sales ?? 0).toLocaleString()}</p>
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center gap-3">
+              <input value={revenueSearch} onChange={e => setRevenueSearch(e.target.value)}
+                placeholder="Search material title or seller..."
+                className="input pl-4 text-sm w-64" />
+              <button onClick={loadRevenue} className="ml-auto btn-secondary px-3 py-2"><RefreshCw size={13} /></button>
+            </div>
+
+            {revenueLoading ? (
+              <div className="space-y-3">
+                {[1,2,3].map(i => (
+                  <div key={i} className="card p-5 animate-pulse h-14" />
+                ))}
+              </div>
+            ) : revenueRows.length === 0 ? (
+              <div className="card p-10 text-center text-slate-400">
+                No paid sales yet.
+              </div>
+            ) : (
+              <div className="card overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 border-b border-slate-200">
+                    <tr className="text-left text-xs font-semibold text-slate-500 uppercase">
+                      <th className="px-4 py-3">Material</th>
+                      <th className="px-4 py-3">Seller</th>
+                      <th className="px-4 py-3 text-center">Sales</th>
+                      <th className="px-4 py-3 text-right">Collected</th>
+                      <th className="px-4 py-3 text-right">Seller Payout</th>
+                      <th className="px-4 py-3 text-right">Platform Revenue</th>
+                      <th className="px-4 py-3">Last Sale</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {revenueRows.map((r: any) => (
+                      <tr key={r.material_id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-4 py-3 font-semibold text-slate-700 max-w-[220px] truncate">{r.title}</td>
+                        <td className="px-4 py-3 text-slate-500">{r.uploader_name || '—'}</td>
+                        <td className="px-4 py-3 text-center text-slate-500">{r.sale_count}</td>
+                        <td className="px-4 py-3 text-right text-slate-700">₹{(r.total_collected ?? 0).toLocaleString()}</td>
+                        <td className="px-4 py-3 text-right text-emerald-600">₹{(r.seller_payout ?? 0).toLocaleString()}</td>
+                        <td className="px-4 py-3 text-right font-bold text-amber-600">₹{(r.platform_revenue ?? 0).toLocaleString()}</td>
+                        <td className="px-4 py-3 text-slate-400 whitespace-nowrap">
+                          {r.last_sale_at ? new Date(r.last_sale_at).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {revenueTotal > 0 && (
+              <div className="card px-5 py-4 flex items-center justify-between flex-wrap gap-3">
+                <p className="text-sm text-slate-500">
+                  Showing <span className="font-semibold text-slate-700">{revenueFrom}</span>–<span className="font-semibold text-slate-700">{revenueTo}</span> of <span className="font-semibold text-slate-700">{revenueTotal}</span>
+                </p>
+                <div className="flex items-center gap-1.5">
+                  <button disabled={revenuePage===1} onClick={()=>setRevenuePage(1)} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"><ChevronsLeft size={14}/></button>
+                  <button disabled={revenuePage===1} onClick={()=>setRevenuePage(p=>p-1)} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"><ChevronLeft size={14}/></button>
+                  {Array.from({length: Math.min(revenueTotalPages, 7)}, (_, i) => {
+                    const p = revenueTotalPages <= 7 ? i+1 : revenuePage<=4 ? i+1 : revenuePage>=revenueTotalPages-3 ? revenueTotalPages-6+i : revenuePage-3+i
+                    return (
+                      <button key={p} onClick={()=>setRevenuePage(p)}
+                        className={`w-8 h-8 rounded-lg text-sm font-semibold transition-all
+                          ${p===revenuePage ? 'bg-brand-500 text-white' : 'text-slate-500 hover:bg-slate-100'}`}>
+                        {p}
+                      </button>
+                    )
+                  })}
+                  <button disabled={revenuePage>=revenueTotalPages} onClick={()=>setRevenuePage(p=>p+1)} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"><ChevronRight size={14}/></button>
+                  <button disabled={revenuePage>=revenueTotalPages} onClick={()=>setRevenuePage(revenueTotalPages)} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"><ChevronsRight size={14}/></button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* Reject dialog */}
@@ -826,38 +958,49 @@ export default function StudyMaterialsAdminPage() {
                   </div>
                 </div>
 
-                <div className="space-y-2">
+                <div>
                   {(walletDetail.transactions ?? []).length === 0 ? (
                     <p className="text-sm text-slate-400 text-center py-6">No transactions yet.</p>
                   ) : (
-                    walletDetail.transactions.map((t: any) => {
-                      const isCredit = t.type === 'sale_credit'
-                      const statusColor = t.status === 'disbursed' ? 'text-emerald-600 bg-emerald-50 border-emerald-200'
-                        : t.status === 'pending' ? 'text-amber-600 bg-amber-50 border-amber-200'
-                        : 'text-red-600 bg-red-50 border-red-200'
-                      return (
-                        <div key={t.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 px-3 py-2.5">
-                          <div className="min-w-0">
-                            <p className="text-sm font-semibold text-slate-700 truncate">
-                              {t.material_title || t.description || (isCredit ? 'Sale credit' : t.type)}
-                            </p>
-                            <p className="text-xs text-slate-400">
-                              {t.created_at ? new Date(t.created_at).toLocaleString('en-IN', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : ''}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${statusColor}`}>{t.status}</span>
-                            <span className={`text-sm font-bold ${isCredit ? 'text-emerald-600' : 'text-red-600'}`}>
-                              {isCredit ? '+' : '−'}₹{t.amount}
-                            </span>
-                          </div>
-                        </div>
-                      )
-                    })
+                    <table className="w-full text-sm">
+                      <thead className="border-b border-slate-200">
+                        <tr className="text-left text-xs font-semibold text-slate-500 uppercase">
+                          <th className="py-2">Material</th>
+                          <th className="py-2">Date</th>
+                          <th className="py-2">Status</th>
+                          <th className="py-2 text-right">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {walletDetail.transactions.map((t: any) => {
+                          const isCredit = t.type === 'sale_credit'
+                          const statusColor = t.status === 'disbursed' ? 'text-emerald-600 bg-emerald-50 border-emerald-200'
+                            : t.status === 'pending' ? 'text-amber-600 bg-amber-50 border-amber-200'
+                            : 'text-red-600 bg-red-50 border-red-200'
+                          return (
+                            <tr key={t.id}>
+                              <td className="py-2 font-semibold text-slate-700 max-w-[180px] truncate">
+                                {t.material_title || t.description || (isCredit ? 'Sale credit' : t.type)}
+                              </td>
+                              <td className="py-2 text-slate-400 whitespace-nowrap">
+                                {t.created_at ? new Date(t.created_at).toLocaleString('en-IN', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—'}
+                              </td>
+                              <td className="py-2">
+                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${statusColor}`}>{t.status}</span>
+                              </td>
+                              <td className={`py-2 text-right font-bold ${isCredit ? 'text-emerald-600' : 'text-red-600'}`}>
+                                {isCredit ? '+' : '−'}₹{t.amount}
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
                   )}
                 </div>
               </>
             )}
+
           </div>
         </div>
       )}
