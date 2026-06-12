@@ -544,13 +544,8 @@ export default function ContentPage() {
                     </div>
                   </div>
 
-                  {/* Instructor + subject */}
+                  {/* Subject */}
                   <div className="flex items-center gap-2 flex-wrap">
-                    {c.instructor && (
-                      <span className="flex items-center gap-1 text-xs text-slate-500">
-                        <Users size={11} className="text-slate-400" /> {c.instructor}
-                      </span>
-                    )}
                     {c.subject && (
                       <span className="flex items-center gap-1 text-xs text-slate-500">
                         <Tag size={11} className="text-slate-400" /> {c.subject}
@@ -966,35 +961,10 @@ export default function ContentPage() {
                 </div>
               </section>
 
-              {/* Section 2: Instructor */}
+              {/* Section 2: Pricing */}
               <section>
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="w-6 h-6 rounded-lg bg-purple-100 flex items-center justify-center text-purple-600 text-xs font-black">2</div>
-                  <h3 className="font-bold text-slate-800">Instructor</h3>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1.5">Instructor Name</label>
-                    <input value={form.instructor} onChange={e => setForm({...form, instructor: e.target.value})}
-                      className="input w-full" placeholder="Dr. Meera Yadav" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1.5">Students (display)</label>
-                    <input value={form.instructorStudents} onChange={e => setForm({...form, instructorStudents: e.target.value})}
-                      className="input w-full" placeholder="e.g. 18K+" />
-                  </div>
-                  <div className="col-span-2">
-                    <label className="block text-xs font-bold text-slate-500 mb-1.5">Instructor Bio</label>
-                    <textarea value={form.instructorBio} onChange={e => setForm({...form, instructorBio: e.target.value})}
-                      rows={2} className="input w-full resize-none" placeholder="Brief instructor background and credentials" />
-                  </div>
-                </div>
-              </section>
-
-              {/* Section 3: Pricing */}
-              <section>
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-6 h-6 rounded-lg bg-green-100 flex items-center justify-center text-green-700 text-xs font-black">3</div>
+                  <div className="w-6 h-6 rounded-lg bg-green-100 flex items-center justify-center text-green-700 text-xs font-black">2</div>
                   <h3 className="font-bold text-slate-800">Pricing & Duration</h3>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -1043,10 +1013,10 @@ export default function ContentPage() {
                 </div>
               </section>
 
-              {/* Section 4: Options */}
+              {/* Section 3: Options */}
               <section>
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="w-6 h-6 rounded-lg bg-amber-100 flex items-center justify-center text-amber-700 text-xs font-black">4</div>
+                  <div className="w-6 h-6 rounded-lg bg-amber-100 flex items-center justify-center text-amber-700 text-xs font-black">3</div>
                   <h3 className="font-bold text-slate-800">Options</h3>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -1071,10 +1041,10 @@ export default function ContentPage() {
                 </div>
               </section>
 
-              {/* Section 5: What You'll Learn */}
+              {/* Section 4: What You'll Learn */}
               <section>
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="w-6 h-6 rounded-lg bg-teal-100 flex items-center justify-center text-teal-700 text-xs font-black">5</div>
+                  <div className="w-6 h-6 rounded-lg bg-teal-100 flex items-center justify-center text-teal-700 text-xs font-black">4</div>
                   <h3 className="font-bold text-slate-800">What Students Will Learn</h3>
                 </div>
                 <div className="space-y-2 mb-3 max-h-36 overflow-y-auto">
@@ -1176,19 +1146,6 @@ export default function ContentPage() {
                       </li>
                     ))}
                   </ul>
-                </div>
-              )}
-
-              {/* Instructor */}
-              {previewCourse.instructor && (
-                <div className="bg-slate-50 rounded-xl p-4 flex items-start gap-3">
-                  <div className="w-9 h-9 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold shrink-0">
-                    {previewCourse.instructor[0]?.toUpperCase()}
-                  </div>
-                  <div>
-                    <p className="font-bold text-slate-900 text-sm">{previewCourse.instructor}</p>
-                    {previewCourse.instructor_bio && <p className="text-xs text-slate-500 mt-0.5 line-clamp-3">{previewCourse.instructor_bio}</p>}
-                  </div>
                 </div>
               )}
 
