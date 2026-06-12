@@ -43,6 +43,15 @@ const request = async (url: string, options: any = {}) => {
 
   const data = await res.json()
 
+  if (res.status === 401) {
+    // Session expired or invalid token — clear and force back to login
+    clearToken()
+    if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+      window.location.href = '/'
+    }
+    throw new Error(data.message || 'Session expired — please sign in again')
+  }
+
   if (!res.ok) {
     throw new Error(data.message || 'Request failed')
   }
@@ -59,6 +68,13 @@ const uploadRequest = async (path: string, formData: FormData): Promise<any> => 
     body: formData,
   })
   const data = await res.json().catch(() => ({ success: false, message: 'Upload failed' }))
+  if (res.status === 401) {
+    clearToken()
+    if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+      window.location.href = '/'
+    }
+    throw new Error(data.message || 'Session expired — please sign in again')
+  }
   if (!res.ok) throw new Error(data.message || 'Upload failed')
   return data
 }

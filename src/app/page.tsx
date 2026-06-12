@@ -1,15 +1,24 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
 import { Eye, EyeOff, BookOpen, Loader2 } from 'lucide-react'
 
 export default function LoginPage() {
-  const { login } = useAuth()
+  const { login, admin, isLoading } = useAuth()
+  const router = useRouter()
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState('')
+
+  // If already authenticated, skip the login form
+  useEffect(() => {
+    if (!isLoading && admin) {
+      router.replace('/dashboard')
+    }
+  }, [isLoading, admin, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -20,6 +29,14 @@ export default function LoginPage() {
     } catch (err: any) {
       setError(err?.message || 'Invalid credentials. Please try again123.')
     } finally { setLoading(false) }
+  }
+
+  if (isLoading || admin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <Loader2 size={28} className="animate-spin text-brand-500" />
+      </div>
+    )
   }
 
   return (

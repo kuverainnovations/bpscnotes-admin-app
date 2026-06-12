@@ -30,7 +30,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const stored = localStorage.getItem('adminUser')
     const token  = getToken()
     if (stored && token) {
-      try { setAdmin(JSON.parse(stored)) } catch {}
+      try {
+        setAdmin(JSON.parse(stored))
+      } catch {
+        // Corrupted stored user — clear everything, force re-login
+        clearToken()
+        setAdmin(null)
+      }
+    } else {
+      // Missing token or user — ensure fully logged out state
+      clearToken()
+      setAdmin(null)
     }
     setLoading(false)
   }, [])

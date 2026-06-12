@@ -1,10 +1,31 @@
 'use client'
 import Sidebar from '@/components/layout/Sidebar'
-import { useState } from 'react'
-import { Menu, X } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { Menu, X, Loader2 } from 'lucide-react'
+import { useAuth } from '@/lib/auth-context'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { admin, isLoading } = useAuth()
+  const router = useRouter()
+
+  // Auth guard: if not authenticated (after restore attempt), redirect to login
+  useEffect(() => {
+    if (!isLoading && !admin) {
+      router.replace('/')
+    }
+  }, [isLoading, admin, router])
+
+  // While checking auth, or if not authenticated, don't render the dashboard shell.
+  // This prevents a flash of dashboard content before the redirect happens.
+  if (isLoading || !admin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <Loader2 size={28} className="animate-spin text-brand-500" />
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">
