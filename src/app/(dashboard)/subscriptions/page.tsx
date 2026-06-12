@@ -59,6 +59,17 @@ export default function SubscriptionsPage() {
     }
   }
 
+  const cancelSubscription = async (subId: string) => {
+    if (!confirm('Cancel this subscription? The student will lose premium access at the end of the current period.')) return
+    try {
+      await api.subscriptions.cancel(subId)
+      showToast('Subscription cancelled', 'success')
+      refetch()
+    } catch (e: any) {
+      showToast(e.message || 'Cancel failed', 'error')
+    }
+  }
+
   const { data, meta: pageMeta, loading, error, refetch } = useApiData<any>(
     () => api.subscriptions.list({ search: debouncedSearch, plan: planFilter, status: statusFilter, page, limit: 20 }),
     [debouncedSearch, planFilter, statusFilter, page]
@@ -244,7 +255,7 @@ export default function SubscriptionsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50/50">
-                  {['User', 'Plan', 'Amount', 'Period', 'Payment', 'Coins Used', 'Status'].map(h => (
+                  {['User', 'Plan', 'Amount', 'Period', 'Payment', 'Coins Used', 'Status', 'Actions'].map(h => (
                     <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
@@ -286,10 +297,24 @@ export default function SubscriptionsPage() {
                       }
                     </td>
                     <td className="px-4 py-3"><span className={`badge ${getStatusColor(sub.status)}`}>{sub.status}</span></td>
+                    <td className="px-4 py-3">
+                      {sub.status === 'active' && (
+                        <div className="flex gap-1.5">
+                          <button onClick={() => cancelSubscription(sub.id)}
+                            className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-semibold transition-colors">
+                            Cancel
+                          </button>
+                          <button onClick={() => refundPayment(sub.id)}
+                            className="px-2.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 text-[11px] font-semibold transition-colors">
+                            Refund
+                          </button>
+                        </div>
+                      )}
+                    </td>
                   </tr>
                 ))}
                 {subs.length === 0 && (
-                  <tr><td colSpan={7} className="p-12 text-center text-slate-400">No subscriptions found</td></tr>
+                  <tr><td colSpan={8} className="p-12 text-center text-slate-400">No subscriptions found</td></tr>
                 )}
               </tbody>
             </table>

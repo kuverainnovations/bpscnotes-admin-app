@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Header from '@/components/layout/Header'
 import api from '@/lib/api'
 import { useApiData, useMutation } from '@/lib/hooks'
@@ -51,6 +51,26 @@ export default function CoinsPage() {
   const { data: rulesData, loading: rulesLoading, error: rulesError, refetch: refetchRules } = useApiData<any>(() => api.coins.getRules(), [])
   const { data: earnersData, loading: earnersLoading, refetch: refetchEarners } = useApiData<any>(() => api.coins.getTopEarners(), [])
   const { data: statsData } = useApiData<any>(() => api.dashboard.getStats(), [])
+  const { data: adConfigData, refetch: refetchAdConfig } = useApiData<any>(() => api.coins.getAdConfig(), [])
+
+  const [adForm, setAdForm] = useState({ coinsPerAd: 10, minAdsPerSession: 2 })
+  const [adSaving, setAdSaving] = useState(false)
+  useEffect(() => {
+    if (adConfigData?.coinsPerAd !== undefined) {
+      setAdForm({ coinsPerAd: adConfigData.coinsPerAd, minAdsPerSession: adConfigData.minAdsPerSession ?? 2 })
+    }
+  }, [adConfigData])
+
+  const saveAdConfig = async () => {
+    setAdSaving(true)
+    try {
+      await api.coins.updateAdConfig(adForm)
+      showToast('Ad reward settings saved ✅')
+      refetchAdConfig()
+    } catch (e: any) { showToast(e.message || 'Failed', 'error') }
+    finally { setAdSaving(false) }
+  }
+
 
   const rules: any[]   = rulesData?.rules || []
   const earners: any[] = earnersData?.earners || []
@@ -127,6 +147,30 @@ export default function CoinsPage() {
             </div>
           </div>
           <a href="/settings" className="btn-secondary text-xs flex items-center gap-1.5"><Settings size={13}/> Open Settings</a>
+        </div>
+
+        {/* Rewarded Ad Settings */}
+        <div className="card p-4 bg-purple-50/50 border border-purple-100 flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-purple-100 flex items-center justify-center text-xl">📺</div>
+            <div>
+              <p className="font-bold text-slate-900 text-sm">Rewarded Ad Settings</p>
+              <p className="text-xs text-slate-500">Coins earned per ad watch, and ads required per session</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="text-center">
+              <p className="text-[10px] text-slate-400 mb-1">Coins per Ad</p>
+              <NumInput value={adForm.coinsPerAd} onChange={(v:number)=>setAdForm(p=>({...p,coinsPerAd:v}))} placeholder="10" className="w-16 text-center text-sm font-bold" min={1}/>
+            </div>
+            <div className="text-center">
+              <p className="text-[10px] text-slate-400 mb-1">Min Ads/Session</p>
+              <NumInput value={adForm.minAdsPerSession} onChange={(v:number)=>setAdForm(p=>({...p,minAdsPerSession:v}))} placeholder="2" className="w-16 text-center text-sm font-bold" min={0}/>
+            </div>
+            <button onClick={saveAdConfig} disabled={adSaving} className="btn-primary text-sm disabled:opacity-40">
+              {adSaving ? <Loader2 size={13} className="animate-spin"/> : <Save size={13}/>} Save
+            </button>
+          </div>
         </div>
 
         {/* Missing actions banner */}

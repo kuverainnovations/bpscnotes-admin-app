@@ -14,7 +14,7 @@ const EMPTY = {
   title:'', subtitle:'', imageUrl:'', ctaLabel:'',
   ctaRoute:'', bgColor:'#1565C0', isActive:true, sortOrder:0,
 }
-const ROUTES = ['/quizzes','/current-affairs','/study-materials','/wallet','/subscription','/rooms_hub','/jobs']
+const ROUTES = ['/quizzes','/current-affairs','/study-materials','/wallet','/subscription','/rooms_hub','/jobs','/leaderboard','/flashcards','/achievements','/challenges','/courses']
 
 export default function BannersPage() {
   return (
@@ -220,4 +220,3 @@ function BannersPageContent() {
     </div>
   )
 }
-
