@@ -79,6 +79,41 @@ const uploadRequest = async (path: string, formData: FormData): Promise<any> => 
   return data
 }
 
+// ── File upload with progress (XHR — fetch doesn't expose upload progress) ──
+const uploadRequestWithProgress = (path: string, formData: FormData, onProgress?: (pct: number) => void): Promise<any> => {
+  return new Promise((resolve, reject) => {
+    const token = getToken()
+    const xhr = new XMLHttpRequest()
+    xhr.open('POST', `${BASE_URL}${path}`)
+    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`)
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && onProgress) {
+        onProgress(Math.round((e.loaded / e.total) * 100))
+      }
+    }
+
+    xhr.onload = () => {
+      let data: any = {}
+      try { data = JSON.parse(xhr.responseText) } catch { data = { success: false, message: 'Upload failed' } }
+      if (xhr.status === 401) {
+        clearToken()
+        if (typeof window !== 'undefined' && window.location.pathname !== '/') window.location.href = '/'
+        reject(new Error(data.message || 'Session expired — please sign in again'))
+        return
+      }
+      if (xhr.status < 200 || xhr.status >= 300) {
+        reject(new Error(data.message || 'Upload failed'))
+        return
+      }
+      resolve(data)
+    }
+
+    xhr.onerror = () => reject(new Error('Upload failed — network error'))
+    xhr.send(formData)
+  })
+}
+
 const qs = (params: Record<string, any> = {}) =>
   Object.entries(params)
     .filter(([, v]) => v !== undefined && v !== '' && v !== null)
@@ -141,6 +176,12 @@ export const api = {
       const fd = new FormData()
       fd.append('thumbnail', file)
       return uploadRequest(`/admin/courses/${id}/thumbnail`, fd)
+    },
+    // Upload a PDF/video file for a lesson — returns { fileUrl, fileSizeBytes }
+    uploadLessonFile: (courseId: string, file: File, onProgress?: (pct: number) => void) => {
+      const fd = new FormData()
+      fd.append('file', file)
+      return uploadRequestWithProgress(`/admin/courses/${courseId}/lessons/upload-file`, fd, onProgress)
     },
     // Chapter CRUD
     getChapters:    (courseId: string) =>
