@@ -11,9 +11,10 @@ import {
 } from 'lucide-react'
 
 const STATUS_TABS = [
-  { key:'pending',  label:'Pending Review', color:'text-amber-600 bg-amber-50 border-amber-200' },
-  { key:'approved', label:'Approved',       color:'text-green-600 bg-green-50 border-green-200' },
-  { key:'rejected', label:'Rejected',       color:'text-red-600 bg-red-50 border-red-200' },
+  { key:'pending',     label:'Pending Review', color:'text-amber-600 bg-amber-50 border-amber-200' },
+  { key:'negotiating', label:'Negotiating',    color:'text-indigo-600 bg-indigo-50 border-indigo-200' },
+  { key:'approved',    label:'Approved',       color:'text-green-600 bg-green-50 border-green-200' },
+  { key:'rejected',    label:'Rejected',       color:'text-red-600 bg-red-50 border-red-200' },
 ]
 
 const TYPE_META: Record<string,{ emoji:string; label:string; color:string; bg:string }> = {
@@ -144,6 +145,12 @@ export default function StudyMaterialsAdminPage() {
   const [previewItem, setPreviewItem] = useState<any>(null)
   const [rejectTarget, setRejectTarget] = useState<any>(null)
   const [rejectReason, setRejectReason] = useState('')
+  const [counterTarget, setCounterTarget] = useState<any>(null)
+  const [counterPrice, setCounterPrice]   = useState('')
+  const [counterMessage, setCounterMessage] = useState('')
+  const [finalTarget, setFinalTarget]     = useState<any>(null)
+  const [finalPrice, setFinalPrice]       = useState('')
+  const [finalReason, setFinalReason]     = useState('')
   const [processing, setProcessing]    = useState<string|null>(null)
 
   const loadStats = useCallback(async () => {
@@ -178,6 +185,33 @@ export default function StudyMaterialsAdminPage() {
       await api.studyMaterials.reject(rejectTarget.id, rejectReason)
       showToast('Material rejected')
       setRejectTarget(null); setRejectReason(''); load(); loadStats()
+    } catch (e: any) { showToast(e.message, 'error') }
+    finally { setProcessing(null) }
+  }
+
+  // ── Negotiation: send a counter-offer instead of outright reject ──
+  const sendCounterOffer = async () => {
+    if (!counterTarget) return
+    const price = parseInt(counterPrice, 10)
+    if (isNaN(price) || price < 0) { showToast('Enter a valid price', 'error'); return }
+    setProcessing(counterTarget.id)
+    try {
+      const res = await api.studyMaterials.counterOffer(counterTarget.id, price, counterMessage || undefined)
+      showToast(res.message || 'Counter-offer sent 💬')
+      setCounterTarget(null); setCounterPrice(''); setCounterMessage(''); load(); loadStats()
+    } catch (e: any) { showToast(e.message, 'error') }
+    finally { setProcessing(null) }
+  }
+
+  // ── Negotiation: final call after round 3 — approve or reject ──
+  const submitFinalDecision = async (action: 'approve' | 'reject') => {
+    if (!finalTarget) return
+    setProcessing(finalTarget.id)
+    try {
+      const price = action === 'approve' && finalPrice.trim() ? parseInt(finalPrice, 10) : undefined
+      const res = await api.studyMaterials.finalDecision(finalTarget.id, action, price, finalReason || undefined)
+      showToast(res.message || (action === 'approve' ? 'Approved ✅' : 'Rejected'))
+      setFinalTarget(null); setFinalPrice(''); setFinalReason(''); load(); loadStats()
     } catch (e: any) { showToast(e.message, 'error') }
     finally { setProcessing(null) }
   }
@@ -349,6 +383,29 @@ export default function StudyMaterialsAdminPage() {
                           </p>
                         </div>
                       )}
+
+                      {/* Negotiation status banner */}
+                      {m.status === 'negotiating' && (
+                        <div className="mt-2 flex items-start gap-1.5 bg-indigo-50 border border-indigo-200 rounded-lg px-2.5 py-2">
+                          <span className="text-[11px] shrink-0 mt-0.5">💬</span>
+                          <div className="text-xs text-indigo-700">
+                            <span className="font-semibold">
+                              Negotiation round {m.negotiation_round}/3 —{' '}
+                            </span>
+                            {m.proposed_by === 'admin' ? (
+                              <>Awaiting uploader's response to <b>₹{m.current_offer_price}</b> (your offer)</>
+                            ) : (
+                              <>Uploader countered with <b>₹{m.current_offer_price}</b> (original: ₹{m.price})</>
+                            )}
+                            {m.negotiation_round >= 3 && m.proposed_by === 'user' && m.negotiation_status === 'awaiting_admin' && (
+                              <span className="block mt-1 font-semibold text-indigo-900">
+                                ⚠️ Final round reached — make a final decision below
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
                     </div>
 
                     {/* Actions */}
@@ -377,10 +434,49 @@ export default function StudyMaterialsAdminPage() {
                             <CheckCircle size={13}/>
                             {processing === m.id ? '…' : 'Approve'}
                           </button>
+                          {m.price > 0 && (
+                            <button onClick={() => { setCounterTarget(m); setCounterPrice(String(m.price)); setCounterMessage('') }}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-semibold transition-colors">
+                              💬 Counter Offer
+                            </button>
+                          )}
                           <button onClick={() => setRejectTarget(m)}
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-semibold transition-colors">
                             <XCircle size={13}/> Reject
                           </button>
+                        </>
+                      )}
+
+                      {m.status === 'negotiating' && (
+                        <>
+                          {m.negotiation_round >= 3 && m.negotiation_status === 'awaiting_admin' ? (
+                            // Final round exhausted — admin must approve or reject permanently
+                            <button onClick={() => { setFinalTarget(m); setFinalPrice(String(m.current_offer_price ?? m.price)); setFinalReason('') }}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-colors">
+                              ⚖️ Final Decision
+                            </button>
+                          ) : m.negotiation_status === 'awaiting_admin' ? (
+                            // Uploader countered, admin can counter again (rounds < 3) or accept their price
+                            <>
+                              <button onClick={async () => {
+                                  setProcessing(m.id)
+                                  try {
+                                    const res = await api.studyMaterials.finalDecision(m.id, 'approve', m.current_offer_price)
+                                    showToast(res.message || 'Approved ✅'); load(); loadStats()
+                                  } catch (e: any) { showToast(e.message, 'error') }
+                                  finally { setProcessing(null) }
+                                }} disabled={processing === m.id}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-green-600 hover:bg-green-700 text-white text-xs font-semibold disabled:opacity-50 transition-colors">
+                                <CheckCircle size={13}/> Accept ₹{m.current_offer_price}
+                              </button>
+                              <button onClick={() => { setCounterTarget(m); setCounterPrice(String(m.current_offer_price ?? m.price)); setCounterMessage('') }}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-semibold transition-colors">
+                                💬 Counter Again
+                              </button>
+                            </>
+                          ) : (
+                            <span className="text-xs text-slate-400 italic px-2">Waiting for uploader's response…</span>
+                          )}
                         </>
                       )}
 
@@ -444,6 +540,84 @@ export default function StudyMaterialsAdminPage() {
               <button onClick={reject} disabled={!rejectReason.trim() || processing === rejectTarget.id}
                 className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold disabled:opacity-50 transition-colors">
                 {processing === rejectTarget.id ? 'Rejecting…' : 'Reject'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Counter Offer dialog */}
+      {counterTarget && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setCounterTarget(null)}>
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl p-6 space-y-4" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <p className="font-bold text-slate-900">💬 Send Counter-Offer</p>
+              <button onClick={() => setCounterTarget(null)} className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors">
+                <X size={14}/>
+              </button>
+            </div>
+            <p className="text-sm text-slate-600">"{counterTarget.title}"</p>
+            <p className="text-xs text-slate-400">
+              Uploader's price: <span className="font-semibold text-slate-600">₹{counterTarget.current_offer_price ?? counterTarget.price}</span>
+              {' '}· Round {(counterTarget.negotiation_round ?? 0) + 1}/3
+            </p>
+            <div>
+              <label className="block text-xs font-bold text-slate-600 mb-1.5">Your suggested price (₹) *</label>
+              <input type="number" min={0} value={counterPrice} onChange={e=>setCounterPrice(e.target.value)}
+                placeholder="e.g. 200" className="input w-full" autoFocus />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-600 mb-1.5">Message (optional)</label>
+              <textarea rows={2} value={counterMessage} onChange={e=>setCounterMessage(e.target.value)}
+                placeholder="e.g. Not worth ₹500 for 10 pages, suggest ₹200"
+                className="input w-full resize-none" />
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setCounterTarget(null)} className="flex-1 btn-secondary">Cancel</button>
+              <button onClick={sendCounterOffer} disabled={!counterPrice.trim() || processing === counterTarget.id}
+                className="flex-1 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold disabled:opacity-50 transition-colors">
+                {processing === counterTarget.id ? 'Sending…' : 'Send Counter-Offer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Final Decision dialog — after round 3 negotiation is exhausted */}
+      {finalTarget && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setFinalTarget(null)}>
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl p-6 space-y-4" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <p className="font-bold text-slate-900">⚖️ Final Decision</p>
+              <button onClick={() => setFinalTarget(null)} className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors">
+                <X size={14}/>
+              </button>
+            </div>
+            <p className="text-sm text-slate-600">"{finalTarget.title}"</p>
+            <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              3 negotiation rounds are complete. The uploader's last offer was{' '}
+              <b>₹{finalTarget.current_offer_price ?? finalTarget.price}</b> (original: ₹{finalTarget.price}).
+              You can approve at any price, or reject permanently.
+            </p>
+            <div>
+              <label className="block text-xs font-bold text-slate-600 mb-1.5">Approve at price (₹)</label>
+              <input type="number" min={0} value={finalPrice} onChange={e=>setFinalPrice(e.target.value)}
+                placeholder="Defaults to uploader's last offer" className="input w-full" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-600 mb-1.5">Reason (shown to uploader)</label>
+              <textarea rows={2} value={finalReason} onChange={e=>setFinalReason(e.target.value)}
+                placeholder="Optional note for the uploader"
+                className="input w-full resize-none" />
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => submitFinalDecision('reject')} disabled={processing === finalTarget.id}
+                className="flex-1 px-4 py-2.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl text-sm font-semibold disabled:opacity-50 transition-colors">
+                {processing === finalTarget.id ? '…' : 'Reject Permanently'}
+              </button>
+              <button onClick={() => submitFinalDecision('approve')} disabled={processing === finalTarget.id}
+                className="flex-1 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-semibold disabled:opacity-50 transition-colors">
+                {processing === finalTarget.id ? '…' : `Approve at ₹${finalPrice || (finalTarget.current_offer_price ?? finalTarget.price)}`}
               </button>
             </div>
           </div>

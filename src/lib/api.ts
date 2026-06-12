@@ -199,6 +199,13 @@ export const api = {
   
     reject: (id: string, reason: string) =>
       request(`/admin/study-materials/${id}/reject`, { method: 'PATCH', body: JSON.stringify({ reason }) }),
+
+    // ── Negotiation ──
+    counterOffer: (id: string, price: number, message?: string) =>
+      request(`/admin/study-materials/${id}/counter-offer`, { method: 'PATCH', body: JSON.stringify({ price, message }) }),
+
+    finalDecision: (id: string, action: 'approve' | 'reject', price?: number, reason?: string) =>
+      request(`/admin/study-materials/${id}/final-decision`, { method: 'PATCH', body: JSON.stringify({ action, price, reason }) }),
   
     toggleFeatured: (id: string) =>
       request(`/admin/study-materials/${id}/toggle-featured`, { method: 'POST' }),
