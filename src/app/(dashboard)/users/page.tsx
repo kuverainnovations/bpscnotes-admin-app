@@ -199,6 +199,41 @@ function UserDetailModal({ user, onClose, onUpdateStatus, onVerify }:
               {isBanned ? <><CheckCircle size={15} /> Unban User</> : <><Ban size={15} /> Ban User</>}
             </button>
           </div>
+
+          {/* Award Coins */}
+          <div className="border-t border-slate-100 pt-4 space-y-2">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">Award Coins Manually</p>
+            <div className="flex gap-2">
+              <input id={`coins-${user.id}`} type="number" min="1" max="10000"
+                placeholder="Enter amount..." className="input flex-1 text-sm" />
+              <button
+                onClick={async () => {
+                  const el = document.getElementById(`coins-${user.id}`) as HTMLInputElement
+                  const amt = parseInt(el?.value || '0')
+                  if (!amt || amt <= 0) return
+                  try {
+                    await api.users.awardCoins(user.id, amt, 'Manual award by admin')
+                    onClose()
+                  } catch(e: any) { alert(e.message) }
+                }}
+                className="px-4 py-2 bg-yellow-500 text-white text-sm font-bold rounded-xl hover:bg-yellow-600 whitespace-nowrap">
+                🪙 Award
+              </button>
+            </div>
+          </div>
+
+          {/* Delete Account */}
+          <button
+            onClick={async () => {
+              if (!confirm(`Permanently delete ${user.name}'s account? This cannot be undone.`)) return
+              try {
+                await api.users.delete(user.id)
+                onClose()
+              } catch(e: any) { alert(e.message) }
+            }}
+            className="w-full py-2 border border-red-200 text-red-600 text-sm font-semibold rounded-xl hover:bg-red-50">
+            🗑️ Delete Account
+          </button>
         </div>
       </div>
     </div>

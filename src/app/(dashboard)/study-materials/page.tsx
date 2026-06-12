@@ -135,6 +135,7 @@ function PreviewModal({ url, title, type, onClose }: { url:string; title:string;
 export default function StudyMaterialsAdminPage() {
   const { showToast, ToastComponent } = useToast()
   const [status,    setStatus]    = useState('pending')
+  const [search,    setSearch]    = useState('')
   const [materials, setMaterials] = useState<any[]>([])
   const [stats,     setStats]     = useState<any>(null)
   const [loading,   setLoading]   = useState(true)
@@ -153,7 +154,7 @@ export default function StudyMaterialsAdminPage() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await api.studyMaterials.adminList({ status, page, limit: LIMIT })
+      const res = await api.studyMaterials.adminList({ status, page, limit: LIMIT, search: search || undefined })
       setMaterials(res.data?.materials ?? [])
       setTotal(res.meta?.total ?? res.data?.total ?? 0)
     } catch (e: any) { showToast(e.message || 'Failed to load', 'error') }
@@ -230,8 +231,14 @@ export default function StudyMaterialsAdminPage() {
           </div>
         )}
 
-        {/* Tabs */}
-        <div className="flex items-center gap-2 flex-wrap">
+        {/* Search + Tabs */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="relative">
+            <input value={search} onChange={e => { setSearch(e.target.value); setPage(1) }}
+              placeholder="Search title, subject, uploader..."
+              className="input pl-4 text-sm w-64" />
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
           {STATUS_TABS.map(t => (
             <button key={t.key} onClick={() => setStatus(t.key)}
               className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all
@@ -239,6 +246,7 @@ export default function StudyMaterialsAdminPage() {
               {t.label}
             </button>
           ))}
+          </div>
           <button onClick={load} className="ml-auto btn-secondary px-3 py-2"><RefreshCw size={13} /></button>
         </div>
 

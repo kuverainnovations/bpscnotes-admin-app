@@ -47,6 +47,7 @@ export default function AnalyticsDashboard() {
   const [revChart,    setRevChart]    = useState<any[]>([])
   const [examDist,    setExamDist]    = useState<any[]>([])
   const [loading,     setLoading]     = useState(true)
+  const [loadError,   setLoadError]   = useState<string|null>(null)
   const [sending,     setSending]     = useState(false)
   const [notifResult, setNotifResult] = useState<string | null>(null)
   const [activeTab,   setActiveTab]   = useState<'overview'|'events'|'notify'>('overview')
@@ -57,7 +58,7 @@ export default function AnalyticsDashboard() {
   })
 
   const load = async () => {
-    setLoading(true)
+    setLoading(true); setLoadError(null)
     try {
       const [s, uc, rc, ed] = await Promise.allSettled([
         api.dashboard.getStats(),
@@ -69,7 +70,8 @@ export default function AnalyticsDashboard() {
       if (uc.status === 'fulfilled') setUserChart(uc.value?.data?.data || [])
       if (rc.status === 'fulfilled') setRevChart(rc.value?.data?.data  || [])
       if (ed.status === 'fulfilled') setExamDist(ed.value?.data?.data  || [])
-    } catch {}
+      if ([s,uc,rc,ed].every(r => r.status === 'rejected')) setLoadError('Failed to load analytics data. Check backend.')
+    } catch (e: any) { setLoadError(e.message) }
     setLoading(false)
   }
   useEffect(() => { load() }, [])
