@@ -135,6 +135,7 @@ function PreviewModal({ url, title, type, onClose }: { url:string; title:string;
 
 export default function StudyMaterialsAdminPage() {
   const { showToast, ToastComponent } = useToast()
+  const [view, setView]           = useState<'materials' | 'wallets'>('materials')
   const [status,    setStatus]    = useState('pending')
   const [search,    setSearch]    = useState('')
   const [materials, setMaterials] = useState<any[]>([])
@@ -142,6 +143,15 @@ export default function StudyMaterialsAdminPage() {
   const [loading,   setLoading]   = useState(true)
   const [page, setPage]           = useState(1)
   const [total, setTotal]         = useState(0)
+  // Seller wallets
+  const [wallets, setWallets]         = useState<any[]>([])
+  const [walletTotals, setWalletTotals] = useState<any>(null)
+  const [walletsLoading, setWalletsLoading] = useState(false)
+  const [walletPage, setWalletPage]   = useState(1)
+  const [walletTotal, setWalletTotal] = useState(0)
+  const [walletSearch, setWalletSearch] = useState('')
+  const [walletDetail, setWalletDetail] = useState<any>(null)  // selected seller's transaction view
+  const [walletDetailLoading, setWalletDetailLoading] = useState(false)
   const [previewItem, setPreviewItem] = useState<any>(null)
   const [rejectTarget, setRejectTarget] = useState<any>(null)
   const [rejectReason, setRejectReason] = useState('')
@@ -169,7 +179,34 @@ export default function StudyMaterialsAdminPage() {
   }, [status, page])
 
   useEffect(() => { setPage(1); setMaterials([]) }, [status])
-  useEffect(() => { load(); loadStats() }, [load, loadStats])
+  useEffect(() => { if (view === 'materials') { load(); loadStats() } }, [load, loadStats, view])
+
+  // ── Seller wallets ──────────────────────────────────────────
+  const loadWallets = useCallback(async () => {
+    setWalletsLoading(true)
+    try {
+      const res = await api.studyMaterials.listWallets({ page: walletPage, limit: LIMIT, search: walletSearch || undefined })
+      setWallets(res.data?.wallets ?? [])
+      setWalletTotals(res.data?.totals ?? null)
+      setWalletTotal(res.meta?.total ?? res.data?.meta?.total ?? 0)
+    } catch (e: any) { showToast(e.message || 'Failed to load wallets', 'error') }
+    finally { setWalletsLoading(false) }
+  }, [walletPage, walletSearch])
+
+  useEffect(() => { setWalletPage(1) }, [walletSearch])
+  useEffect(() => { if (view === 'wallets') loadWallets() }, [loadWallets, view])
+
+  const openWalletDetail = async (userId: string) => {
+    setWalletDetailLoading(true)
+    setWalletDetail({ userId })  // open modal immediately with loading state
+    try {
+      const res = await api.studyMaterials.getWalletTransactions(userId)
+      setWalletDetail({ userId, ...res.data })
+    } catch (e: any) {
+      showToast(e.message || 'Failed to load transactions', 'error')
+      setWalletDetail(null)
+    } finally { setWalletDetailLoading(false) }
+  }
 
   const approve = async (id: string) => {
     setProcessing(id)
@@ -236,6 +273,10 @@ export default function StudyMaterialsAdminPage() {
   const from = total === 0 ? 0 : (page - 1) * LIMIT + 1
   const to   = Math.min(page * LIMIT, total)
 
+  const walletTotalPages = Math.ceil(walletTotal / LIMIT)
+  const walletFrom = walletTotal === 0 ? 0 : (walletPage - 1) * LIMIT + 1
+  const walletTo   = Math.min(walletPage * LIMIT, walletTotal)
+
   return (
     <div className="min-h-screen">
       {ToastComponent}
@@ -244,7 +285,7 @@ export default function StudyMaterialsAdminPage() {
       <div className="p-6 space-y-5">
 
         {/* Stats — Issue 2: show real values */}
-        {stats && (
+        {view === 'materials' && stats && (
           <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
             {[
               { emoji:'⏳', label:'Pending',     value:stats.pending,         color:'text-amber-600',  bg:'bg-amber-50' },
@@ -265,7 +306,22 @@ export default function StudyMaterialsAdminPage() {
           </div>
         )}
 
+        {/* View toggle: Materials vs Seller Wallets */}
+        <div className="flex items-center gap-2">
+          <button onClick={() => setView('materials')}
+            className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all
+              ${view === 'materials' ? 'text-brand-700 bg-brand-50 border-brand-200' : 'text-slate-600 bg-white border-slate-200 hover:bg-slate-50'}`}>
+            📚 Materials
+          </button>
+          <button onClick={() => setView('wallets')}
+            className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all
+              ${view === 'wallets' ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-slate-600 bg-white border-slate-200 hover:bg-slate-50'}`}>
+            💰 Seller Wallets
+          </button>
+        </div>
+
         {/* Search + Tabs */}
+        {view === 'materials' && (
         <div className="flex items-center gap-3 flex-wrap">
           <div className="relative">
             <input value={search} onChange={e => { setSearch(e.target.value); setPage(1) }}
@@ -283,9 +339,11 @@ export default function StudyMaterialsAdminPage() {
           </div>
           <button onClick={load} className="ml-auto btn-secondary px-3 py-2"><RefreshCw size={13} /></button>
         </div>
+        )}
 
-        {/* List */}
-        {loading ? (
+        {/* Materials List */}
+        {view === 'materials' && (loading ? (
+
           <div className="space-y-3">
             {[1,2,3].map(i => (
               <div key={i} className="card p-5 animate-pulse flex gap-4">
@@ -490,10 +548,10 @@ export default function StudyMaterialsAdminPage() {
               )
             })}
           </div>
-        )}
+        ))}
 
-        {/* Issue 3: Pagination */}
-        {total > 0 && (
+        {/* Materials Pagination */}
+        {view === 'materials' && total > 0 && (
           <div className="card px-5 py-4 flex items-center justify-between flex-wrap gap-3">
             <p className="text-sm text-slate-500">
               Showing <span className="font-semibold text-slate-700">{from}</span>–<span className="font-semibold text-slate-700">{to}</span> of <span className="font-semibold text-slate-700">{total}</span>
@@ -515,6 +573,115 @@ export default function StudyMaterialsAdminPage() {
               <button disabled={page>=totalPages} onClick={()=>setPage(totalPages)} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"><ChevronsRight size={14}/></button>
             </div>
           </div>
+        )}
+
+        {/* ── Seller Wallets view ──────────────────────────────── */}
+        {view === 'wallets' && (
+          <>
+            {/* Platform totals */}
+            {walletTotals && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="card p-4">
+                  <p className="text-xs text-slate-500 font-medium">Total Seller Balance</p>
+                  <p className="text-xl font-black text-emerald-600">₹{(walletTotals.total_balance ?? 0).toLocaleString()}</p>
+                </div>
+                <div className="card p-4">
+                  <p className="text-xs text-slate-500 font-medium">Lifetime Disbursed</p>
+                  <p className="text-xl font-black text-indigo-600">₹{(walletTotals.total_disbursed ?? 0).toLocaleString()}</p>
+                </div>
+                <div className="card p-4">
+                  <p className="text-xs text-slate-500 font-medium">Active Sellers</p>
+                  <p className="text-xl font-black text-slate-700">{(walletTotals.seller_count ?? 0).toLocaleString()}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Search */}
+            <div className="flex items-center gap-3">
+              <input value={walletSearch} onChange={e => setWalletSearch(e.target.value)}
+                placeholder="Search seller name or mobile..."
+                className="input pl-4 text-sm w-64" />
+              <button onClick={loadWallets} className="ml-auto btn-secondary px-3 py-2"><RefreshCw size={13} /></button>
+            </div>
+
+            {/* Wallets table */}
+            {walletsLoading ? (
+              <div className="space-y-3">
+                {[1,2,3].map(i => (
+                  <div key={i} className="card p-5 animate-pulse h-14" />
+                ))}
+              </div>
+            ) : wallets.length === 0 ? (
+              <div className="card p-10 text-center text-slate-400">
+                No sellers have earned wallet balances yet.
+              </div>
+            ) : (
+              <div className="card overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 border-b border-slate-200">
+                    <tr className="text-left text-xs font-semibold text-slate-500 uppercase">
+                      <th className="px-4 py-3">Seller</th>
+                      <th className="px-4 py-3">Mobile</th>
+                      <th className="px-4 py-3 text-right">Balance</th>
+                      <th className="px-4 py-3 text-right">Total Earned</th>
+                      <th className="px-4 py-3 text-center">Transactions</th>
+                      <th className="px-4 py-3 text-center">Pending</th>
+                      <th className="px-4 py-3"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {wallets.map((w: any) => (
+                      <tr key={w.user_id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-4 py-3 font-semibold text-slate-700">{w.uploader_name || '—'}</td>
+                        <td className="px-4 py-3 text-slate-500">{w.mobile || '—'}</td>
+                        <td className="px-4 py-3 text-right font-bold text-emerald-600">₹{(w.balance ?? 0).toLocaleString()}</td>
+                        <td className="px-4 py-3 text-right text-slate-600">₹{(w.total_earned ?? 0).toLocaleString()}</td>
+                        <td className="px-4 py-3 text-center text-slate-500">{w.transaction_count}</td>
+                        <td className="px-4 py-3 text-center">
+                          {w.pending_count > 0 ? (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                              {w.pending_count} pending
+                            </span>
+                          ) : <span className="text-slate-300">—</span>}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <button onClick={() => openWalletDetail(w.user_id)}
+                            className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors">
+                            View Ledger
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Wallets pagination */}
+            {walletTotal > 0 && (
+              <div className="card px-5 py-4 flex items-center justify-between flex-wrap gap-3">
+                <p className="text-sm text-slate-500">
+                  Showing <span className="font-semibold text-slate-700">{walletFrom}</span>–<span className="font-semibold text-slate-700">{walletTo}</span> of <span className="font-semibold text-slate-700">{walletTotal}</span>
+                </p>
+                <div className="flex items-center gap-1.5">
+                  <button disabled={walletPage===1} onClick={()=>setWalletPage(1)} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"><ChevronsLeft size={14}/></button>
+                  <button disabled={walletPage===1} onClick={()=>setWalletPage(p=>p-1)} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"><ChevronLeft size={14}/></button>
+                  {Array.from({length: Math.min(walletTotalPages, 7)}, (_, i) => {
+                    const p = walletTotalPages <= 7 ? i+1 : walletPage<=4 ? i+1 : walletPage>=walletTotalPages-3 ? walletTotalPages-6+i : walletPage-3+i
+                    return (
+                      <button key={p} onClick={()=>setWalletPage(p)}
+                        className={`w-8 h-8 rounded-lg text-sm font-semibold transition-all
+                          ${p===walletPage ? 'bg-brand-500 text-white' : 'text-slate-500 hover:bg-slate-100'}`}>
+                        {p}
+                      </button>
+                    )
+                  })}
+                  <button disabled={walletPage>=walletTotalPages} onClick={()=>setWalletPage(p=>p+1)} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"><ChevronRight size={14}/></button>
+                  <button disabled={walletPage>=walletTotalPages} onClick={()=>setWalletPage(walletTotalPages)} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"><ChevronsRight size={14}/></button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -624,7 +791,74 @@ export default function StudyMaterialsAdminPage() {
         </div>
       )}
 
-      {/* Issue 1: Preview with video support */}
+      {/* Wallet Detail dialog — seller's full transaction ledger */}
+      {walletDetail && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setWalletDetail(null)}>
+          <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl p-6 space-y-4 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-bold text-slate-900">💰 {walletDetail.uploaderName || 'Seller'} — Wallet Ledger</p>
+                {walletDetail.mobile && <p className="text-xs text-slate-400">{walletDetail.mobile}</p>}
+              </div>
+              <button onClick={() => setWalletDetail(null)} className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors">
+                <X size={14}/>
+              </button>
+            </div>
+
+            {walletDetailLoading ? (
+              <div className="space-y-2">
+                {[1,2,3].map(i => <div key={i} className="h-12 bg-slate-100 rounded-xl animate-pulse" />)}
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3">
+                    <p className="text-xs text-emerald-600 font-medium">Current Balance</p>
+                    <p className="text-lg font-black text-emerald-700">₹{(walletDetail.balance ?? 0).toLocaleString()}</p>
+                  </div>
+                  <div className="rounded-xl bg-indigo-50 border border-indigo-200 p-3">
+                    <p className="text-xs text-indigo-600 font-medium">Total Earned (Lifetime)</p>
+                    <p className="text-lg font-black text-indigo-700">₹{(walletDetail.totalEarned ?? 0).toLocaleString()}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  {(walletDetail.transactions ?? []).length === 0 ? (
+                    <p className="text-sm text-slate-400 text-center py-6">No transactions yet.</p>
+                  ) : (
+                    walletDetail.transactions.map((t: any) => {
+                      const isCredit = t.type === 'sale_credit'
+                      const statusColor = t.status === 'disbursed' ? 'text-emerald-600 bg-emerald-50 border-emerald-200'
+                        : t.status === 'pending' ? 'text-amber-600 bg-amber-50 border-amber-200'
+                        : 'text-red-600 bg-red-50 border-red-200'
+                      return (
+                        <div key={t.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 px-3 py-2.5">
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-slate-700 truncate">
+                              {t.material_title || t.description || (isCredit ? 'Sale credit' : t.type)}
+                            </p>
+                            <p className="text-xs text-slate-400">
+                              {t.created_at ? new Date(t.created_at).toLocaleString('en-IN', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : ''}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${statusColor}`}>{t.status}</span>
+                            <span className={`text-sm font-bold ${isCredit ? 'text-emerald-600' : 'text-red-600'}`}>
+                              {isCredit ? '+' : '−'}₹{t.amount}
+                            </span>
+                          </div>
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Preview with video support */}
       {previewItem && (
         <PreviewModal
           url={previewItem.url}

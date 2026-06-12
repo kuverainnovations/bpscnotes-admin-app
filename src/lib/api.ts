@@ -206,6 +206,14 @@ export const api = {
 
     finalDecision: (id: string, action: 'approve' | 'reject', price?: number, reason?: string) =>
       request(`/admin/study-materials/${id}/final-decision`, { method: 'PATCH', body: JSON.stringify({ action, price, reason }) }),
+
+    // ── Seller wallets (Phase 3) ──
+    listWallets: (params: any = {}) =>
+      request(`/admin/study-materials/wallets?${qs(params)}`),
+
+    getWalletTransactions: (userId: string, params: any = {}) =>
+      request(`/admin/study-materials/wallets/${userId}/transactions?${qs(params)}`),
+
   
     toggleFeatured: (id: string) =>
       request(`/admin/study-materials/${id}/toggle-featured`, { method: 'POST' }),
