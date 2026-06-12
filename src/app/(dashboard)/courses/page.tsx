@@ -744,12 +744,14 @@ export default function ContentPage() {
                                       className="input col-span-2 text-sm" placeholder="Lesson title" autoFocus />
                                     <select value={editLessonData.type}
                                       onChange={e => setEditLessonData({...editLessonData, type: e.target.value})}
-                                      className="input text-sm">
+                                      className={`input text-sm ${editLessonData.type === 'pdf' ? 'col-span-2' : ''}`}>
                                       {LESSON_TYPES.map(t => <option key={t.value} value={t.value}>{t.icon} {t.label}</option>)}
                                     </select>
-                                    <input type="number" value={editLessonData.durationMins}
-                                      onChange={e => setEditLessonData({...editLessonData, durationMins: Number(e.target.value)})}
-                                      placeholder="Duration (mins)" className="input text-sm" />
+                                    {editLessonData.type !== 'pdf' && (
+                                      <input type="number" value={editLessonData.durationMins || ''}
+                                        onChange={e => setEditLessonData({...editLessonData, durationMins: Number(e.target.value) || 0})}
+                                        placeholder="Duration (mins)" className="input text-sm" />
+                                    )}
                                     <FileUploadField
                                       label="PDF / Notes File"
                                       accept="application/pdf"
@@ -832,12 +834,15 @@ export default function ContentPage() {
                               <div className="grid grid-cols-2 gap-2">
                                 <input value={newLesson.title} onChange={e => setNewLesson({...newLesson, title: e.target.value})}
                                   placeholder="Lesson title *" className="input col-span-2 text-sm" autoFocus />
-                                <select value={newLesson.type} onChange={e => setNewLesson({...newLesson, type: e.target.value})} className="input text-sm">
+                                <select value={newLesson.type} onChange={e => setNewLesson({...newLesson, type: e.target.value})}
+                                  className={`input text-sm ${newLesson.type === 'pdf' ? 'col-span-2' : ''}`}>
                                   {LESSON_TYPES.map(t => <option key={t.value} value={t.value}>{t.icon} {t.label}</option>)}
                                 </select>
-                                <input type="number" value={newLesson.durationMins}
-                                  onChange={e => setNewLesson({...newLesson, durationMins: Number(e.target.value)})}
-                                  placeholder="Duration (mins)" className="input text-sm" />
+                                {newLesson.type !== 'pdf' && (
+                                  <input type="number" value={newLesson.durationMins || ''}
+                                    onChange={e => setNewLesson({...newLesson, durationMins: Number(e.target.value) || 0})}
+                                    placeholder="Duration (mins)" className="input text-sm" />
+                                )}
                                 <FileUploadField
                                   label="PDF / Notes File"
                                   accept="application/pdf"
@@ -857,7 +862,7 @@ export default function ContentPage() {
                                 <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
                                   <input type="checkbox" checked={newLesson.isFreePreview}
                                     onChange={e => setNewLesson({...newLesson, isFreePreview: e.target.checked, isLocked: e.target.checked ? false : newLesson.isLocked})} className="rounded" />
-                                  <span className="text-green-700 font-semibold">Free preview</span>
+                                  <span className="text-green-700 font-semibold">Free preview</span> <span className="text-slate-400">(visible to everyone, even non-enrolled)</span>
                                 </label>
                                 <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
                                   <input type="checkbox" checked={newLesson.isLocked}
