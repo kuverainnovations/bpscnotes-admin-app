@@ -580,7 +580,7 @@ export default function StudyMaterialsAdminPage() {
           <>
             {/* Platform totals */}
             {walletTotals && (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                 <div className="card p-4">
                   <p className="text-xs text-slate-500 font-medium">Total Seller Balance</p>
                   <p className="text-xl font-black text-emerald-600">₹{(walletTotals.total_balance ?? 0).toLocaleString()}</p>
@@ -588,6 +588,10 @@ export default function StudyMaterialsAdminPage() {
                 <div className="card p-4">
                   <p className="text-xs text-slate-500 font-medium">Lifetime Disbursed</p>
                   <p className="text-xl font-black text-indigo-600">₹{(walletTotals.total_disbursed ?? 0).toLocaleString()}</p>
+                </div>
+                <div className="card p-4">
+                  <p className="text-xs text-slate-500 font-medium">Platform Revenue</p>
+                  <p className="text-xl font-black text-amber-600">₹{(walletTotals.platform_revenue ?? 0).toLocaleString()}</p>
                 </div>
                 <div className="card p-4">
                   <p className="text-xs text-slate-500 font-medium">Active Sellers</p>
