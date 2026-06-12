@@ -230,6 +230,16 @@ export const api = {
       request(`/admin/study-materials/${id}/url`),
   },
 
+  // ── Support Escalations (Phase 5) ──────────────────────────
+  supportEscalations: {
+    list: (params: any = {}) =>
+      request(`/admin/support-escalations?${qs(params)}`),
+    getChat: (id: string) =>
+      request(`/admin/support-escalations/${id}/chat`),
+    update: (id: string, data: { status: string; resolutionNote?: string }) =>
+      request(`/admin/support-escalations/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  },
+
   // ── Quizzes ───────────────────────────────────────────────
   quizzes: {
     list:         (params = {}) => request(`/admin/quizzes?${qs(params)}`),

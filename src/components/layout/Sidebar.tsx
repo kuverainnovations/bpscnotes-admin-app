@@ -10,7 +10,7 @@ import {
   Trophy, Radio, Award, Image, Tag, CheckSquare, Settings,
   Shield, GraduationCap, ChevronRight, ChevronDown, LogOut,
   Zap, Brain, Layers, AlertTriangle, Star, LibraryBig,
-  Coins, TrendingUp, Activity
+  Coins, TrendingUp, Activity, LifeBuoy
 } from 'lucide-react'
 
 type NavItem = {
@@ -30,6 +30,7 @@ const NAV: NavGroup[] = [
   { group:'Content',    defaultOpen:true,  items:[
     { href:'/courses',          icon:BookOpen,        label:'Courses' },
     { href:'/study-materials',  icon:LibraryBig,      label:'Study Materials' },
+    { href:'/support-escalations', icon:LifeBuoy,     label:'Support Escalations' },
     { href:'/quizzes',          icon:HelpCircle,      label:'Quizzes & Mock Tests' },
     { href:'/current-affairs',  icon:Newspaper,       label:'Current Affairs' },
     { href:'/flashcards',       icon:Brain,           label:'Flashcards' },
