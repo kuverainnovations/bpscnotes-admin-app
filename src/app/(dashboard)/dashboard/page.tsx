@@ -228,7 +228,9 @@ export default function DashboardPage() {
                     <div key={i} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{background:CHART_COLORS[i%CHART_COLORS.length]}}/>
-                        <span className="text-xs text-slate-600 capitalize">{r.plan}</span>
+                        <span className="text-xs text-slate-600 capitalize">
+                          {r.plan === 'study_materials' ? 'Study Materials' : r.plan}
+                        </span>
                       </div>
                       <div className="text-right">
                         <span className="text-xs font-bold text-slate-800">₹{formatNumber(r.amount)}</span>
