@@ -768,10 +768,13 @@ export default function ContentPage() {
                                         onChange={e => setEditLessonData({...editLessonData, isFreePreview: e.target.checked, isLocked: e.target.checked ? false : editLessonData.isLocked})} className="rounded" />
                                       <span className="text-green-700 font-semibold">Free preview</span> <span className="text-slate-400">(non-enrolled)</span>
                                     </label>
-                                    <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
-                                      <input type="checkbox" checked={editLessonData.isLocked}
+                                    <label className={`flex items-center gap-2 text-xs cursor-pointer ${contentCourse.is_paid ? 'text-slate-600' : 'text-slate-300 cursor-not-allowed'}`}>
+                                      <input type="checkbox" checked={editLessonData.isLocked} disabled={!contentCourse.is_paid}
                                         onChange={e => setEditLessonData({...editLessonData, isLocked: e.target.checked, isFreePreview: e.target.checked ? false : editLessonData.isFreePreview})} className="rounded" />
-                                      <span className="text-orange-700 font-semibold">🔒 Locked</span> <span className="text-slate-400">(paid course only)</span>
+                                      <span className={`font-semibold ${contentCourse.is_paid ? 'text-orange-700' : 'text-slate-300'}`}>🔒 Locked</span>{' '}
+                                      <span className="text-slate-400">
+                                        {contentCourse.is_paid ? '(paid course only)' : '(course is free — all lessons are unlocked)'}
+                                      </span>
                                     </label>
                                   </div>
                                   <div className="flex gap-2">
@@ -859,10 +862,13 @@ export default function ContentPage() {
                                     onChange={e => setNewLesson({...newLesson, isFreePreview: e.target.checked, isLocked: e.target.checked ? false : newLesson.isLocked})} className="rounded" />
                                   <span className="text-green-700 font-semibold">Free preview</span> <span className="text-slate-400">(visible to everyone, even non-enrolled)</span>
                                 </label>
-                                <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
-                                  <input type="checkbox" checked={newLesson.isLocked}
+                                <label className={`flex items-center gap-2 text-xs cursor-pointer ${contentCourse.is_paid ? 'text-slate-600' : 'text-slate-300 cursor-not-allowed'}`}>
+                                  <input type="checkbox" checked={newLesson.isLocked} disabled={!contentCourse.is_paid}
                                     onChange={e => setNewLesson({...newLesson, isLocked: e.target.checked, isFreePreview: e.target.checked ? false : newLesson.isFreePreview})} className="rounded" />
-                                  <span className="text-orange-700 font-semibold">🔒 Locked</span> <span className="text-slate-400">(requires purchase)</span>
+                                  <span className={`font-semibold ${contentCourse.is_paid ? 'text-orange-700' : 'text-slate-300'}`}>🔒 Locked</span>{' '}
+                                  <span className="text-slate-400">
+                                    {contentCourse.is_paid ? '(requires purchase)' : '(course is free — all lessons are unlocked)'}
+                                  </span>
                                 </label>
                               </div>
                               <div className="flex gap-2">
