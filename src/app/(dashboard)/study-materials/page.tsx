@@ -183,10 +183,24 @@ export default function StudyMaterialsAdminPage() {
       setTotal(res.meta?.total ?? res.data?.total ?? 0)
     } catch (e: any) { showToast(e.message || 'Failed to load', 'error') }
     finally { setLoading(false) }
-  }, [status, page])
+  }, [status, page, search])
 
   useEffect(() => { setPage(1); setMaterials([]) }, [status])
-  useEffect(() => { if (view === 'materials') { load(); loadStats() } }, [load, loadStats, view])
+  // Page/status/view changes trigger an immediate load.
+  useEffect(() => { if (view === 'materials') { load(); loadStats() } }, [status, page, view])
+
+  // Search input is debounced separately — typing resets to page 1 and
+  // refetches shortly after the user stops typing, instead of firing on
+  // every keystroke (and previously, not firing at all — `load` never
+  // depended on `search`, so the search box had no effect).
+  useEffect(() => {
+    if (view !== 'materials') return
+    const t = setTimeout(() => {
+      if (page !== 1) setPage(1)
+      else load()
+    }, 350)
+    return () => clearTimeout(t)
+  }, [search])
 
   // ── Seller wallets ──────────────────────────────────────────
   const loadWallets = useCallback(async () => {

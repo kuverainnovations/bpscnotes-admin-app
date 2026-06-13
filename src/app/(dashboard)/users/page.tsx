@@ -357,7 +357,7 @@ export default function UsersPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-100 bg-slate-50/60">
-                    {['User', 'Streak', 'Coins', 'Plan', 'Status', 'Actions'].map(h => (
+                    {['User', 'Joined', 'Streak', 'Coins', 'Plan', 'Status', 'Actions'].map(h => (
                       <th key={h} className="text-left px-4 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
@@ -380,6 +380,15 @@ export default function UsersPage() {
                             <p className="text-xs text-slate-400 truncate">{u.email}</p>
                           </div>
                         </div>
+                      </td>
+
+                      {/* Joined */}
+                      <td className="px-4 py-3.5 whitespace-nowrap">
+                        <span className="text-xs text-slate-600">
+                          {u.created_at
+                            ? new Date(u.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+                            : '—'}
+                        </span>
                       </td>
 
                       {/* Issue 2: padding fix in badges */}

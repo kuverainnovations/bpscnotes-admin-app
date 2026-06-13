@@ -192,7 +192,7 @@ export default function ContentPage() {
   // ── Course review queue ──────────────────────────────────
   const [reviewList, setReviewList]     = useState<any[]>([])
   const [reviewLoading, setReviewLoading] = useState(false)
-  const [reviewOpen, setReviewOpen]     = useState(true)
+  const [reviewOpen, setReviewOpen]     = useState(false)
   const [rejectCourse, setRejectCourse] = useState<any>(null)
   const [rejectReason, setRejectReason] = useState('')
   const [previewCourse, setPreviewCourse] = useState<any>(null)
