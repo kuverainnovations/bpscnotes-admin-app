@@ -18,7 +18,7 @@ const LIMIT = 24
 
 const emptyForm = {
   frontType: 'text' as SideType, backType: 'text' as SideType,
-  front:'', back:'', subject:'Polity', topic:'', hint:'', example:'',
+  front:'', back:'', subject:'Polity', topic:'', hint:'',
   examTags:['BPSC 70th CCE'] as string[], isActive:true,
   imageUrl:null as string|null, backImageUrl:null as string|null,
 }
@@ -117,7 +117,7 @@ export default function FlashcardsPage() {
     setForm({
       frontType: c.image_url ? 'image' : 'text', backType: c.back_image_url ? 'image' : 'text',
       front:c.front||c.question||'', back:c.back||c.answer||'',
-      subject:c.subject||'Polity', topic:c.topic||'', hint:c.hint||'', example:c.example||'',
+      subject:c.subject||'Polity', topic:c.topic||'', hint:c.hint||'',
       examTags:c.exam_tags||[], isActive:c.is_active!==false,
       imageUrl:c.image_url||null, backImageUrl:c.back_image_url||null,
     })
@@ -137,7 +137,7 @@ export default function FlashcardsPage() {
     setSaving(true)
     try {
       const payload = { front:form.front?.trim()||'', back:form.back?.trim()||'', subject:form.subject,
-        topic:form.topic.trim()||form.subject, hint:form.hint.trim(), example:form.example.trim(),
+        topic:form.topic.trim()||form.subject, hint:form.hint.trim(),
         examTags:form.examTags, isActive:form.isActive, cardType:form.frontType,
         imageUrl:form.frontType==='image'?form.imageUrl:null, backImageUrl:form.backType==='image'?form.backImageUrl:null }
       if (editing) await api.flashcards.update(editing.id, payload)
@@ -293,7 +293,6 @@ export default function FlashcardsPage() {
                 {(preview.back||preview.answer) && <p className="text-sm text-slate-700">{preview.back||preview.answer}</p>}
               </div>
               {preview.hint    && <div className="bg-amber-50 rounded-xl p-3"><p className="text-[10px] text-amber-600 font-bold mb-1">💡 HINT</p><p className="text-xs text-amber-800">{preview.hint}</p></div>}
-              {preview.example && <div className="bg-slate-50 rounded-xl p-3"><p className="text-[10px] text-slate-500 font-bold mb-1">📌 EXAMPLE</p><p className="text-xs text-slate-700">{preview.example}</p></div>}
             </div>
           </div>
         </div>
@@ -347,16 +346,10 @@ export default function FlashcardsPage() {
                 </div>
               </div>
 
-              {/* Hint + Example */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1.5">💡 Hint <span className="font-normal text-slate-400">(on front)</span></label>
-                  <input value={form.hint} onChange={e => setForm((f:any)=>({...f,hint:e.target.value}))} className="input" placeholder="Think about Part III…"/>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1.5">📌 Example <span className="font-normal text-slate-400">(on back)</span></label>
-                  <input value={form.example} onChange={e => setForm((f:any)=>({...f,example:e.target.value}))} className="input" placeholder="Dr. Ambedkar invoked Art.17…"/>
-                </div>
+              {/* Hint */}
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">💡 Hint <span className="font-normal text-slate-400">(on front)</span></label>
+                <input value={form.hint} onChange={e => setForm((f:any)=>({...f,hint:e.target.value}))} className="input" placeholder="Think about Part III…"/>
               </div>
 
               {/* Exam Tags */}
