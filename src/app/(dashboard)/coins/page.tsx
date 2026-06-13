@@ -45,6 +45,7 @@ export default function CoinsPage() {
   const [editVals, setEditVals]   = useState({ coins:0, maxPerDay:1 })
   const [showCreate, setShowCreate] = useState(false)
   const [showTemplates, setShowTemplates] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
   const [newRule, setNewRule]     = useState<any>(EMPTY_NEW_RULE)
   const [creating, setCreating]   = useState(false)
 
@@ -115,6 +116,17 @@ export default function CoinsPage() {
   const configuredActions = new Set(rules.map((r: any) => r.action))
   const missingActions    = Object.keys(KNOWN_ACTIONS).filter(a => !configuredActions.has(a))
 
+  // Total coins a student could earn in a single day if they completed
+  // every active rule its maximum number of times. Rules with maxPerDay=0
+  // (unlimited) are excluded from this ceiling since they have no cap.
+  const maxDailyEarnings = rules
+    .filter((r: any) => r.is_active)
+    .reduce((total: number, r: any) => {
+      const coins = r.coinsReward ?? r.coins_awarded ?? 0
+      const mpd   = r.maxPerDay ?? r.max_per_day ?? 1
+      return mpd === 0 ? total : total + coins * mpd
+    }, 0)
+  
   return (
     <div className="min-h-screen">
       {ToastComponent}
@@ -122,65 +134,14 @@ export default function CoinsPage() {
 
       <div className="p-6 space-y-6 animate-fade-in">
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { emoji:'🪙', label:'Total in Circulation', value:formatNumber(stats?.coinCirculation||0), color:'text-amber-700', bg:'bg-amber-50' },
-            { emoji:'⚡', label:'Active Rules',          value:rules.filter((r:any)=>r.is_active).length, color:'text-green-700', bg:'bg-green-50' },
-            { emoji:'📋', label:'Total Rules',            value:rules.length, color:'text-blue-700', bg:'bg-blue-50' },
-            { emoji:'🏆', label:'Top Earners',            value:Math.min(earners.length, 10), color:'text-purple-700', bg:'bg-purple-50' },
-          ].map(s => (
-            <div key={s.label} className={`card p-4 flex items-center gap-3 ${s.bg}`}>
-              <span className="text-2xl">{s.emoji}</span>
-              <div><p className={`text-xl font-black ${s.color}`}>{s.value}</p><p className="text-xs text-slate-500 font-medium">{s.label}</p></div>
-            </div>
-          ))}
-        </div>
-
-        {/* Exchange rate info */}
-        <div className="card p-4 bg-amber-50/50 border border-amber-100 flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-amber-100 flex items-center justify-center text-xl">🪙</div>
-            <div>
-              <p className="font-bold text-slate-900 text-sm">Coin Economy Settings</p>
-              <p className="text-xs text-slate-500">Exchange rates and discount caps are managed in Settings</p>
-            </div>
-          </div>
-          <a href="/settings" className="btn-secondary text-xs flex items-center gap-1.5"><Settings size={13}/> Open Settings</a>
-        </div>
-
-        {/* Rewarded Ad Settings */}
-        <div className="card p-4 bg-purple-50/50 border border-purple-100 flex items-center justify-between flex-wrap gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-purple-100 flex items-center justify-center text-xl">📺</div>
-            <div>
-              <p className="font-bold text-slate-900 text-sm">Rewarded Ad Settings</p>
-              <p className="text-xs text-slate-500">Coins earned per ad watch, and ads required per session</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="text-center">
-              <p className="text-[10px] text-slate-400 mb-1">Coins per Ad</p>
-              <NumInput value={adForm.coinsPerAd} onChange={(v:number)=>setAdForm(p=>({...p,coinsPerAd:v}))} placeholder="10" className="w-16 text-center text-sm font-bold" min={1}/>
-            </div>
-            <div className="text-center">
-              <p className="text-[10px] text-slate-400 mb-1">Min Ads/Session</p>
-              <NumInput value={adForm.minAdsPerSession} onChange={(v:number)=>setAdForm(p=>({...p,minAdsPerSession:v}))} placeholder="2" className="w-16 text-center text-sm font-bold" min={0}/>
-            </div>
-            <button onClick={saveAdConfig} disabled={adSaving} className="btn-primary text-sm disabled:opacity-40">
-              {adSaving ? <Loader2 size={13} className="animate-spin"/> : <Save size={13}/>} Save
-            </button>
-          </div>
-        </div>
-
-        {/* Missing actions banner */}
+        {/* Missing actions — the most actionable item, shown first */}
         {missingActions.length > 0 && (
           <div className="card p-4 bg-blue-50/50 border border-blue-100">
             <div className="flex items-start gap-3">
               <Info size={18} className="text-blue-600 shrink-0 mt-0.5"/>
-              <div>
-                <p className="font-semibold text-blue-900 text-sm">{missingActions.length} app action{missingActions.length>1?'s':''} not yet configured</p>
-                <p className="text-xs text-blue-700 mt-0.5 mb-3">These actions exist in the mobile app but have no coin rule. Users won't earn coins for them until you add a rule.</p>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-blue-900 text-sm">{missingActions.length} app action{missingActions.length>1?'s':''} not set up yet</p>
+                <p className="text-xs text-blue-700 mt-0.5 mb-3">Students already do these things in the app, but won't earn coins for them until you add a rule. Tap one to set it up with suggested values.</p>
                 <div className="flex flex-wrap gap-2">
                   {missingActions.slice(0,6).map(a => {
                     const meta = KNOWN_ACTIONS[a]
@@ -200,6 +161,90 @@ export default function CoinsPage() {
             </div>
           </div>
         )}
+
+        {/* Stats — three numbers that matter: what exists, what's live, what it costs */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="card p-4 flex items-center gap-3 bg-amber-50">
+            <span className="text-2xl">🪙</span>
+            <div>
+              <p className="text-xl font-black text-amber-700">{formatNumber(stats?.coinCirculation||0)}</p>
+              <p className="text-xs text-slate-500 font-medium">Total coins in circulation</p>
+            </div>
+          </div>
+          <div className="card p-4 flex items-center gap-3 bg-green-50">
+            <span className="text-2xl">⚡</span>
+            <div>
+              <p className="text-xl font-black text-green-700">{rules.filter((r:any)=>r.is_active).length} <span className="text-sm font-bold text-green-600">/ {rules.length}</span></p>
+              <p className="text-xs text-slate-500 font-medium">Rules active</p>
+            </div>
+          </div>
+          <div className="card p-4 flex items-center gap-3 bg-purple-50">
+            <span className="text-2xl">📈</span>
+            <div>
+              <p className="text-xl font-black text-purple-700">{maxDailyEarnings>0?`🪙 ${formatNumber(maxDailyEarnings)}`:'—'}</p>
+              <p className="text-xs text-slate-500 font-medium">Max a student can earn per day</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Settings — collapsed by default, two things that affect the coin economy globally */}
+        <div className="card overflow-hidden">
+          <button onClick={() => setShowSettings(s => !s)}
+            className="w-full p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-slate-100 flex items-center justify-center text-xl shrink-0">⚙️</div>
+              <div className="text-left">
+                <p className="font-bold text-slate-900 text-sm">Coin economy settings</p>
+                <p className="text-xs text-slate-400">Rewarded ad payouts, exchange rates, and spending caps</p>
+              </div>
+            </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+              className={`text-slate-400 shrink-0 transition-transform duration-200 ${showSettings ? 'rotate-180' : ''}`}>
+              <path d="M6 9l6 6 6-6"/>
+            </svg>
+          </button>
+
+          {showSettings && (
+            <div className="border-t border-slate-100 p-4 space-y-4">
+              {/* Rewarded Ad Settings */}
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-purple-50 flex items-center justify-center text-lg shrink-0">📺</div>
+                  <div>
+                    <p className="font-semibold text-slate-800 text-sm">Rewarded ads</p>
+                    <p className="text-xs text-slate-400">What students earn for watching an ad, and how many they must watch per study session</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="text-center">
+                    <p className="text-[10px] text-slate-400 mb-1">Coins per ad</p>
+                    <NumInput value={adForm.coinsPerAd} onChange={(v:number)=>setAdForm(p=>({...p,coinsPerAd:v}))} placeholder="10" className="w-16 text-center text-sm font-bold" min={1}/>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-[10px] text-slate-400 mb-1">Required per session</p>
+                    <NumInput value={adForm.minAdsPerSession} onChange={(v:number)=>setAdForm(p=>({...p,minAdsPerSession:v}))} placeholder="2" className="w-16 text-center text-sm font-bold" min={0}/>
+                  </div>
+                  <button onClick={saveAdConfig} disabled={adSaving} className="btn-primary text-sm disabled:opacity-40">
+                    {adSaving ? <Loader2 size={13} className="animate-spin"/> : <Save size={13}/>} Save
+                  </button>
+                </div>
+              </div>
+
+              {/* Coin Economy link */}
+              <div className="flex items-center justify-between flex-wrap gap-3 pt-4 border-t border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center text-lg shrink-0">🪙</div>
+                  <div>
+                    <p className="font-semibold text-slate-800 text-sm">Coin value &amp; spending caps</p>
+                    <p className="text-xs text-slate-400">How many coins equal ₹1, and how much of a purchase can be paid with coins</p>
+                  </div>
+                </div>
+                <a href="/settings" className="btn-secondary text-xs flex items-center gap-1.5 shrink-0"><Settings size={13}/> Open Settings</a>
+              </div>
+            </div>
+          )}
+        </div>
+
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
@@ -233,11 +278,11 @@ export default function CoinsPage() {
 
                         {/* Info */}
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="font-bold text-slate-900 text-sm">{rule.description || meta?.label}</p>
-                            <code className="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md font-mono">{rule.action}</code>
-                          </div>
-                          {meta?.desc && <p className="text-[11px] text-slate-400 mt-0.5">{meta.desc}</p>}
+                          <p className="font-bold text-slate-900 text-sm">{rule.description || meta?.label}</p>
+                          <p className="text-[11px] text-slate-400 mt-0.5">
+                            {meta?.desc || 'Custom action'}
+                            <code className="ml-2 text-slate-300 font-mono">{rule.action}</code>
+                          </p>
                         </div>
 
                         {/* Edit fields or values */}
@@ -271,6 +316,11 @@ export default function CoinsPage() {
                             <div className="text-center">
                               <span className="text-sm font-bold text-slate-700">{mpd===0?'∞':mpd+'×'}</span>
                               <p className="text-[10px] text-slate-400">per day</p>
+                            </div>
+                            {/* Daily max — the actually-useful number */}
+                            <div className="text-center min-w-[3rem]">
+                              <span className="text-sm font-bold text-slate-700">{mpd===0?'∞':`🪙 ${coins*mpd}`}</span>
+                              <p className="text-[10px] text-slate-400">daily cap</p>
                             </div>
                             {/* Toggle */}
                             <button onClick={() => toggleRule(rule.id, !rule.is_active)}
@@ -397,32 +447,6 @@ export default function CoinsPage() {
                 </div>
               )}
             </div>
-
-            {/* Per-action daily rates summary */}
-            <div className="card p-4 mt-4">
-              <p className="font-bold text-slate-900 text-sm mb-3">📊 Earnings Potential</p>
-              <div className="space-y-1.5">
-                {rules.filter((r:any)=>r.is_active).slice(0,6).map((r:any) => {
-                  const coins = r.coinsReward??r.coins_awarded??0
-                  const mpd   = r.maxPerDay??r.max_per_day??1
-                  const max   = mpd===0?'∞':`${coins*mpd}`
-                  return (
-                    <div key={r.id} className="flex items-center justify-between">
-                      <span className="text-xs text-slate-600 truncate flex-1">{KNOWN_ACTIONS[r.action]?.emoji||'⚡'} {r.description}</span>
-                      <span className="text-xs font-bold text-amber-600 shrink-0 ml-2">+{max}🪙/day</span>
-                    </div>
-                  )
-                })}
-              </div>
-              <div className="mt-3 pt-2 border-t border-slate-100">
-                <p className="text-xs text-slate-500 font-medium">
-                  Max daily: <span className="font-black text-slate-800">
-                    {(() => { const total=rules.filter((r:any)=>r.is_active).reduce((a:number,r:any) => { const cv=r.coinsReward??r.coins_awarded??0; const m=r.maxPerDay??r.max_per_day??1; return m===0?a:a+(cv*m) },0); return total>0?`🪙 ${total}`:'—' })()}
-                  </span> per student
-                </p>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
