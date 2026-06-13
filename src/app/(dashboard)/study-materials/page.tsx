@@ -520,10 +520,10 @@ export default function StudyMaterialsAdminPage() {
                         {isVideo ? 'Play' : 'Preview'}
                       </button>
 
-                      <button onClick={() => api.studyMaterials.toggleFeatured(m.id).then(() => load())}
+                      <button onClick={() => api.studyMaterials.toggleFeatured(m.id).then(() => { load(); loadStats() })}
                         className={`p-2 rounded-xl transition-colors ${m.isFeatured ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 hover:bg-slate-200 text-slate-500'}`}
                         title="Toggle Featured"><Pin size={14}/></button>
-                      <button onClick={() => api.studyMaterials.toggleTrending(m.id).then(() => load())}
+                      <button onClick={() => api.studyMaterials.toggleTrending(m.id).then(() => { load(); loadStats() })}
                         className={`p-2 rounded-xl transition-colors ${m.isTrending ? 'bg-orange-100 text-orange-700' : 'bg-slate-100 hover:bg-slate-200 text-slate-500'}`}
                         title="Toggle Trending"><TrendingUp size={14}/></button>
 
