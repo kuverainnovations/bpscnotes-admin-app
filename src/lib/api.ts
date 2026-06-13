@@ -199,8 +199,6 @@ export const api = {
                       request(`/admin/courses/${courseId}/lessons/${lessonId}`, { method: 'PUT', body: JSON.stringify(data) }),
     deleteLesson:   (courseId: string, lessonId: string) =>
                       request(`/admin/courses/${courseId}/lessons/${lessonId}`, { method: 'DELETE' }),
-    unlockFreeLessons: (courseId: string) => request(`/admin/courses/${courseId}/unlock-free-lessons`, { method: 'POST' }),
-    bulkFixFreeLocks:  () => request('/admin/courses/bulk-fix-free-locks', { method: 'POST' }),
     publish:   (id: string) => request(`/admin/courses/${id}`, { method: 'PUT', body: JSON.stringify({ status: 'published' }) }),
     reject:    (id: string, reason: string) => request(`/admin/courses/${id}`, { method: 'PUT', body: JSON.stringify({ status: 'draft', rejection_reason: reason }) }),
     listReview:() => request('/admin/courses?status=review&limit=50'),

@@ -8,7 +8,7 @@ import {
   ChevronDown, ChevronRight, GripVertical, Star, Users, Clock,
   Globe, Award, Tag, Eye, EyeOff, Layers, Video, FileText,
   AlertTriangle, CheckCircle, BookMarked, Zap, Crown, ChevronsLeft, ChevronLeft, ChevronsRight,
-  Lock, Unlock, ShieldCheck, Upload, File, ExternalLink,
+  Lock, ShieldCheck, Upload, File, ExternalLink,
 } from 'lucide-react'
 import DynamicSelect from '@/components/ui/DynamicSelect'
 
@@ -244,15 +244,6 @@ export default function ContentPage() {
     setContentCourse(c)
     loadChapters(c.id)
     setTimeout(() => chapterRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
-  }
-
-  const unlockFreeLessons = async (courseId: string) => {
-    if (!confirm('Unlock all lessons for this free course? This fixes lessons that were incorrectly locked.')) return
-    try {
-      await (api.courses as any).unlockFreeLessons(courseId)
-      showToast('All lessons unlocked ✅')
-      loadChapters(courseId)
-    } catch (e: any) { showToast(e.message || 'Failed to unlock', 'error') }
   }
 
   const loadChapters = async (courseId: string) => {
@@ -645,15 +636,6 @@ export default function ContentPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                {!contentCourse.is_paid && (
-                  <button
-                    onClick={() => unlockFreeLessons(contentCourse.id)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-green-500 hover:bg-green-600 text-white text-xs font-bold transition-colors"
-                    title="Unlock all lessons (free course fix)"
-                  >
-                    <Unlock size={11} /> Unlock All
-                  </button>
-                )}
                 <button onClick={() => setContentCourse(null)} className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors">
                   <X size={14} />
                 </button>
@@ -769,13 +751,11 @@ export default function ContentPage() {
                                         onChange={e => setEditLessonData({...editLessonData, isFreePreview: e.target.checked, isLocked: e.target.checked ? false : editLessonData.isLocked})} className="rounded" />
                                       <span className="text-green-700 font-semibold">Free preview</span> <span className="text-slate-400">(non-enrolled)</span>
                                     </label>
-                                    <label className={`flex items-center gap-2 text-xs cursor-pointer ${contentCourse.is_paid ? 'text-slate-600' : 'text-slate-300 cursor-not-allowed'}`}>
-                                      <input type="checkbox" checked={editLessonData.isLocked} disabled={!contentCourse.is_paid}
+                                    <label className="flex items-center gap-2 text-xs cursor-pointer text-slate-600">
+                                      <input type="checkbox" checked={editLessonData.isLocked}
                                         onChange={e => setEditLessonData({...editLessonData, isLocked: e.target.checked, isFreePreview: e.target.checked ? false : editLessonData.isFreePreview})} className="rounded" />
-                                      <span className={`font-semibold ${contentCourse.is_paid ? 'text-orange-700' : 'text-slate-300'}`}>🔒 Locked</span>{' '}
-                                      <span className="text-slate-400">
-                                        {contentCourse.is_paid ? '(paid course only)' : '(course is free — all lessons are unlocked)'}
-                                      </span>
+                                      <span className="font-semibold text-orange-700">🔒 Locked</span>{' '}
+                                      <span className="text-slate-400">(requires enrollment — free or paid)</span>
                                     </label>
                                   </div>
                                   <div className="flex gap-2">
@@ -863,13 +843,11 @@ export default function ContentPage() {
                                     onChange={e => setNewLesson({...newLesson, isFreePreview: e.target.checked, isLocked: e.target.checked ? false : newLesson.isLocked})} className="rounded" />
                                   <span className="text-green-700 font-semibold">Free preview</span> <span className="text-slate-400">(visible to everyone, even non-enrolled)</span>
                                 </label>
-                                <label className={`flex items-center gap-2 text-xs cursor-pointer ${contentCourse.is_paid ? 'text-slate-600' : 'text-slate-300 cursor-not-allowed'}`}>
-                                  <input type="checkbox" checked={newLesson.isLocked} disabled={!contentCourse.is_paid}
+                                <label className="flex items-center gap-2 text-xs cursor-pointer text-slate-600">
+                                  <input type="checkbox" checked={newLesson.isLocked}
                                     onChange={e => setNewLesson({...newLesson, isLocked: e.target.checked, isFreePreview: e.target.checked ? false : newLesson.isFreePreview})} className="rounded" />
-                                  <span className={`font-semibold ${contentCourse.is_paid ? 'text-orange-700' : 'text-slate-300'}`}>🔒 Locked</span>{' '}
-                                  <span className="text-slate-400">
-                                    {contentCourse.is_paid ? '(requires purchase)' : '(course is free — all lessons are unlocked)'}
-                                  </span>
+                                  <span className="font-semibold text-orange-700">🔒 Locked</span>{' '}
+                                  <span className="text-slate-400">(requires enrollment — free or paid)</span>
                                 </label>
                               </div>
                               <div className="flex gap-2">
