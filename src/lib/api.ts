@@ -259,10 +259,10 @@ export const api = {
 
   
     toggleFeatured: (id: string) =>
-      request(`/admin/study-materials/${id}/toggle-featured`, { method: 'POST' }),
+      request(`/admin/study-materials/${id}/feature`, { method: 'PATCH' }),
   
     toggleTrending: (id: string) =>
-      request(`/admin/study-materials/${id}/toggle-trending`, { method: 'POST' }),
+      request(`/admin/study-materials/${id}/trending`, { method: 'PATCH' }),
   
     delete: (id: string) =>
       request(`/admin/study-materials/${id}`, {
