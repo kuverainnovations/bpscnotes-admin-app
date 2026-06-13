@@ -126,7 +126,7 @@ export default function CoinsPage() {
       const mpd   = r.maxPerDay ?? r.max_per_day ?? 1
       return mpd === 0 ? total : total + coins * mpd
     }, 0)
-  
+
   return (
     <div className="min-h-screen">
       {ToastComponent}
@@ -447,6 +447,7 @@ export default function CoinsPage() {
                 </div>
               )}
             </div>
+          </div>
         </div>
       </div>
     </div>
