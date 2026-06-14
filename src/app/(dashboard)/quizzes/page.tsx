@@ -3,7 +3,7 @@ import * as XLSX from 'xlsx'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Header from '@/components/layout/Header'
 import api from '@/lib/api'
-import { useMutation, useDebounce } from '@/lib/hooks'
+import { useMutation, useDebounce, useApiData } from '@/lib/hooks'
 import { useToast } from '@/components/ui/feedback'
 import { formatNumber } from '@/lib/utils'
 import DynamicSelect from '@/components/ui/DynamicSelect'
@@ -51,6 +51,7 @@ const EMPTY_FORM = {
   title:'', subject:'', type:'topic',
   totalQuestions:10, durationMins:15, passingScore:60,
   coinsReward:10, status:'published', scheduledFor:'',
+  examTags:[] as string[],
 }
 
 // Issue 13: admin chooses option count (2–5)
@@ -490,6 +491,9 @@ export default function QuizzesPage() {
   const [savingQ2, setSavingQ2]     = useState(false)
   const [qTab, setQTab]             = useState<'existing'|'add'>('existing')
 
+  const { data: examsData } = useApiData<any>(() => api.exams.list(), [])
+  const examOptions: any[] = examsData?.exams || []
+
   const load = useCallback(async () => {
     setLoading(true)
     try {
@@ -548,6 +552,7 @@ export default function QuizzesPage() {
       totalQuestions: q.total_questions, durationMins: q.duration_mins,
       passingScore: q.passing_score, coinsReward: q.coins_reward,
       status: q.status, scheduledFor: q.scheduled_for ? q.scheduled_for.split('T')[0] : '',
+      examTags: q.exam_tags || [],
     })
     setShowModal(true)
   }
@@ -828,6 +833,50 @@ export default function QuizzesPage() {
                     <option value="draft">Draft — hidden</option>
                   </select>
                 </div>
+              </div>
+
+              {/* Exam Tags — optional. Leave empty to show this quiz to
+                  everyone regardless of which exam they selected at
+                  onboarding (e.g. daily/general GK quizzes). Select one
+                  or more exams to restrict it to users preparing for
+                  those exams (e.g. exam-specific mock tests). */}
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">
+                  Exam Tags <span className="font-normal text-slate-400">(optional)</span>
+                </label>
+                <p className="text-[11px] text-slate-400 mb-2">
+                  Leave empty to show this quiz to everyone. Select exams to show it only to users preparing for those exams.
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {examOptions.map((exam: any) => {
+                    const selected = form.examTags.includes(exam.name)
+                    return (
+                      <button
+                        key={exam.id}
+                        type="button"
+                        onClick={() => setForm({
+                          ...form,
+                          examTags: selected
+                            ? form.examTags.filter((t: string) => t !== exam.name)
+                            : [...form.examTags, exam.name]
+                        })}
+                        className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors
+                          ${selected ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-slate-600 border-slate-200 hover:border-brand-300'}`}
+                      >
+                        {exam.emoji} {exam.name}
+                      </button>
+                    )
+                  })}
+                  {examOptions.length === 0 && (
+                    <p className="text-xs text-slate-400">No exams configured yet.</p>
+                  )}
+                </div>
+                {form.examTags.length > 0 && (
+                  <button type="button" onClick={() => setForm({...form, examTags: []})}
+                    className="mt-2 text-[11px] text-slate-400 hover:text-slate-600 underline">
+                    Clear — show to everyone
+                  </button>
+                )}
               </div>
 
               {/* Scheduled date for daily */}
