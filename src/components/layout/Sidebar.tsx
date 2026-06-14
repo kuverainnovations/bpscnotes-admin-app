@@ -10,7 +10,7 @@ import {
   Trophy, Radio, Award, Image, Tag, CheckSquare, Settings,
   Shield, GraduationCap, ChevronRight, ChevronDown, LogOut,
   Zap, Brain, Layers, AlertTriangle, Star, LibraryBig,
-  Coins, TrendingUp, Activity, LifeBuoy
+  Coins, TrendingUp, Activity, LifeBuoy, MapPin
 } from 'lucide-react'
 
 type NavItem = {
@@ -30,7 +30,7 @@ const NAV: NavGroup[] = [
   { group:'Content',    defaultOpen:true,  items:[
     { href:'/courses',          icon:BookOpen,        label:'Courses' },
     { href:'/study-materials',  icon:LibraryBig,      label:'Study Materials' },
-   // { href:'/support-escalations', icon:LifeBuoy,     label:'Support Escalations' },
+    { href:'/support-escalations', icon:LifeBuoy,     label:'Support Escalations' },
     { href:'/quizzes',          icon:HelpCircle,      label:'Quizzes & Mock Tests' },
     { href:'/current-affairs',  icon:Newspaper,       label:'Current Affairs' },
     { href:'/flashcards',       icon:Brain,           label:'Flashcards' },
@@ -38,11 +38,12 @@ const NAV: NavGroup[] = [
   ]},
   { group:'Exams & Jobs', items:[
     { href:'/exams',            icon:GraduationCap,   label:'Exam Management' },
+    { href:'/districts',        icon:MapPin,          label:'Districts' },
     { href:'/jobs',             icon:Briefcase,       label:'Job Vacancies' },
   ]},
   { group:'Revenue', items:[
     { href:'/subscriptions',    icon:CreditCard,      label:'Subscriptions' },
-    //{ href:'/coupons',          icon:Tag,             label:'Coupon Codes' },
+    { href:'/coupons',          icon:Tag,             label:'Coupon Codes' },
     { href:'/coins',            icon:Coins,           label:'Coins & Rewards' },
   ]},
   { group:'Engagement', defaultOpen:true, items:[

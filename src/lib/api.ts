@@ -378,6 +378,13 @@ export const api = {
     toggleStatus: (id: string, isActive: boolean) => request(`/admin/exams/${id}/status`, { method: 'PUT', body: JSON.stringify({ isActive }) }),
   },
 
+  districts: {
+    list:   () => request('/admin/districts'),
+    create: (data: any) => request('/admin/districts', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: any) => request(`/admin/districts/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string) => request(`/admin/districts/${id}`, { method: 'DELETE' }),
+  },
+
   // ── Banners ───────────────────────────────────────────────
   banners: {
     list:   () => request('/admin/banners'),
