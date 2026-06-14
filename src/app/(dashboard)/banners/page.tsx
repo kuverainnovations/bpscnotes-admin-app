@@ -162,11 +162,10 @@ function BannersPageContent() {
             <div className="p-5 space-y-4 overflow-y-auto">
               {/* Live preview */}
               <div className="h-16 rounded-xl px-4 flex items-center relative overflow-hidden"
-                style={{background: form.imageUrl ? '#000' : form.bgColor}}>
+                style={{background: form.bgColor}}>
                 {form.imageUrl && (
-                  <img src={form.imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover"/>
+                  <img src={form.imageUrl} alt="" className="absolute right-0 top-0 h-full w-auto object-cover opacity-30"/>
                 )}
-                {form.imageUrl && <div className="absolute inset-0 bg-black/35"/>}
                 <div className="relative z-10">
                   <p className="text-sm font-bold text-white">{form.title||'Banner Title'}</p>
                   {form.subtitle && <p className="text-xs text-white/80">{form.subtitle}</p>}
@@ -193,17 +192,12 @@ function BannersPageContent() {
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className={form.imageUrl ? 'opacity-50' : ''}>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-                    Background Color {form.imageUrl && <span className="font-normal text-slate-400">(unused — image is set)</span>}
-                  </label>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">Background Color</label>
                   <div className="flex gap-2">
-                    <input type="color" value={form.bgColor} onChange={e=>setForm({...form,bgColor:e.target.value})} disabled={!!form.imageUrl} className="w-10 h-9 rounded-lg cursor-pointer border-0 disabled:cursor-not-allowed"/>
-                    <input value={form.bgColor} onChange={e=>setForm({...form,bgColor:e.target.value})} disabled={!!form.imageUrl} className="input flex-1"  placeholder="#1565C0"/>
+                    <input type="color" value={form.bgColor} onChange={e=>setForm({...form,bgColor:e.target.value})} className="w-10 h-9 rounded-lg cursor-pointer border-0"/>
+                    <input value={form.bgColor} onChange={e=>setForm({...form,bgColor:e.target.value})} className="input flex-1" placeholder="#1565C0"/>
                   </div>
-                  {form.imageUrl && (
-                    <p className="text-xs text-slate-400 mt-1">When an image is set, it fills the whole banner — this color isn't shown. Remove the image to use a solid color background.</p>
-                  )}
                 </div>
                 <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Sort Order</label>
                   <input type="number" value={form.sortOrder} onChange={e=>setForm({...form,sortOrder:+e.target.value})} className="input"/>
