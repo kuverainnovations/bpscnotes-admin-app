@@ -49,8 +49,8 @@ function BannersPageContent() {
     setEditing(b)
     setForm({
       title:b.title, subtitle:b.subtitle||'', imageUrl:b.image_url||'',
-      ctaLabel:b.cta_label||'', ctaRoute:b.cta_route||'',
-      bgColor:b.bg_color||'#1565C0', isActive:b.is_active??true, sortOrder:b.sort_order||0,
+      ctaLabel:b.cta_label||'', ctaRoute:b.action_link||'',
+      bgColor:b.bg_gradient||'#1565C0', isActive:b.is_active??true, sortOrder:b.sort_order||0,
     })
     setShowModal(true)
   }
@@ -106,7 +106,7 @@ function BannersPageContent() {
               <div key={b.id} className={`card p-4 ${!b.is_active ? 'opacity-60' : ''}`}>
                 {/* Preview */}
                 <div className="h-20 rounded-xl mb-3 flex items-center px-4 relative overflow-hidden"
-                  style={{background: b.bg_color||'#1565C0'}}>
+                  style={{background: b.bg_gradient||'#1565C0'}}>
                   {b.image_url && (
                     <img src={b.image_url} alt="" className="absolute right-0 top-0 h-full w-auto object-cover opacity-30"/>
                   )}
@@ -123,7 +123,7 @@ function BannersPageContent() {
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs text-slate-500">Route: <span className="font-mono text-xs">{b.cta_route||'—'}</span></p>
+                    <p className="text-xs text-slate-500">Route: <span className="font-mono text-xs">{b.action_link||'—'}</span></p>
                     <p className="text-xs text-slate-400 mt-0.5">Order: {b.sort_order||0}</p>
                   </div>
                   <div className="flex items-center gap-2">
