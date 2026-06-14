@@ -2,12 +2,27 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Header from '@/components/layout/Header'
 import api from '@/lib/api'
 import { useToast } from '@/components/ui/feedback'
-import { Plus, RefreshCw, Edit, Trash2, X, Image, ToggleLeft, ToggleRight } from 'lucide-react'
+import { Plus, RefreshCw, Edit, Trash2, X, Image as ImageIcon, ToggleLeft, ToggleRight, Loader2 } from 'lucide-react'
+
+// Reuses the existing generic admin image-upload endpoint (already used
+// by the Flashcards page for MCQ/flashcard images) — saves to local disk,
+// returns a public URL we can store as the banner's image_url.
+async function uploadImage(file: File): Promise<string> {
+  const fd = new FormData(); fd.append('image', file)
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL||'http://localhost:5000/api/v1'}/admin/upload/image`,
+    { method:'POST', headers:{ Authorization:`Bearer ${localStorage.getItem('adminToken')}` }, body:fd }
+  )
+  const data = await res.json()
+  const url  = data.data?.url || data.data?.imageUrl || data.url
+  if (!url) throw new Error('No URL returned')
+  return url
+}
 
 
 const EMPTY = {
@@ -33,6 +48,20 @@ function BannersPageContent() {
   const [editing, setEditing]   = useState<any>(null)
   const [form, setForm]         = useState<any>(EMPTY)
   const [saving, setSaving]     = useState(false)
+  const [imageUploading, setImageUploading] = useState(false)
+  const imageInputRef = useRef<HTMLInputElement>(null)
+
+  const handleImageUpload = async (file: File) => {
+    setImageUploading(true)
+    try {
+      const url = await uploadImage(file)
+      setForm((f: any) => ({ ...f, imageUrl: url }))
+    } catch (e: any) {
+      showToast(e.message || 'Upload failed', 'error')
+    } finally {
+      setImageUploading(false)
+    }
+  }
 
   const load = async () => {
     setLoading(true)
@@ -143,7 +172,7 @@ function BannersPageContent() {
             ))}
             {banners.length === 0 && (
               <div className="md:col-span-2 card p-12 flex flex-col items-center gap-3 text-slate-400">
-                <Image size={40} className="opacity-30"/>
+                <ImageIcon size={40} className="opacity-30"/>
                 <p className="font-semibold">No banners yet</p>
                 <button onClick={openNew} className="btn-primary"><Plus size={14}/>Create first banner</button>
               </div>
@@ -203,8 +232,30 @@ function BannersPageContent() {
                   <input type="number" value={form.sortOrder} onChange={e=>setForm({...form,sortOrder:+e.target.value})} className="input"/>
                 </div>
               </div>
-              <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Image URL (optional)</label>
-                <input value={form.imageUrl} onChange={e=>setForm({...form,imageUrl:e.target.value})} className="input" placeholder="https://..."/>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">Image (optional)</label>
+                <input ref={imageInputRef} type="file" accept="image/*" className="hidden"
+                  onChange={e => { if (e.target.files?.[0]) handleImageUpload(e.target.files[0]) }} />
+                {form.imageUrl ? (
+                  <div className="relative">
+                    <img src={form.imageUrl} alt="" className="w-full max-h-32 object-contain rounded-xl border border-slate-200 bg-slate-50"/>
+                    <div className="absolute top-2 right-2 flex gap-1.5">
+                      <button type="button" onClick={() => imageInputRef.current?.click()} disabled={imageUploading}
+                        className="py-1 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold shadow-sm hover:bg-slate-50 disabled:opacity-60">
+                        {imageUploading ? 'Uploading…' : 'Change'}
+                      </button>
+                      <button type="button" onClick={() => setForm({...form, imageUrl:''})} className="p-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 shadow-sm"><X size={11}/></button>
+                    </div>
+                  </div>
+                ) : (
+                  <button type="button" onClick={() => imageInputRef.current?.click()} disabled={imageUploading}
+                    className="w-full border-2 border-dashed border-slate-200 rounded-xl py-6 flex flex-col items-center gap-1.5 hover:border-brand-300 hover:bg-brand-50/30 transition-all disabled:opacity-60">
+                    {imageUploading
+                      ? <><Loader2 size={20} className="animate-spin text-brand-500"/><span className="text-xs text-slate-500">Uploading…</span></>
+                      : <><ImageIcon size={22} className="text-slate-300"/><span className="text-sm font-semibold text-slate-400">Upload image</span><span className="text-xs text-slate-300">PNG · JPG · WEBP · max 10 MB</span></>}
+                  </button>
+                )}
+                <input value={form.imageUrl} onChange={e=>setForm({...form,imageUrl:e.target.value})} className="input mt-2" placeholder="...or paste an image URL"/>
               </div>
               <div className="flex items-center gap-3">
                 <input type="checkbox" id="active" checked={form.isActive} onChange={e=>setForm({...form,isActive:e.target.checked})} className="w-4 h-4 accent-brand-500"/>
