@@ -95,7 +95,6 @@ export default function SettingsPage() {
               <Toggle k="maintenance_mode"    label="🔧 Maintenance Mode"    desc="Show maintenance screen to all users" />
               <Toggle k="force_update"        label="📲 Force Update"        desc="Force users to update the app" />
               <Toggle k="new_registrations"   label="📝 New Registrations"   desc="Allow new user registrations" />
-              <Toggle k="coin_system_enabled" label="🪙 Coin System"         desc="Enable/disable coin earning and spending" />
               <Toggle k="study_rooms_enabled" label="👥 Group Study Rooms"   desc="Allow students to create/join study rooms" />
             </div>
           </div>
@@ -126,31 +125,20 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* Coin Settings */}
-          <div className="card p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <Coins size={18} className="text-brand-500" />
-              <h2 className="section-title mb-0">Coin System Settings</h2>
+          {/* Coin Settings — moved to the unified Coins Control Center */}
+          <div className="card p-5 bg-amber-50/40 border border-amber-100">
+            <div className="flex items-center gap-2 mb-2">
+              <Coins size={18} className="text-amber-500" />
+              <h2 className="section-title mb-0">Coins &amp; Rewards</h2>
             </div>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">1 Coin Value (₹)</label>
-                <input type="number" step="0.01" value={settings.coin_value_inr || '0.10'} onChange={e => set('coin_value_inr', e.target.value)} className="input" />
-                <p className="text-xs text-slate-400 mt-1">Current: 1 coin = ₹{settings.coin_value_inr || '0.10'}</p>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">Max Coin Discount — Subscription (%)</label>
-                <input type="number" min="0" max="100" value={settings.max_coin_discount_sub || '30'} onChange={e => set('max_coin_discount_sub', e.target.value)} className="input" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">Max Coin Discount — Course (%)</label>
-                <input type="number" min="0" max="100" value={settings.max_coin_discount_course || '50'} onChange={e => set('max_coin_discount_course', e.target.value)} className="input" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">Daily Login Coins</label>
-                <input type="number" value={settings.daily_login_coins || '2'} onChange={e => set('daily_login_coins', e.target.value)} className="input" />
-              </div>
-            </div>
+            <p className="text-sm text-slate-500 mb-4">
+              The coin system master switch, coin↔₹ rate, spending caps, check-in
+              rewards, every earning rule, and rewarded-ad payouts now all live
+              together on the Coins page — one place for the whole coin economy.
+            </p>
+            <a href="/coins" className="btn-primary text-sm inline-flex items-center gap-1.5">
+              <Coins size={13}/> Open Coins Control Center
+            </a>
           </div>
 
           {/* All Settings — raw view */}

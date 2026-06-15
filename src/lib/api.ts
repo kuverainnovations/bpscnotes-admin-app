@@ -351,6 +351,8 @@ export const api = {
     getStats:     ()             => request('/admin/coins/stats'),
     getAdConfig:  ()             => request('/admin/coins/ad-config'),
     updateAdConfig:(data: any)   => request('/admin/coins/ad-config', { method: 'PUT', body: JSON.stringify(data) }),
+    getEconomy:   ()             => request('/admin/coins/economy'),
+    updateEconomy:(data: any)    => request('/admin/coins/economy', { method: 'PUT', body: JSON.stringify(data) }),
   },
 
   // ── Study Rooms ───────────────────────────────────────────
