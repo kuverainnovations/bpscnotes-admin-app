@@ -981,7 +981,10 @@ export default function ContentPage() {
                       <div>
                         <label className="block text-xs font-bold text-slate-500 mb-1.5">Sale Price (₹) *</label>
                         <input type="number" value={form.price} onChange={e => setForm({...form, price: +e.target.value})}
-                          className="input w-full" placeholder="999" />
+                          className={`input w-full ${(!form.price || form.price <= 0) ? 'border-red-300' : ''}`} placeholder="999" />
+                        {(!form.price || form.price <= 0) && (
+                          <p className="text-[11px] text-red-500 mt-1">Sale Price is required for a paid course</p>
+                        )}
                       </div>
                       <div>
                         <label className="block text-xs font-bold text-slate-500 mb-1.5">Original Price (₹)</label>
@@ -999,9 +1002,12 @@ export default function ContentPage() {
                     </>
                   )}
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1.5">Total Hours</label>
-                    <input type="number" step="0.5" value={form.totalHours} onChange={e => setForm({...form, totalHours: +e.target.value})}
-                      className="input w-full" placeholder="0" />
+                    <label className="block text-xs font-bold text-slate-500 mb-1.5">Total Hours *</label>
+                    <input type="number" step="0.5" value={form.totalHours} onChange={e => setForm({...form, totalHours: e.target.value === '' ? '' : +e.target.value})}
+                      className={`input w-full ${(!form.totalHours || +form.totalHours <= 0) ? 'border-red-300' : ''}`} placeholder="0" />
+                    {(!form.totalHours || +form.totalHours <= 0) && (
+                      <p className="text-[11px] text-red-500 mt-1">Total Hours is required and must be greater than 0</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-500 mb-1.5">Status</label>
@@ -1089,7 +1095,7 @@ export default function ContentPage() {
               <section>
                 <div className="flex items-center gap-2 mb-4">
                   <div className="w-6 h-6 rounded-lg bg-teal-100 flex items-center justify-center text-teal-700 text-xs font-black">4</div>
-                  <h3 className="font-bold text-slate-800">What Students Will Learn</h3>
+                  <h3 className="font-bold text-slate-800">What Students Will Learn *</h3>
                 </div>
                 <div className="space-y-2 mb-3 max-h-36 overflow-y-auto">
                   {form.whatYouLearn.map((item: string, i: number) => (
@@ -1103,7 +1109,7 @@ export default function ContentPage() {
                     </div>
                   ))}
                   {form.whatYouLearn.length === 0 && (
-                    <p className="text-xs text-slate-400 italic px-1">No learning outcomes yet — add some below</p>
+                    <p className="text-[11px] text-red-500 px-1">At least one learning outcome is required</p>
                   )}
                 </div>
                 <div className="flex gap-2">
@@ -1120,7 +1126,7 @@ export default function ContentPage() {
             {/* Footer */}
             <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50/50 rounded-b-3xl shrink-0">
               <button onClick={() => setShowModal(false)} className="btn-secondary">Cancel</button>
-              <button onClick={save} disabled={saving || !form.title.trim() || !form.subject.trim()}
+              <button onClick={save} disabled={saving || !form.title.trim() || !form.subject.trim() || !form.totalHours || +form.totalHours <= 0 || form.whatYouLearn.length === 0 || (form.isPaid && (!form.price || form.price <= 0))}
                 className="btn-primary disabled:opacity-40">
                 {saving
                   ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Saving…</>

@@ -260,7 +260,7 @@ function Inner() {
 
             <div className="px-5 py-4 border-t border-slate-100 flex gap-3 shrink-0">
               <button onClick={() => setShowModal(false)} className="flex-1 btn-secondary">Cancel</button>
-              <button onClick={save} disabled={saving} className="flex-1 btn-primary disabled:opacity-40">
+              <button onClick={save} disabled={saving || !form.title.trim() || !form.instructor.trim()} className="flex-1 btn-primary disabled:opacity-40">
                 {saving ? <><Loader2 size={14} className="animate-spin"/> Saving…</> : editing ? 'Save Changes' : 'Schedule Class'}
               </button>
             </div>

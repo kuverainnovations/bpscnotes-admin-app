@@ -59,7 +59,7 @@ export default function TierRoomsPage() {
 
   // Promote form
   const [promoteUserId, setPromoteUserId]   = useState('')
-  const [promoteTarget, setPromoteTarget]   = useState('serious')
+  const [promoteTarget, setPromoteTarget]   = useState('silver')
 
   const loadAll = useCallback(async () => {
     setLoading(true); setError('')
