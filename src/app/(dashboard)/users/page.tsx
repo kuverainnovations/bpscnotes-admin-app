@@ -37,8 +37,8 @@ function Tooltip({ label, children }: { label: string; children: React.ReactNode
 }
 
 // ── User Detail Modal ────────────────────────────────────────
-function UserDetailModal({ user, onClose, onUpdateStatus, onVerify }:
-  { user: any; onClose: () => void; onUpdateStatus: (id:string,s:string)=>void; onVerify: (id:string)=>void }) {
+function UserDetailModal({ user, onClose, onUpdateStatus }:
+  { user: any; onClose: () => void; onUpdateStatus: (id:string,s:string)=>void }) {
 
   const isBanned = user.status === 'banned'
   const accuracy = parseFloat(user.accuracy || 0)
@@ -181,14 +181,6 @@ function UserDetailModal({ user, onClose, onUpdateStatus, onVerify }:
 
           {/* Action buttons */}
           <div className="flex gap-3 pt-1">
-            {!user.is_verified && (
-              <button
-                onClick={() => { onVerify(user.id); onClose() }}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl font-semibold text-sm transition-colors border border-blue-200"
-              >
-                <CheckCircle size={15} /> Verify Account
-              </button>
-            )}
             <button
               onClick={() => { onUpdateStatus(user.id, isBanned ? 'active' : 'banned'); onClose() }}
               className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-sm transition-colors border
@@ -272,14 +264,6 @@ export default function UsersPage() {
     try {
       await api.users.updateStatus(id, s)
       showToast(`User ${s === 'banned' ? 'banned' : 'unbanned'} ✅`)
-      load()
-    } catch (e: any) { showToast(e.message || 'Failed', 'error') }
-  }
-
-  const verify = async (id: string) => {
-    try {
-      await api.users.verify(id)
-      showToast('User verified ✅')
       load()
     } catch (e: any) { showToast(e.message || 'Failed', 'error') }
   }
@@ -426,17 +410,6 @@ export default function UsersPage() {
                             </button>
                           </Tooltip>
 
-                          {!u.is_verified && (
-                            <Tooltip label="Verify user">
-                              <button
-                                onClick={() => verify(u.id)}
-                                className="w-8 h-8 rounded-lg bg-green-50 hover:bg-green-100 flex items-center justify-center transition-colors"
-                              >
-                                <CheckCircle size={13} className="text-green-600" />
-                              </button>
-                            </Tooltip>
-                          )}
-
                           <Tooltip label={u.status === 'banned' ? 'Unban user' : 'Ban user'}>
                             <button
                               onClick={() => updateStatus(u.id, u.status === 'banned' ? 'active' : 'banned')}
@@ -532,7 +505,6 @@ export default function UsersPage() {
           user={selected}
           onClose={() => setSelected(null)}
           onUpdateStatus={updateStatus}
-          onVerify={verify}
         />
       )}
     </div>
