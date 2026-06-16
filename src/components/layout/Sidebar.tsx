@@ -56,7 +56,7 @@ const NAV: NavGroup[] = [
     { href:'/challenges',       icon:Zap,             label:'Challenges' },
     { href:'/live-classes',     icon:Radio,           label:'Live Classes' },
     { href:'/leaderboard',      icon:Star,            label:'Leaderboard' },
-    { href:'/certificates',     icon:Award,           label:'Certificates' },
+    // TEMP #15: { href:'/certificates', icon:Award, label:'Certificates' },
     { href:'/banners',          icon:Image,           label:'Banners & Offers' },
   ]},
   { group:'System', defaultOpen:true, items:[
