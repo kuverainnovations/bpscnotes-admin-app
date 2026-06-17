@@ -65,14 +65,14 @@ export default function RolesPage() {
       ? api.adminUsers.update(editing.id, d)
       : api.adminUsers.create(d),
     {
-      onSuccess: (_result, args) => {
+      onSuccess: (_result: any, args?: any[]) => {
         setShowModal(false)
         setEditing(null)
         setForm(EMPTY_FORM)
-        refetch()   // Issue 2: refetch right after create/update
+        refetch()
         // Fix 3: if the current logged-in admin edited their own name, update the header
-        if (editing && editing.id === admin?.id && args?.name) {
-          refreshAdmin({ name: args.name })
+        if (editing && editing.id === admin?.id && args?.[0]?.name) {
+          refreshAdmin({ name: args[0].name })
         }
         showToast(editing ? 'Admin updated ✅' : 'Admin created & activated ✅')
       },
