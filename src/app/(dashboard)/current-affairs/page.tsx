@@ -40,6 +40,8 @@ function Inner() {
   const [typeFilter, setType]   = useState('')
   const [page, setPage]         = useState(1)
   const [total, setTotal]       = useState(0)
+  // Unfiltered totals for stats chips — fetched once on mount, not affected by filters
+  const [counts, setCounts]     = useState({ prelims: 0, mains: 0, important: 0, both: 0 })
   const debouncedSearch         = useDebounce(search, 400)
 
   // Create/edit modal
@@ -75,6 +77,27 @@ function Inner() {
     } catch (e: any) { showToast(e.message, 'error') }
     finally { setLoading(false) }
   }
+
+  // Fetch unfiltered type/important counts for stats chips
+  const loadCounts = async () => {
+    try {
+      // Fetch all 3 type counts in parallel
+      const [prelims, mains, both, important] = await Promise.all([
+        api.currentAffairs.list({ exam: 'prelims', limit: 1 }),
+        api.currentAffairs.list({ exam: 'mains',   limit: 1 }),
+        api.currentAffairs.list({ exam: 'both',    limit: 1 }),
+        api.currentAffairs.list({ important: true, limit: 1 } as any),
+      ])
+      setCounts({
+        prelims:   prelims.meta?.total ?? 0,
+        mains:     mains.meta?.total   ?? 0,
+        both:      both.meta?.total    ?? 0,
+        important: important.meta?.total ?? 0,
+      })
+    } catch (_) {}
+  }
+
+  useEffect(() => { loadCounts() }, [])
   useEffect(() => { setPage(1) }, [debouncedSearch, catFilter, typeFilter])
   useEffect(() => { load() }, [debouncedSearch, catFilter, typeFilter, page])
 
@@ -176,14 +199,14 @@ function Inner() {
         isImportant:form.isImportant, date:form.publishDate, status:form.status, readTime:Number(form.readTime)||1 }
       if (editing) await api.currentAffairs.update(editing.id, payload)
       else         await api.currentAffairs.create(payload)
-      setShowModal(false); load(); showToast(editing ? 'Updated ✅' : 'Created ✅')
+      setShowModal(false); load(); loadCounts(); showToast(editing ? 'Updated ✅' : 'Created ✅')
     } catch (e: any) { showToast(e.message, 'error') }
     finally { setSaving(false) }
   }
 
   const del = async (id: string, title: string) => {
     if (!confirm(`Delete "${title.slice(0,60)}…"?`)) return
-    try { await api.currentAffairs.delete(id); load(); showToast('Deleted') }
+    try { await api.currentAffairs.delete(id); load(); loadCounts(); showToast('Deleted') }
     catch (e: any) { showToast(e.message, 'error') }
   }
 
@@ -199,10 +222,10 @@ function Inner() {
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { emoji:'📰', label:'Total',     value:total,                                       color:'text-slate-700',  bg:'bg-slate-50' },
-            { emoji:'🎯', label:'Prelims',   value:list.filter(a=>{const t=a.type||(a.exam_tags?.find((x:string)=>['prelims','mains','both'].includes(x))||'prelims');return t==='prelims'||t==='both'}).length,   color:'text-green-700',  bg:'bg-green-50' },
-            { emoji:'📝', label:'Mains',     value:list.filter(a=>{const t=a.type||(a.exam_tags?.find((x:string)=>['prelims','mains','both'].includes(x))||'prelims');return t==='mains'||t==='both'}).length,     color:'text-purple-700', bg:'bg-purple-50' },
-            { emoji:'⭐', label:'Important', value:list.filter(a=>a.is_important).length,       color:'text-amber-700',  bg:'bg-amber-50' },
+            { emoji:'📰', label:'Total',     value:total,                              color:'text-slate-700',  bg:'bg-slate-50' },
+            { emoji:'🎯', label:'Prelims',   value:counts.prelims + counts.both,       color:'text-green-700',  bg:'bg-green-50' },
+            { emoji:'📝', label:'Mains',     value:counts.mains   + counts.both,       color:'text-purple-700', bg:'bg-purple-50' },
+            { emoji:'⭐', label:'Important', value:counts.important,                   color:'text-amber-700',  bg:'bg-amber-50' },
           ].map(s => (
             <div key={s.label} className={`card p-4 flex items-center gap-3 ${s.bg}`}>
               <span className="text-2xl">{s.emoji}</span>

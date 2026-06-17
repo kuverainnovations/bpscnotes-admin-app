@@ -16,6 +16,7 @@ interface AuthContextType {
   login:         (email: string, password: string) => Promise<void>
   logout:        () => void
   hasPermission: (perm: string) => boolean
+  refreshAdmin:  (updates: Partial<AdminUser>) => void
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
@@ -64,6 +65,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push('/dashboard')
   }
 
+  const refreshAdmin = (updates: Partial<AdminUser>) => {
+    setAdmin(prev => {
+      if (!prev) return prev
+      const updated = { ...prev, ...updates }
+      localStorage.setItem('adminUser', JSON.stringify(updated))
+      return updated
+    })
+  }
+
   const logout = () => {
     clearToken()
     setAdmin(null)
@@ -76,7 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ admin, isLoading, login, logout, hasPermission }}>
+    <AuthContext.Provider value={{ admin, isLoading, login, logout, hasPermission, refreshAdmin }}>
       {children}
     </AuthContext.Provider>
   )

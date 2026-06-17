@@ -42,12 +42,12 @@ const NAV: NavGroup[] = [
     { href:'/jobs',             icon:Briefcase,       label:'Job Vacancies' },
   ]},
   { group:'Revenue', items:[
-    { href:'/subscriptions',    icon:CreditCard,      label:'Subscriptions' },
-    { href:'/coupons',          icon:Tag,             label:'Coupon Codes' },
+    // { href:'/subscriptions',    icon:CreditCard,      label:'Subscriptions' },
+    // { href:'/coupons',          icon:Tag,             label:'Coupon Codes' },
     { href:'/coins',            icon:Coins,           label:'Coins & Rewards' },
   ]},
   { group:'Engagement', defaultOpen:true, items:[
-    { href:'/analytics',        icon:TrendingUp,      label:'Analytics' },
+    // { href:'/analytics',        icon:TrendingUp,      label:'Analytics' },
     { href:'/activity',         icon:Activity,        label:'Activity Log' },
     { href:'/notifications',    icon:Bell,            label:'Notifications' },
     { href:'/tier-rooms',       icon:Layers,          label:'Tier Room System' },

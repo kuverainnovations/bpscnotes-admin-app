@@ -239,16 +239,24 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
   const onDrop = (e: React.DragEvent) => { e.preventDefault(); setDragOver(false); const file = e.dataTransfer.files?.[0]; if (file) handleFile(file) }
 
   const submit = async () => {
-    const hasQuizTitle = questions.some(q => q.quiz_title?.trim())
+    // Filter out rows where both question AND options are empty (user added extra blank rows)
+    const cleanedQuestions = questions.filter(q => {
+      const hasQuestion = (q.question || '').trim().length > 0
+      const hasOptions = (q.option_a || '').trim().length > 0 && (q.option_b || '').trim().length > 0
+      return hasQuestion && hasOptions
+    })
+    if (cleanedQuestions.length === 0) return
+
+    const hasQuizTitle = cleanedQuestions.some(q => q.quiz_title?.trim())
     if (!hasQuizTitle && !meta.title.trim()) return
     if (!meta.subject.trim()) return
     setImporting(true)
     try {
-      const hasQuizTitle = questions.some(q => q.quiz_title?.trim())
+      const hasQuizTitle = cleanedQuestions.some(q => q.quiz_title?.trim())
       if (hasQuizTitle) {
         // Group by quiz_title
         const groupMap: Record<string, any[]> = {}
-        for (const q of questions) {
+        for (const q of cleanedQuestions) {
           const key = q.quiz_title?.trim() || meta.title || 'Untitled Quiz'
           if (!groupMap[key]) groupMap[key] = []
           const { quiz_title, ...rest } = q
@@ -261,7 +269,7 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
         const res = await (api.quizzes as any).bulkImportMulti(groups)
         setResult({ multi: true, ...res.data })
       } else {
-        const res = await (api.quizzes as any).bulkImport({ quiz: meta, questions })
+        const res = await (api.quizzes as any).bulkImport({ quiz: meta, questions: cleanedQuestions })
         setResult({ multi: false, ...res.data })
       }
       setStep('done')
@@ -1238,4 +1246,4 @@ export default function QuizzesPage() {
       )}
     </div>
   )
-}
+} 

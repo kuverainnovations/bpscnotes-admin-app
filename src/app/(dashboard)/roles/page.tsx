@@ -3,6 +3,7 @@ import { useState } from 'react'
 import Header from '@/components/layout/Header'
 import api from '@/lib/api'
 import { useApiData, useMutation } from '@/lib/hooks'
+import { useAuth } from '@/lib/auth-context'
 import { PageLoader, ErrorMessage, useToast } from '@/components/ui/feedback'
 import {
   Plus, Edit, Trash2, Shield, CheckCircle, RefreshCw,
@@ -50,6 +51,7 @@ export default function RolesPage() {
   const [form, setForm]                 = useState<any>(EMPTY_FORM)
   const [showPassword, setShowPassword] = useState(false)
   const { showToast, ToastComponent }   = useToast()
+  const { admin, refreshAdmin }         = useAuth()
 
   // Issue 2: using useApiData so refetch works properly
   const { data, loading, error, refetch } = useApiData<any>(
@@ -63,11 +65,15 @@ export default function RolesPage() {
       ? api.adminUsers.update(editing.id, d)
       : api.adminUsers.create(d),
     {
-      onSuccess: () => {
+      onSuccess: (_result, args) => {
         setShowModal(false)
         setEditing(null)
         setForm(EMPTY_FORM)
         refetch()   // Issue 2: refetch right after create/update
+        // Fix 3: if the current logged-in admin edited their own name, update the header
+        if (editing && editing.id === admin?.id && args?.name) {
+          refreshAdmin({ name: args.name })
+        }
         showToast(editing ? 'Admin updated ✅' : 'Admin created & activated ✅')
       },
       onError: (msg) => showToast(msg, 'error'),
