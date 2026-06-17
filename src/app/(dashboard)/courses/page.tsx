@@ -1069,11 +1069,11 @@ export default function ContentPage() {
                   <div className="w-6 h-6 rounded-lg bg-amber-100 flex items-center justify-center text-amber-700 text-xs font-black">3</div>
                   <h3 className="font-bold text-slate-800">Options</h3>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3">
                   {[
                     { key: 'isFeatured',    icon: <Crown size={14}/>,  label: 'Featured',    desc: 'Show on home screen' },
-                    { key: 'hasCertificate',icon: <Award size={14}/>,  label: 'Certificate', desc: 'On course completion' },
-                  ].map(opt => (
+                    // TEMP #15: { key: 'hasCertificate', icon: <Award size={14}/>, label: 'Certificate', desc: 'On course completion' },
+                  ].filter(opt => opt.key !== 'hasCertificate').map(opt => (
                     <label key={opt.key}
                       className={`flex items-center gap-3 p-3.5 rounded-xl border-2 cursor-pointer transition-all
                         ${form[opt.key] ? 'border-brand-400 bg-brand-50' : 'border-slate-200 hover:border-slate-300'}`}
