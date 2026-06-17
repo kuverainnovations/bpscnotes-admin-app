@@ -10,7 +10,7 @@ import {
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
   Coins, Trophy, Zap, BookOpen, Clock, MapPin, Phone,
   Mail, Calendar, TrendingUp, Shield, Star, GraduationCap,
-  Users, Filter, Award, AlertTriangle, X,
+  Users, Filter, Award, AlertTriangle, X, Copy,
 } from 'lucide-react'
 
 const LIMIT = 20
@@ -417,6 +417,18 @@ export default function UsersPage() {
                                 ${u.status === 'banned' ? 'bg-green-50 hover:bg-green-100' : 'bg-red-50 hover:bg-red-100'}`}
                             >
                               <Ban size={13} className={u.status === 'banned' ? 'text-green-600' : 'text-red-600'} />
+                            </button>
+                          </Tooltip>
+
+                          <Tooltip label="Copy User ID (for Tier Room / Award Coins)">
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(u.id)
+                                showToast('User ID copied ✅')
+                              }}
+                              className="w-8 h-8 rounded-lg bg-slate-50 hover:bg-slate-100 flex items-center justify-center transition-colors"
+                            >
+                              <Copy size={13} className="text-slate-500" />
                             </button>
                           </Tooltip>
                         </div>

@@ -35,6 +35,7 @@ const typeEmoji: Record<string,string> = { streak:'🔥', mock:'📝', job:'💼
 export default function NotificationsPage() {
   const { showToast, ToastComponent } = useToast()
   const [list, setList]         = useState<any[]>([])
+  const [notifStats, setNotifStats] = useState({ total_sent: 0, total_opened: 0, scheduled: 0, total_records: 0 })
   const [loading, setLoading]   = useState(true)
   const [search, setSearch]     = useState('')
   const [showModal, setShowModal] = useState(false)
@@ -53,6 +54,7 @@ export default function NotificationsPage() {
     try {
       const res = await api.notifications.list()
       setList(res.data?.notifications || [])
+      if (res.data?.stats) setNotifStats(res.data.stats)
     } catch (e: any) { showToast(e.message||'Failed to load', 'error') }
     finally { setLoading(false) }
   }
@@ -271,4 +273,3 @@ export default function NotificationsPage() {
     </div>
   )
 }
-

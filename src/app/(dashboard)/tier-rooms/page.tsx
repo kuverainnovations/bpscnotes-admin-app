@@ -90,6 +90,7 @@ export default function TierRoomsPage() {
     finally { setLiveLoading(false) }
   }
 
+  useEffect(() => { loadLiveRooms() }, [])  // load on mount for stat card
   useEffect(() => { if (activeTab === 'live') loadLiveRooms() }, [activeTab])
 
   const flash = (msg: string) => {
@@ -166,7 +167,11 @@ export default function TierRoomsPage() {
 
   // ── Stats bar ────────────────────────────────────────────
   const totalMembers  = tiers.reduce((s, t) => s + (t.total_members || 0), 0)
-  const totalActive   = tiers.reduce((s, t) => s + (t.active_sessions || 0), 0)
+  // Use liveRooms for active count (heartbeat-filtered, within 3 min)
+  // Falls back to tiers data if Live Sessions tab hasn't been loaded yet
+  const totalActive   = liveRooms.length > 0
+    ? liveRooms.reduce((s: number, r: any) => s + (r.active_members || 0), 0)
+    : tiers.reduce((s, t) => s + (t.active_sessions || 0), 0)
 
   return (
     <div className="min-h-screen">

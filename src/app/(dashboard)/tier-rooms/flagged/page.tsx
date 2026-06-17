@@ -22,6 +22,7 @@ export default function FlaggedUsersPage() {
   const [loading, setLoading] = useState(true)
   const [msg, setMsg]         = useState('')
   const [clearing, setClearing] = useState<string|null>(null)
+  const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set())
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -122,7 +123,7 @@ export default function FlaggedUsersPage() {
                 </div>
 
                 <div className="space-y-2">
-                  {user.flags?.slice(0, 5).map((flag: any, i: number) => {
+                  {user.flags?.slice(0, expandedUsers.has(user.user_id) ? undefined : 5).map((flag: any, i: number) => {
                     const meta = REASON_META[flag.reason] || { label: flag.reason, color: 'text-slate-700 bg-slate-50 border-slate-200', emoji: '⚠️' }
                     return (
                       <div key={i} className={`flex items-start gap-3 p-2.5 rounded-xl border text-xs ${meta.color}`}>
@@ -138,7 +139,19 @@ export default function FlaggedUsersPage() {
                     )
                   })}
                   {user.flags?.length > 5 && (
-                    <p className="text-xs text-slate-400 text-center">+{user.flags.length - 5} more flags…</p>
+                    <button
+                      onClick={() => setExpandedUsers(prev => {
+                        const next = new Set(prev)
+                        if (next.has(user.user_id)) next.delete(user.user_id)
+                        else next.add(user.user_id)
+                        return next
+                      })}
+                      className="w-full text-xs text-blue-600 hover:text-blue-800 py-1.5 rounded-lg hover:bg-blue-50 transition-colors font-medium"
+                    >
+                      {expandedUsers.has(user.user_id)
+                        ? '▲ Show less'
+                        : `▼ +${user.flags.length - 5} more flags — click to expand`}
+                    </button>
                   )}
                 </div>
               </div>
