@@ -398,10 +398,8 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
                 </table>
               </div>
 
-              <button onClick={() => setQuestions(prev => [...prev, { question: '', option_a: '', option_b: '', option_c: '', option_d: '', option_e: '', correct_option: 'a', explanation: '', subject: meta.subject || '' }])}
-                className="w-full py-2 text-xs text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-emerald-200 transition-colors font-semibold">
-                <Plus size={12} /> Add Row
-              </button>
+              {/* Add Row removed — blank rows caused validation errors on import.
+                  Use Excel/CSV upload to add more questions, or use the delete ✕ on each row. */}
 
               <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl space-y-3">
                 <p className="text-xs font-bold text-emerald-800 uppercase tracking-wide">
@@ -1246,4 +1244,4 @@ export default function QuizzesPage() {
       )}
     </div>
   )
-} 
+}sa
