@@ -314,6 +314,13 @@ export const api = {
     create: (data: any) => request('/admin/current-affairs', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: any) => request(`/admin/current-affairs/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: string) => request(`/admin/current-affairs/${id}`, { method: 'DELETE' }),
+    // Used by RichTextEditor — image paste/insert in the article body editor.
+    // Returns { data: { url } }.
+    uploadImage: (file: File) => {
+      const fd = new FormData()
+      fd.append('image', file)
+      return uploadRequest('/admin/current-affairs/upload-image', fd)
+    },
   },
 
   // ── Jobs ──────────────────────────────────────────────────

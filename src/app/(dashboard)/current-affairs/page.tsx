@@ -8,6 +8,8 @@ import api from '@/lib/api'
 import { useToast } from '@/components/ui/feedback'
 import { useDebounce } from '@/lib/hooks'
 import DynamicSelect from '@/components/ui/DynamicSelect'
+import RichTextEditor from '@/components/ui/RichTextEditor'
+import RichContentView from '@/components/ui/RichContentView'
 import {
   Plus, Search, RefreshCw, Edit, Trash2, Eye, X,
   ChevronLeft, ChevronRight, Filter, Calendar,
@@ -15,9 +17,13 @@ import {
 } from 'lucide-react'
 
 const CATEGORIES = ['General','Economy','Polity','Science & Tech','Environment','International','Bihar','Sports','Defence','Awards']
-const EMPTY_FORM = { title:'', detail:'', category:'General', type:'prelims', examTags:[] as string[], isImportant:false, publishDate:'', status:'draft', readTime:1 }
+const EMPTY_FORM = { title:'', summary:'', detail:'', category:'General', type:'prelims', examTags:[] as string[], isImportant:false, publishDate:'', status:'draft', readTime:1 }
 const OPTION_LABELS = ['A','B','C','D','E']
 const LIMIT = 20
+
+// Plain-text fallback for list-card previews and as a safety-net summary
+// when the admin leaves the Summary field blank.
+const stripHtml = (html?: string) => (html || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
 
 // Issue 8: dynamic option count for MCQs
 const emptyMcqForm = (optCount = 4) => ({
@@ -184,7 +190,7 @@ function Inner() {
   const openNew  = () => { setEditing(null); setForm(EMPTY_FORM); setShowModal(true) }
   const openEdit = (item: any) => {
     setEditing(item)
-    setForm({ title:item.title, detail:item.summary||item.full_content||'', category:item.category,
+    setForm({ title:item.title, summary:item.summary||'', detail:item.full_content||item.fullContent||'', category:item.category,
       type:item.type||(item.exam_tags?.find((t:string)=>['prelims','mains','both'].includes(t))||'prelims'), examTags:item.exam_tags||[], isImportant:item.is_important||false,
       publishDate:item.date?.split('T')[0]||'', status:item.status||'draft', readTime:item.read_time||1 })
     setShowModal(true)
@@ -194,7 +200,11 @@ function Inner() {
     if (!form.title.trim()) { showToast('Title is required', 'error'); return }
     setSaving(true)
     try {
-      const payload = { title:form.title, summary:form.detail, fullContent:form.detail,
+      // Summary is the short plain-text blurb shown in list cards, share
+      // text, and push notifications — fall back to a stripped snippet of
+      // the rich content if the admin left it blank.
+      const summary = form.summary.trim() || stripHtml(form.detail).slice(0, 200)
+      const payload = { title:form.title, summary, fullContent:form.detail,
         category:form.category, type:form.type, examTags:form.examTags,
         isImportant:form.isImportant, date:form.publishDate, status:form.status, readTime:Number(form.readTime)||1 }
       if (editing) await api.currentAffairs.update(editing.id, payload)
@@ -346,7 +356,7 @@ function Inner() {
                   {/* Summary preview */}
                   {(item.summary || item.full_content) && (
                     <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed">
-                      {item.summary || item.full_content}
+                      {item.summary || stripHtml(item.full_content)}
                     </p>
                   )}
 
@@ -397,7 +407,7 @@ function Inner() {
       {/* ══════════════════ CREATE / EDIT MODAL ══════════════════ */}
       {showModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowModal(false)}>
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xl max-h-[92vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="bg-gradient-to-r from-brand-700 to-brand-500 px-6 py-5 flex items-center justify-between shrink-0">
               <div>
                 <h3 className="font-bold text-white text-lg">{editing ? 'Edit Current Affair' : 'Add Current Affair'}</h3>
@@ -415,9 +425,23 @@ function Inner() {
                   className="input h-20 resize-none" placeholder="e.g. India signs trade agreement with…" autoFocus />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5">Detailed Explanation</label>
-                <textarea value={form.detail} onChange={e => setForm({...form,detail:e.target.value})}
-                  className="input h-28 resize-none" placeholder="Full analysis for Mains preparation…" />
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">
+                  Summary <span className="font-normal text-slate-400">(short blurb — list cards, share text, notifications)</span>
+                </label>
+                <textarea value={form.summary} onChange={e => setForm({...form,summary:e.target.value})}
+                  className="input h-16 resize-none" placeholder="One or two sentences. Leave blank to auto-generate from the full article." />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">Full Article Content</label>
+                <RichTextEditor
+                  value={form.detail}
+                  onChange={html => setForm((f: any) => ({...f, detail: html}))}
+                  uploadImage={async (file) => {
+                    const res = await api.currentAffairs.uploadImage(file)
+                    return res.data?.url
+                  }}
+                  placeholder="Full analysis for Mains preparation… use the toolbar for headings, tables, images and more."
+                />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -514,10 +538,17 @@ function Inner() {
                 </div>
               )}
 
-              {(preview.summary || preview.full_content || preview.detail) && (
+              {preview.summary && (
                 <div className="p-4 bg-slate-50 rounded-2xl">
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Detailed Analysis</p>
-                  <p className="text-sm text-slate-700 leading-relaxed">{preview.summary || preview.full_content || preview.detail}</p>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Summary</p>
+                  <p className="text-sm text-slate-700 leading-relaxed">{preview.summary}</p>
+                </div>
+              )}
+
+              {(preview.full_content || preview.fullContent || preview.detail) && (
+                <div className="p-4 bg-slate-50 rounded-2xl">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Full Article</p>
+                  <RichContentView html={preview.full_content || preview.fullContent || preview.detail} />
                 </div>
               )}
 

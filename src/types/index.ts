@@ -63,6 +63,7 @@ export interface JobVacancy {
 // ─── Current Affairs ──────────────────────────────────────────
 export interface CurrentAffair {
   id: string; title: string; summary: string
+  fullContent: string // sanitized rich HTML — rendered via RichContentView
   category: string; date: string; examTags: string[]
   source: string; isImportant: boolean
   status: ContentStatus; views: number; bookmarks: number
