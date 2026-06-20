@@ -437,7 +437,7 @@ export default function StudyMaterialsAdminPage() {
                         {m.language && m.language !== 'English' && (
                           <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-teal-50 text-teal-700 border border-teal-200">🌐 {m.language}</span>
                         )}
-                        {m.isPremium && (
+                        {(m.isPremium || m.is_premium) && (
                           <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-100 text-amber-800 border border-amber-300">
                             💰 ₹{m.status === 'negotiating' ? (m.current_offer_price ?? m.price ?? 0) : (m.price ?? 0)}
                           </span>
