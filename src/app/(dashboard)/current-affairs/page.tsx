@@ -13,7 +13,7 @@ import RichContentView from '@/components/ui/RichContentView'
 import {
   Plus, Search, RefreshCw, Edit, Trash2, Eye, X,
   ChevronLeft, ChevronRight, Filter, Calendar,
-  Star, Tag, BookOpen, Newspaper, Loader2,
+  Star, Tag, BookOpen, Newspaper, Loader2, Percent,
 } from 'lucide-react'
 
 const CATEGORIES = ['General','Economy','Polity','Science & Tech','Environment','International','Bihar','Sports','Defence','Awards']
@@ -66,6 +66,34 @@ function Inner() {
   const [mcqForm, setMcqForm]       = useState<any>(emptyMcqForm(4))
   const [editingMcq, setEditingMcq] = useState<any>(null)
   const [mcqSaving, setMcqSaving]   = useState(false)
+
+  // Global negative marking config — applies to every CA / Practice MCQ
+  // practice session in the app (these are lightweight article-attached
+  // questions, not per-test records, so one global toggle covers them).
+  const [showMcqConfig, setShowMcqConfig]   = useState(false)
+  const [mcqConfig, setMcqConfig]           = useState({ negativeMarkingEnabled: false, marksPerCorrect: 1, marksPerWrong: 0 })
+  const [mcqConfigLoading, setMcqConfigLoading] = useState(false)
+  const [mcqConfigSaving, setMcqConfigSaving]   = useState(false)
+
+  const openMcqConfig = async () => {
+    setShowMcqConfig(true)
+    setMcqConfigLoading(true)
+    try {
+      const res = await api.currentAffairs.getMcqConfig()
+      if (res.data?.config) setMcqConfig(res.data.config)
+    } catch (e: any) { showToast(e.message || 'Failed to load settings', 'error') }
+    finally { setMcqConfigLoading(false) }
+  }
+
+  const saveMcqConfig = async () => {
+    setMcqConfigSaving(true)
+    try {
+      await api.currentAffairs.updateMcqConfig(mcqConfig)
+      showToast('Negative marking settings updated ✅')
+      setShowMcqConfig(false)
+    } catch (e: any) { showToast(e.message || 'Failed to save', 'error') }
+    finally { setMcqConfigSaving(false) }
+  }
 
   // Issue 3: debounced search wired to load
   const load = async () => {
@@ -268,6 +296,9 @@ function Inner() {
             </select>
           </div>
           <button onClick={load} className="btn-secondary px-3 py-2" title="Refresh"><RefreshCw size={13} /></button>
+          <button onClick={openMcqConfig} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 text-sm font-semibold transition-colors" title="Negative marking for MCQs">
+            <Percent size={14} /> MCQ Marking
+          </button>
           <button onClick={openNew} className="btn-primary"><Plus size={14} /> Add Affair</button>
         </div>
 
@@ -700,6 +731,65 @@ function Inner() {
                   {mcq.explanation && <p className="text-xs text-blue-600 mt-2 bg-blue-50 px-2.5 py-1.5 rounded-lg">💡 {mcq.explanation}</p>}
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ════════════════ NEGATIVE MARKING CONFIG MODAL ════════════════ */}
+      {showMcqConfig && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowMcqConfig(false)}>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="bg-gradient-to-r from-red-600 to-rose-500 px-6 py-5 flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-white text-lg">MCQ Negative Marking</h3>
+                <p className="text-white/70 text-xs mt-0.5">Applies to all Current Affairs & Practice MCQs</p>
+              </div>
+              <button onClick={() => setShowMcqConfig(false)} className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center">
+                <X size={15} className="text-white"/>
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              {mcqConfigLoading ? (
+                <div className="py-8 text-center text-slate-400 text-sm flex items-center justify-center gap-2"><Loader2 size={16} className="animate-spin"/> Loading…</div>
+              ) : (
+                <>
+                  <p className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-xl p-3">
+                    These article-attached practice MCQs aren't created like a full test, so this single switch controls negative marking for all of them at once — separate from the per-test settings on the Quizzes page.
+                  </p>
+                  <div className="flex items-center justify-between px-1">
+                    <label className="flex items-center gap-2.5 cursor-pointer select-none"
+                      onClick={() => setMcqConfig(c => ({ ...c, negativeMarkingEnabled: !c.negativeMarkingEnabled }))}>
+                      <div className={`w-10 h-5 rounded-full transition-colors relative shrink-0 ${mcqConfig.negativeMarkingEnabled ? 'bg-red-500' : 'bg-slate-200'}`}>
+                        <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${mcqConfig.negativeMarkingEnabled ? 'translate-x-5' : 'translate-x-0.5'}`}/>
+                      </div>
+                      <span className="text-sm font-bold text-slate-700">⚠️ Enable Negative Marking</span>
+                    </label>
+                  </div>
+                  {mcqConfig.negativeMarkingEnabled && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-600 mb-1.5">✅ Marks / Correct</label>
+                        <input type="number" step={0.25} min={0.25} value={mcqConfig.marksPerCorrect}
+                          onChange={e => setMcqConfig(c => ({ ...c, marksPerCorrect: +e.target.value || 1 }))}
+                          className="input w-full" placeholder="1" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-600 mb-1.5">❌ Marks / Wrong</label>
+                        <input type="number" step={0.01} min={0} value={mcqConfig.marksPerWrong}
+                          onChange={e => setMcqConfig(c => ({ ...c, marksPerWrong: +e.target.value || 0 }))}
+                          className="input w-full" placeholder="0.25" />
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+            <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50/50">
+              <button onClick={() => setShowMcqConfig(false)} className="btn-secondary">Cancel</button>
+              <button onClick={saveMcqConfig} disabled={mcqConfigSaving || mcqConfigLoading} className="btn-primary disabled:opacity-40">
+                {mcqConfigSaving ? <><Loader2 size={14} className="animate-spin"/> Saving…</> : 'Save Settings'}
+              </button>
             </div>
           </div>
         </div>

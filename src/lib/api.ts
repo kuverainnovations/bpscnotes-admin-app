@@ -321,6 +321,11 @@ export const api = {
       fd.append('image', file)
       return uploadRequest('/admin/current-affairs/upload-image', fd)
     },
+    // Global negative marking config for CA / Practice MCQs (app_settings-backed —
+    // CA MCQs are practice questions attached to an article, not a per-test
+    // record like quizzes, so this is one toggle that applies to all of them).
+    getMcqConfig:    () => request('/admin/current-affairs/mcq-config'),
+    updateMcqConfig: (data: any) => request('/admin/current-affairs/mcq-config', { method: 'PUT', body: JSON.stringify(data) }),
   },
 
   // ── Jobs ──────────────────────────────────────────────────

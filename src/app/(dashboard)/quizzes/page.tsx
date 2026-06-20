@@ -47,11 +47,29 @@ function NumInput({ value, onChange, placeholder='', className='', min=0, max=99
   )
 }
 
+// Decimal-capable variant of NumInput — used for marks-per-question fields
+// (e.g. +2, -0.66) where NumInput's parseInt would truncate fractions.
+function DecimalInput({ value, onChange, placeholder='', className='', min=0, max=99, step=0.25 }:
+  {value:number; onChange:(v:number)=>void; placeholder?:string; className?:string; min?:number; max?:number; step?:number}) {
+  const [raw, setRaw] = useState(value === 0 ? '' : String(value))
+  useEffect(() => { setRaw(value === 0 ? '' : String(value)) }, [value])
+  return (
+    <input
+      type="number" step={step} className={`input ${className}`}
+      value={raw} min={min} max={max}
+      placeholder={placeholder || String(min)}
+      onChange={e => { setRaw(e.target.value); const n = parseFloat(e.target.value); if (!isNaN(n)) onChange(n) }}
+      onBlur={() => { if (raw === '' || isNaN(Number(raw))) { setRaw(''); onChange(0) } }}
+    />
+  )
+}
+
 const EMPTY_FORM = {
   title:'', subject:'', type:'topic',
   totalQuestions:10, durationMins:15, passingScore:60,
   coinsReward:10, status:'published', scheduledFor:'',
   examTags:[] as string[],
+  negativeMarkingEnabled:false, marksPerCorrect:1, marksPerWrong:0,
 }
 
 // Issue 13: admin chooses option count (2–5)
@@ -189,7 +207,7 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
   const [result, setResult] = useState<any>(null)
   const [dragOver, setDragOver] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
-  const [meta, setMeta] = useState({ title: '', subject: '', type: 'topic', durationMins: 15, passingScore: 60, coinsReward: 10, status: 'published' })
+  const [meta, setMeta] = useState({ title: '', subject: '', type: 'topic', durationMins: 15, passingScore: 60, coinsReward: 10, status: 'published', negativeMarkingEnabled: false, marksPerCorrect: 1, marksPerWrong: 0 })
 
   const FIELD_MAP: Record<string, string> = {
     quiz_title: 'quiz_title', quiz: 'quiz_title',
@@ -422,6 +440,17 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
                   <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Passing Score (%)</label><input type="number" value={meta.passingScore} onChange={e => setMeta(m => ({ ...m, passingScore: +e.target.value }))} className="input text-sm w-full" min={1} max={100} /></div>
                   <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Coins Reward</label><input type="number" value={meta.coinsReward} onChange={e => setMeta(m => ({ ...m, coinsReward: +e.target.value }))} className="input text-sm w-full" min={0} /></div>
                   <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Status</label><select value={meta.status} onChange={e => setMeta(m => ({ ...m, status: e.target.value }))} className="input text-sm w-full"><option value="published">Published</option><option value="draft">Draft</option></select></div>
+                  <div className="col-span-2 flex items-center gap-2 pt-1">
+                    <input type="checkbox" id="bulkNegMarking" checked={meta.negativeMarkingEnabled}
+                      onChange={e => setMeta(m => ({ ...m, negativeMarkingEnabled: e.target.checked }))} className="w-4 h-4 accent-red-500" />
+                    <label htmlFor="bulkNegMarking" className="text-xs font-bold text-slate-600">⚠️ Enable Negative Marking</label>
+                  </div>
+                  {meta.negativeMarkingEnabled && (
+                    <>
+                      <div><label className="block text-[10px] font-bold text-slate-500 mb-1">✅ Marks / Correct</label><input type="number" step={0.25} value={meta.marksPerCorrect} onChange={e => setMeta(m => ({ ...m, marksPerCorrect: +e.target.value }))} className="input text-sm w-full" min={0.25} placeholder="2" /></div>
+                      <div><label className="block text-[10px] font-bold text-slate-500 mb-1">❌ Marks / Wrong</label><input type="number" step={0.01} value={meta.marksPerWrong} onChange={e => setMeta(m => ({ ...m, marksPerWrong: +e.target.value }))} className="input text-sm w-full" min={0} placeholder="0.66" /></div>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -559,6 +588,9 @@ export default function QuizzesPage() {
       passingScore: q.passing_score, coinsReward: q.coins_reward,
       status: q.status, scheduledFor: q.scheduled_for ? q.scheduled_for.split('T')[0] : '',
       examTags: q.exam_tags || [],
+      negativeMarkingEnabled: q.negative_marking_enabled === true,
+      marksPerCorrect: q.marks_per_correct != null ? +q.marks_per_correct : 1,
+      marksPerWrong:   q.marks_per_wrong   != null ? +q.marks_per_wrong   : 0,
     })
     setShowModal(true)
   }
@@ -694,6 +726,11 @@ export default function QuizzesPage() {
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${quiz.status==='published'?'bg-green-50 text-green-700 border-green-200':'bg-slate-50 text-slate-500 border-slate-200'}`}>
                           {quiz.status}
                         </span>
+                        {quiz.negative_marking_enabled && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-red-50 text-red-600 border-red-200" title={`-${quiz.marks_per_wrong} per wrong answer`}>
+                            ⚠️ -{quiz.marks_per_wrong}
+                          </span>
+                        )}
                       </div>
                       <h3 className="font-bold text-slate-900 text-sm leading-snug line-clamp-2">{quiz.title}</h3>
                       {quiz.subject && <p className="text-xs text-slate-500 mt-0.5">{quiz.subject}</p>}
@@ -827,6 +864,41 @@ export default function QuizzesPage() {
                   <label className="block text-xs font-bold text-slate-600 mb-1.5">🪙 Coins Reward</label>
                   <NumInput value={form.coinsReward} onChange={v => setForm({...form,coinsReward:v})} min={0} placeholder="10" />
                 </div>
+              </div>
+
+              {/* Negative Marking — admin-configurable per test, applies to
+                  Daily Quiz / Topic & Subject-wise / Mock & Full-Length tests
+                  alike since they all share this same quiz record. */}
+              <div className="rounded-2xl border-2 border-slate-200 overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-3 bg-slate-50">
+                  <label className="flex items-center gap-2.5 cursor-pointer select-none"
+                    onClick={() => setForm({...form, negativeMarkingEnabled: !form.negativeMarkingEnabled})}>
+                    <div className={`w-10 h-5 rounded-full transition-colors relative shrink-0 ${form.negativeMarkingEnabled ? 'bg-red-500' : 'bg-slate-200'}`}>
+                      <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${form.negativeMarkingEnabled ? 'translate-x-5' : 'translate-x-0.5'}`}/>
+                    </div>
+                    <span className="text-sm font-bold text-slate-700">⚠️ Negative Marking</span>
+                  </label>
+                  {form.negativeMarkingEnabled && (
+                    <span className="text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-1 rounded-full">ON</span>
+                  )}
+                </div>
+                {form.negativeMarkingEnabled && (
+                  <div className="p-4 space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-600 mb-1.5">✅ Marks / Correct</label>
+                        <DecimalInput value={form.marksPerCorrect} onChange={v => setForm({...form,marksPerCorrect:v})} min={0.25} max={20} step={0.25} placeholder="2" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-600 mb-1.5">❌ Marks / Wrong</label>
+                        <DecimalInput value={form.marksPerWrong} onChange={v => setForm({...form,marksPerWrong:v})} min={0} max={20} step={0.01} placeholder="0.66" />
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-slate-500 bg-white border border-slate-200 rounded-xl px-3 py-2">
+                      Correct answer: <span className="font-bold text-emerald-600">+{form.marksPerCorrect || 0}</span> marks · Wrong answer: <span className="font-bold text-red-600">-{form.marksPerWrong || 0}</span> marks · Unanswered: <span className="font-bold text-slate-600">0</span> marks
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Status */}
