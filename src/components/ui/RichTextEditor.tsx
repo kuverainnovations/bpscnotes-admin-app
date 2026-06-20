@@ -121,7 +121,9 @@ export default function RichTextEditor({ value, onChange, uploadImage, placehold
     if (!editor) return
     const isFocused = editor.isFocused
     if (!isFocused && value !== editor.getHTML()) {
-      editor.commands.setContent(value || '', false)
+      editor.commands.setContent(value || '', {
+        emitUpdate: false,
+      })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, editor])
