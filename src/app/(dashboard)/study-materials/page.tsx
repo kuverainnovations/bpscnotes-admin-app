@@ -7,7 +7,7 @@ import {
   RefreshCw, CheckCircle, XCircle, Star, Trash2,
   Eye, Pin, TrendingUp, X, ChevronLeft, ChevronRight,
   ChevronsLeft, ChevronsRight, Users, HardDrive, Download,
-  Calendar, PlayCircle, FileText, Volume2,
+  Calendar, PlayCircle, FileText, Volume2, Check,
 } from 'lucide-react'
 
 const STATUS_TABS = [
@@ -139,6 +139,9 @@ export default function StudyMaterialsAdminPage() {
   const [status,    setStatus]    = useState('pending')
   const [search,    setSearch]    = useState('')
   const [materials, setMaterials] = useState<any[]>([])
+  // Inline language editor — opens a small picker on the language badge
+  const [langEditId, setLangEditId] = useState<string | null>(null)
+  const [langSaving, setLangSaving] = useState(false)
   const [stats,     setStats]     = useState<any>(null)
   const [loading,   setLoading]   = useState(true)
   const [page, setPage]           = useState(1)
@@ -175,6 +178,20 @@ export default function StudyMaterialsAdminPage() {
   }, [])
 
   // Issue 3: Pass page + limit for pagination
+  const handleSetLanguage = async (id: string, language: string) => {
+    setLangSaving(true)
+    try {
+      await api.studyMaterials.updateLanguage(id, language)
+      setMaterials(prev => prev.map(m => m.id === id ? { ...m, language } : m))
+      showToast('Language updated', 'success')
+    } catch (e: any) {
+      showToast(e.message || 'Failed to update language', 'error')
+    } finally {
+      setLangSaving(false)
+      setLangEditId(null)
+    }
+  }
+
   const load = useCallback(async () => {
     setLoading(true)
     try {
@@ -434,9 +451,35 @@ export default function StudyMaterialsAdminPage() {
                         )}
                         {m.isFeatured  && <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-blue-50 text-blue-700 border border-blue-200">📌 Featured</span>}
                         {m.isTrending  && <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-orange-50 text-orange-700 border border-orange-200">🔥 Trending</span>}
-                        {m.language && m.language !== 'English' && (
-                          <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-teal-50 text-teal-700 border border-teal-200">🌐 {m.language}</span>
-                        )}
+                        <span className="relative">
+                          <button
+                            onClick={() => setLangEditId(langEditId === m.id ? null : m.id)}
+                            className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border transition-colors ${
+                              m.language && m.language !== 'English'
+                                ? 'bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100'
+                                : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
+                            }`}
+                          >
+                            🌐 {m.language || 'English'}
+                          </button>
+                          {langEditId === m.id && (
+                            <div className="absolute z-20 top-full left-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg p-1.5 w-44">
+                              {['English', 'Hindi', 'Hindi + English'].map(lang => (
+                                <button
+                                  key={lang}
+                                  disabled={langSaving}
+                                  onClick={() => handleSetLanguage(m.id, lang)}
+                                  className={`w-full text-left text-xs px-2.5 py-1.5 rounded-lg flex items-center justify-between disabled:opacity-50 ${
+                                    (m.language || 'English') === lang ? 'bg-teal-50 text-teal-700 font-semibold' : 'text-slate-600 hover:bg-slate-50'
+                                  }`}
+                                >
+                                  {lang}
+                                  {(m.language || 'English') === lang && <Check size={12} />}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </span>
                         {(m.isPremium || m.is_premium) && (
                           <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-100 text-amber-800 border border-amber-300">
                             💰 ₹{m.status === 'negotiating' ? (m.current_offer_price ?? m.price ?? 0) : (m.price ?? 0)}
@@ -450,11 +493,6 @@ export default function StudyMaterialsAdminPage() {
                           <span className="flex items-center gap-1 font-medium text-slate-600">
                             <FileText size={11} className="text-slate-400" />
                             {m.subject || m.exam_tag}
-                          </span>
-                        )}
-                        {m.language && (
-                          <span className="flex items-center gap-1">
-                            🌐 {m.language}
                           </span>
                         )}
                         <span className="flex items-center gap-1">

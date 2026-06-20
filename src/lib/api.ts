@@ -238,6 +238,9 @@ export const api = {
   
     approve: (id: string) =>
       request(`/admin/study-materials/${id}/approve`, { method: 'PATCH' }),
+
+    updateLanguage: (id: string, language: string) =>
+      request(`/admin/study-materials/${id}/language`, { method: 'PATCH', body: JSON.stringify({ language }) }),
   
     reject: (id: string, reason: string) =>
       request(`/admin/study-materials/${id}/reject`, { method: 'PATCH', body: JSON.stringify({ reason }) }),
