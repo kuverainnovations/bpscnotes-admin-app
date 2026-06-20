@@ -434,6 +434,14 @@ export default function StudyMaterialsAdminPage() {
                         )}
                         {m.isFeatured  && <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-blue-50 text-blue-700 border border-blue-200">📌 Featured</span>}
                         {m.isTrending  && <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-orange-50 text-orange-700 border border-orange-200">🔥 Trending</span>}
+                        {m.language && m.language !== 'English' && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-teal-50 text-teal-700 border border-teal-200">🌐 {m.language}</span>
+                        )}
+                        {m.isPremium && m.status === 'pending' && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                            💰 Premium · ₹{m.price ?? 0}
+                          </span>
+                        )}
                       </div>
 
                       {/* Metadata row */}
@@ -442,6 +450,11 @@ export default function StudyMaterialsAdminPage() {
                           <span className="flex items-center gap-1 font-medium text-slate-600">
                             <FileText size={11} className="text-slate-400" />
                             {m.subject || m.exam_tag}
+                          </span>
+                        )}
+                        {m.language && (
+                          <span className="flex items-center gap-1">
+                            🌐 {m.language}
                           </span>
                         )}
                         <span className="flex items-center gap-1">
@@ -500,6 +513,12 @@ export default function StudyMaterialsAdminPage() {
                               <>Awaiting uploader's response to <b>₹{m.current_offer_price}</b> (your offer)</>
                             ) : (
                               <>Uploader countered with <b>₹{m.current_offer_price}</b> (original: ₹{m.price})</>
+                            )}
+                            {m.proposed_by === 'user' && (m.student_negotiation_message || m.studentNegotiationMessage) && (
+                              <div className="mt-1.5 bg-white border border-indigo-200 rounded-md px-2 py-1.5 text-indigo-900">
+                                <span className="font-semibold text-indigo-500">Student message: </span>
+                                {m.student_negotiation_message || m.studentNegotiationMessage}
+                              </div>
                             )}
                             {m.negotiation_round >= 3 && m.proposed_by === 'user' && m.negotiation_status === 'awaiting_admin' && (
                               <span className="block mt-1 font-semibold text-indigo-900">
@@ -972,40 +991,44 @@ export default function StudyMaterialsAdminPage() {
                   {(walletDetail.transactions ?? []).length === 0 ? (
                     <p className="text-sm text-slate-400 text-center py-6">No transactions yet.</p>
                   ) : (
-                    <table className="w-full text-sm">
-                      <thead className="border-b border-slate-200">
-                        <tr className="text-left text-xs font-semibold text-slate-500 uppercase">
-                          <th className="py-2">Material</th>
-                          <th className="py-2">Date</th>
-                          <th className="py-2">Status</th>
-                          <th className="py-2 text-right">Amount</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {walletDetail.transactions.map((t: any) => {
-                          const isCredit = t.type === 'sale_credit'
-                          const statusColor = t.status === 'disbursed' ? 'text-emerald-600 bg-emerald-50 border-emerald-200'
-                            : t.status === 'pending' ? 'text-amber-600 bg-amber-50 border-amber-200'
-                            : 'text-red-600 bg-red-50 border-red-200'
-                          return (
-                            <tr key={t.id}>
-                              <td className="py-2 font-semibold text-slate-700 max-w-[180px] truncate">
-                                {t.material_title || t.description || (isCredit ? 'Sale credit' : t.type)}
-                              </td>
-                              <td className="py-2 text-slate-400 whitespace-nowrap">
-                                {t.created_at ? new Date(t.created_at).toLocaleString('en-IN', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—'}
-                              </td>
-                              <td className="py-2">
-                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${statusColor}`}>{t.status}</span>
-                              </td>
-                              <td className={`py-2 text-right font-bold ${isCredit ? 'text-emerald-600' : 'text-red-600'}`}>
-                                {isCredit ? '+' : '−'}₹{t.amount}
-                              </td>
+                    <div className="border border-slate-200 rounded-xl overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm border-collapse min-w-[480px]">
+                          <thead className="bg-slate-50 border-b border-slate-200">
+                            <tr className="text-left text-[11px] font-bold text-slate-500 uppercase tracking-wide">
+                              <th className="py-2.5 px-3">Material</th>
+                              <th className="py-2.5 px-3">Date</th>
+                              <th className="py-2.5 px-3">Status</th>
+                              <th className="py-2.5 px-3 text-right">Amount</th>
                             </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {walletDetail.transactions.map((t: any, i: number) => {
+                              const isCredit = t.type === 'sale_credit'
+                              const statusColor = t.status === 'disbursed' ? 'text-emerald-600 bg-emerald-50 border-emerald-200'
+                                : t.status === 'pending' ? 'text-amber-600 bg-amber-50 border-amber-200'
+                                : 'text-red-600 bg-red-50 border-red-200'
+                              return (
+                                <tr key={t.id} className={i % 2 === 1 ? 'bg-slate-50/50' : ''}>
+                                  <td className="py-2.5 px-3 font-semibold text-slate-700 max-w-[180px] truncate">
+                                    {t.material_title || t.description || (isCredit ? 'Sale credit' : t.type)}
+                                  </td>
+                                  <td className="py-2.5 px-3 text-slate-400 whitespace-nowrap text-xs">
+                                    {t.created_at ? new Date(t.created_at).toLocaleString('en-IN', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—'}
+                                  </td>
+                                  <td className="py-2.5 px-3">
+                                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border whitespace-nowrap ${statusColor}`}>{t.status}</span>
+                                  </td>
+                                  <td className={`py-2.5 px-3 text-right font-bold whitespace-nowrap ${isCredit ? 'text-emerald-600' : 'text-red-600'}`}>
+                                    {isCredit ? '+' : '−'}₹{t.amount}
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   )}
                 </div>
               </>

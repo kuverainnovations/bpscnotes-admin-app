@@ -186,6 +186,9 @@ export const api = {
     // Chapter CRUD
     getChapters:    (courseId: string) =>
                       request(`/admin/courses/${courseId}/chapters`),
+    // Student reviews/ratings
+    getReviews:     (courseId: string) =>
+                      request(`/admin/courses/${courseId}/reviews`),
     createChapter:  (courseId: string, data: { title: string; sortOrder?: number }) =>
                       request(`/admin/courses/${courseId}/chapters`, { method: 'POST', body: JSON.stringify(data) }),
     updateChapter:  (courseId: string, chapterId: string, data: any) =>

@@ -222,10 +222,10 @@ function Inner() {
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { emoji:'📰', label:'Total',     value:total,                              color:'text-slate-700',  bg:'bg-slate-50' },
-            { emoji:'🎯', label:'Prelims',   value:counts.prelims + counts.both,       color:'text-green-700',  bg:'bg-green-50' },
-            { emoji:'📝', label:'Mains',     value:counts.mains   + counts.both,       color:'text-purple-700', bg:'bg-purple-50' },
-            { emoji:'⭐', label:'Important', value:counts.important,                   color:'text-amber-700',  bg:'bg-amber-50' },
+            { emoji:'📰', label:'Total',     value:total,             color:'text-slate-700',  bg:'bg-slate-50' },
+            { emoji:'🎯', label:'Prelims',   value:counts.prelims,    color:'text-green-700',  bg:'bg-green-50' },
+            { emoji:'📝', label:'Mains',     value:counts.mains,      color:'text-purple-700', bg:'bg-purple-50' },
+            { emoji:'⭐', label:'Important', value:counts.important,  color:'text-amber-700',  bg:'bg-amber-50' },
           ].map(s => (
             <div key={s.label} className={`card p-4 flex items-center gap-3 ${s.bg}`}>
               <span className="text-2xl">{s.emoji}</span>
@@ -552,7 +552,7 @@ function Inner() {
 
             <div className="bg-gradient-to-r from-purple-700 to-purple-500 px-6 py-4 flex items-center justify-between shrink-0">
               <div>
-                <h3 className="font-bold text-white">MCQ Questions</h3>
+                <h3 className="font-bold text-white">Multiple Choice Questions (MCQs)</h3>
                 <p className="text-white/60 text-xs mt-0.5 line-clamp-1">{mcqAffair.title}</p>
               </div>
               <button onClick={() => setMcqAffair(null)} className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center">

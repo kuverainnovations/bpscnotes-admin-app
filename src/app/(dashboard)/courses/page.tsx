@@ -8,7 +8,7 @@ import {
   ChevronDown, ChevronRight, GripVertical, Star, Users, Clock,
   Globe, Award, Tag, Eye, EyeOff, Layers, Video, FileText,
   AlertTriangle, CheckCircle, BookMarked, Zap, Crown, ChevronsLeft, ChevronLeft, ChevronsRight,
-  Lock, ShieldCheck, Upload, File, ExternalLink,
+  Lock, ShieldCheck, Upload, File, ExternalLink, User,
 } from 'lucide-react'
 import DynamicSelect from '@/components/ui/DynamicSelect'
 
@@ -201,6 +201,11 @@ export default function ContentPage() {
   const [reviewList, setReviewList]     = useState<any[]>([])
   const [reviewLoading, setReviewLoading] = useState(false)
   const [reviewOpen, setReviewOpen]     = useState(false)
+
+  // Student reviews/ratings modal (per-course)
+  const [reviewsCourse, setReviewsCourse]   = useState<any>(null)
+  const [courseReviews, setCourseReviews]   = useState<any[]>([])
+  const [reviewsModalLoading, setReviewsModalLoading] = useState(false)
   const [rejectCourse, setRejectCourse] = useState<any>(null)
   const [rejectReason, setRejectReason] = useState('')
   const [previewCourse, setPreviewCourse] = useState<any>(null)
@@ -252,6 +257,20 @@ export default function ContentPage() {
     setContentCourse(c)
     loadChapters(c.id)
     setTimeout(() => chapterRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
+  }
+
+  const openReviews = async (c: any) => {
+    setReviewsCourse(c)
+    setReviewsModalLoading(true)
+    try {
+      const res = await api.courses.getReviews(c.id)
+      setCourseReviews(res.data?.reviews || [])
+    } catch {
+      showToast('Failed to load reviews', 'error')
+      setCourseReviews([])
+    } finally {
+      setReviewsModalLoading(false)
+    }
   }
 
   const loadChapters = async (courseId: string) => {
@@ -595,6 +614,12 @@ export default function ContentPage() {
                       className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-semibold transition-colors"
                     >
                       <BookOpen size={12} /> Chapters
+                    </button>
+                    <button
+                      onClick={() => openReviews(c)}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-semibold transition-colors"
+                    >
+                      <Star size={12} /> Reviews{c.review_count > 0 ? ` (${c.review_count})` : ''}
                     </button>
                     <button
                       onClick={() => remove(c.id)}
@@ -1002,12 +1027,9 @@ export default function ContentPage() {
                     </>
                   )}
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1.5">Total Hours *</label>
+                    <label className="block text-xs font-bold text-slate-500 mb-1.5">Total Hours <span className="font-normal text-slate-400">(optional)</span></label>
                     <input type="number" step="0.5" value={form.totalHours} onChange={e => setForm({...form, totalHours: e.target.value === '' ? '' : +e.target.value})}
-                      className={`input w-full ${(!form.totalHours || +form.totalHours <= 0) ? 'border-red-300' : ''}`} placeholder="0" />
-                    {(!form.totalHours || +form.totalHours <= 0) && (
-                      <p className="text-[11px] text-red-500 mt-1">Total Hours is required and must be greater than 0</p>
-                    )}
+                      className="input w-full" placeholder="0" />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-500 mb-1.5">Status</label>
@@ -1090,43 +1112,12 @@ export default function ContentPage() {
                   ))}
                 </div>
               </section>
-
-              {/* Section 4: What You'll Learn */}
-              <section>
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-6 h-6 rounded-lg bg-teal-100 flex items-center justify-center text-teal-700 text-xs font-black">4</div>
-                  <h3 className="font-bold text-slate-800">What Students Will Learn *</h3>
-                </div>
-                <div className="space-y-2 mb-3 max-h-36 overflow-y-auto">
-                  {form.whatYouLearn.map((item: string, i: number) => (
-                    <div key={i} className="flex items-center gap-2.5 px-3.5 py-2.5 bg-teal-50 rounded-xl border border-teal-100">
-                      <CheckCircle size={13} className="text-teal-500 shrink-0" />
-                      <span className="text-sm flex-1 text-slate-700">{item}</span>
-                      <button onClick={() => setForm((f:any) => ({...f, whatYouLearn: f.whatYouLearn.filter((_:any,idx:number)=>idx!==i)}))}
-                        className="text-slate-300 hover:text-red-400 transition-colors">
-                        <X size={13} />
-                      </button>
-                    </div>
-                  ))}
-                  {form.whatYouLearn.length === 0 && (
-                    <p className="text-[11px] text-red-500 px-1">At least one learning outcome is required</p>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <input value={newLearnItem}
-                    onChange={e => setNewLearnItem(e.target.value)}
-                    onKeyDown={e => { if (e.key !== 'Enter') return; const v = newLearnItem.trim(); if (!v) return; setForm((f:any) => ({...f, whatYouLearn:[...f.whatYouLearn,v]})); setNewLearnItem('') }}
-                    placeholder="e.g. Understand Fundamental Rights… press Enter" className="input flex-1 text-sm" />
-                  <button onClick={() => { const v = newLearnItem.trim(); if (!v) return; setForm((f:any)=>({...f,whatYouLearn:[...f.whatYouLearn,v]})); setNewLearnItem('') }}
-                    className="btn-primary text-sm px-3 py-2 shrink-0"><Plus size={14}/></button>
-                </div>
-              </section>
             </div>
 
             {/* Footer */}
             <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50/50 rounded-b-3xl shrink-0">
               <button onClick={() => setShowModal(false)} className="btn-secondary">Cancel</button>
-              <button onClick={save} disabled={saving || !form.title.trim() || !form.subject.trim() || !form.totalHours || +form.totalHours <= 0 || form.whatYouLearn.length === 0 || (form.isPaid && (!form.price || form.price <= 0))}
+              <button onClick={save} disabled={saving || !form.title.trim() || !form.subject.trim() || (form.isPaid && (!form.price || form.price <= 0))}
                 className="btn-primary disabled:opacity-40">
                 {saving
                   ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Saving…</>
@@ -1250,6 +1241,61 @@ export default function ContentPage() {
             <div className="flex gap-3 mt-4">
               <button onClick={() => setRejectCourse(null)} className="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50">Cancel</button>
               <button onClick={confirmRejectCourse} className="flex-1 py-2.5 bg-red-500 text-white rounded-xl text-sm font-bold hover:bg-red-600">Send Back to Draft</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Student Reviews Modal ──────────────────────────── */}
+      {reviewsCourse && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Student Reviews</h3>
+                <p className="text-sm text-slate-500 mt-0.5 line-clamp-1">"{reviewsCourse.title}"</p>
+              </div>
+              <button onClick={() => { setReviewsCourse(null); setCourseReviews([]) }} className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200">✕</button>
+            </div>
+
+            <div className="px-6 py-3 border-b border-slate-100 flex items-center gap-3 shrink-0">
+              <div className="flex items-center gap-1.5">
+                <Star size={16} className="text-amber-400 fill-amber-400" />
+                <span className="text-base font-bold text-slate-800">{parseFloat(reviewsCourse.rating || 0).toFixed(1)}</span>
+              </div>
+              <span className="text-sm text-slate-400">·</span>
+              <span className="text-sm text-slate-500">{reviewsCourse.review_count || courseReviews.length} review{(reviewsCourse.review_count || courseReviews.length) !== 1 ? 's' : ''}</span>
+            </div>
+
+            <div className="overflow-y-auto px-6 py-4 space-y-3">
+              {reviewsModalLoading ? (
+                <p className="text-sm text-slate-400 text-center py-8">Loading reviews…</p>
+              ) : courseReviews.length === 0 ? (
+                <p className="text-sm text-slate-400 text-center py-8">No reviews yet for this course.</p>
+              ) : (
+                courseReviews.map((r: any) => (
+                  <div key={r.id} className="border border-slate-100 rounded-xl p-3.5">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <User size={13} className="text-slate-400" />
+                        <span className="text-sm font-semibold text-slate-700">{r.reviewer_name || 'Anonymous'}</span>
+                        {r.is_verified && (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200 font-semibold">Verified</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-0.5">
+                        {Array.from({ length: 5 }, (_, i) => (
+                          <Star key={i} size={11} className={i < r.rating ? 'text-amber-400 fill-amber-400' : 'text-slate-200'} />
+                        ))}
+                      </div>
+                    </div>
+                    {r.comment && <p className="text-sm text-slate-600">{r.comment}</p>}
+                    <p className="text-[11px] text-slate-400 mt-1.5">
+                      {r.created_at ? new Date(r.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
+                    </p>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
