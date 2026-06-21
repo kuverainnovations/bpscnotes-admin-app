@@ -304,6 +304,9 @@ export const api = {
     // Bulk import multiple quizzes: groups questions by quiz_title column
     bulkImportMulti: (groups: { quiz: any; questions: any[] }[]) =>
                     request('/admin/quizzes/bulk-import-multi', { method: 'POST', body: JSON.stringify({ groups }) }),
+    // Check which of these titles already exist — used before bulk import to warn the admin
+    checkTitles: (titles: string[]) =>
+                    request('/admin/quizzes/check-titles', { method: 'POST', body: JSON.stringify({ titles }) }),
     updateQuestion:   (questionId: string, d: any)   => request(`/admin/questions/${questionId}`, { method: 'PUT',    body: JSON.stringify(d) }),
     deleteQuestion:   (questionId: string)            => request(`/admin/questions/${questionId}`, { method: 'DELETE' }),
   },
@@ -314,18 +317,6 @@ export const api = {
     create: (data: any) => request('/admin/current-affairs', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: any) => request(`/admin/current-affairs/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: string) => request(`/admin/current-affairs/${id}`, { method: 'DELETE' }),
-    // Used by RichTextEditor — image paste/insert in the article body editor.
-    // Returns { data: { url } }.
-    uploadImage: (file: File) => {
-      const fd = new FormData()
-      fd.append('image', file)
-      return uploadRequest('/admin/current-affairs/upload-image', fd)
-    },
-    // Global negative marking config for CA / Practice MCQs (app_settings-backed —
-    // CA MCQs are practice questions attached to an article, not a per-test
-    // record like quizzes, so this is one toggle that applies to all of them).
-    getMcqConfig:    () => request('/admin/current-affairs/mcq-config'),
-    updateMcqConfig: (data: any) => request('/admin/current-affairs/mcq-config', { method: 'PUT', body: JSON.stringify(data) }),
   },
 
   // ── Jobs ──────────────────────────────────────────────────
