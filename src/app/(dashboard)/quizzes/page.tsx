@@ -105,9 +105,9 @@ function downloadTemplate() {
 
   const qRows = [
     ['quiz_title', 'question', 'option_a', 'option_b', 'option_c', 'option_d', 'option_e', 'correct_option', 'explanation', 'subject'],
-    ['Polity Quiz 1', 'What is the capital of Bihar?', 'Patna', 'Ranchi', 'Gaya', 'Muzaffarpur', '', 'a', 'Patna has been the capital since ancient times.', 'Bihar GK'],
-    ['Polity Quiz 1', 'Who was the first Chief Minister of Bihar?', 'Shri Krishna Sinha', 'Anugrah Narayan Sinha', 'Binodanand Jha', 'Mahamaya Prasad Sinha', '', 'a', 'Sri Krishna Sinha became the first CM in 1946.', 'Bihar GK'],
-    ['Polity Quiz 1', 'Which river flows through Patna?', 'Ganga', 'Yamuna', 'Godavari', 'Kaveri', '', 'a', 'The Ganga river flows through Patna.', 'Geography'],
+    ['Bihar GK Quiz 1', 'What is the capital of Bihar?', 'Patna', 'Ranchi', 'Gaya', 'Muzaffarpur', '', 'a', 'Patna has been the capital since ancient times.', 'Bihar GK'],
+    ['Bihar GK Quiz 1', 'Who was the first Chief Minister of Bihar?', 'Shri Krishna Sinha', 'Anugrah Narayan Sinha', 'Binodanand Jha', 'Mahamaya Prasad Sinha', '', 'a', 'Sri Krishna Sinha became the first CM in 1946.', 'Bihar GK'],
+    ['Geography Quiz 1', 'Which river flows through Patna?', 'Ganga', 'Yamuna', 'Godavari', 'Kaveri', '', 'a', 'The Ganga river flows through Patna.', 'Geography'],
     ['Polity Quiz 1', 'Article 370 was related to which state?', 'Jammu & Kashmir', 'Himachal Pradesh', 'Uttarakhand', 'Sikkim', '', 'a', 'Article 370 granted special status to J&K.', 'Polity'],
     ['Polity Quiz 1', 'Fundamental Rights are in which Part?', 'Part III', 'Part IV', 'Part II', 'Part V', '', 'a', 'Part III (Articles 12-35) contains Fundamental Rights.', 'Polity'],
     ['History Quiz 1', 'Who is the Iron Man of India?', 'Sardar Vallabhbhai Patel', 'Subhas Chandra Bose', 'Bal Gangadhar Tilak', 'Lal Bahadur Shastri', '', 'a', 'Sardar Patel unified the princely states.', 'History'],
@@ -199,6 +199,44 @@ async function parseFile(file: File): Promise<{ questions: any[]; quizMeta: Reco
   return { questions, quizMeta }
 }
 
+/**
+ * Picks the subject for a detected quiz group by majority vote across its rows,
+ * falling back to the form's global subject only when no row has one set.
+ *
+ * FIX: previously this just took `qs[0]?.subject` — whichever row happened to
+ * be first in the sheet. For a quiz_title group whose rows span several
+ * subjects (e.g. "Polity Quiz 1" containing 2 Bihar GK + 1 Geography + 2 Polity
+ * questions — a realistic mix for this kind of exam content), the quiz-level
+ * subject ended up being whatever subject the FIRST row happened to carry,
+ * regardless of how representative that was, and regardless of what the admin
+ * had typed into the "Subject" field in Quiz Details (that field is only used
+ * when a row's subject is blank, so editing it has no effect once every row
+ * already has a subject — which the column reference panel actively
+ * encourages by labelling `subject` "optional per-question"). Majority vote
+ * is a strictly better default; `mixedSubjectInfo` below surfaces the
+ * remaining ambiguous cases (genuine ties) so the admin can fix them by
+ * editing the per-row Subject cells before importing, instead of finding out
+ * after the quiz is already created.
+ */
+function majoritySubject(qs: any[], fallback: string): string {
+  const tally: Record<string, number> = {}
+  for (const q of qs) {
+    const s = (q.subject || '').trim()
+    if (s) tally[s] = (tally[s] || 0) + 1
+  }
+  let best = ''
+  let bestCount = 0
+  for (const [s, c] of Object.entries(tally)) {
+    if (c > bestCount) { best = s; bestCount = c }
+  }
+  return best || fallback
+}
+
+/** Distinct non-empty subjects present in a group, for the mixed-subject warning. */
+function distinctSubjects(qs: any[]): string[] {
+  return Array.from(new Set(qs.map(q => (q.subject || '').trim()).filter(Boolean)))
+}
+
 function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
   const [step, setStep] = useState<'upload' | 'preview' | 'done'>('upload')
   const [questions, setQuestions] = useState<any[]>([])
@@ -281,7 +319,7 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
           groupMap[key].push(rest)
         }
         const groups = Object.entries(groupMap).map(([title, qs]) => ({
-          quiz: { ...meta, title, subject: qs[0]?.subject || meta.subject },
+          quiz: { ...meta, title, subject: majoritySubject(qs, meta.subject) },
           questions: qs,
         }))
         const res = await (api.quizzes as any).bulkImportMulti(groups)
@@ -335,7 +373,7 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs space-y-2">
                 <p className="font-bold text-slate-700">Column Reference</p>
                 <div className="grid grid-cols-2 gap-1.5">
-                  {[['quiz_title','Quiz name — groups rows into separate quizzes'],['question','The question text'],['option_a','First option'],['option_b','Second option'],['option_c','Third (optional)'],['option_d','Fourth (optional)'],['option_e','Fifth (optional)'],['correct_option','a/b/c/d/e or 1/2/3/4'],['explanation','Shown after answering (optional)'],['subject','Per-question subject (optional)']].map(([col, desc]) => (
+                  {[['quiz_title','Quiz name — groups rows into separate quizzes. Keep one subject per group.'],['question','The question text'],['option_a','First option'],['option_b','Second option'],['option_c','Third (optional)'],['option_d','Fourth (optional)'],['option_e','Fifth (optional)'],['correct_option','a/b/c/d/e or 1/2/3/4'],['explanation','Shown after answering (optional)'],['subject','Sets each quiz\'s subject by majority — split mixed-subject content into separate quiz_title groups']].map(([col, desc]) => (
                     <div key={col} className="flex gap-1.5">
                       <code className="bg-white border border-slate-200 px-1.5 py-0.5 rounded text-emerald-700 font-mono shrink-0">{col}</code>
                       <span className="text-slate-500">{desc}</span>
@@ -426,15 +464,49 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
                     : 'Quiz Details — from your sheet'}
                 </p>
                 {questions.some(q => q.quiz_title) && (
-                  <div className="p-2.5 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-700">
-                    Titles are taken from the <code className="font-mono bg-white px-1 rounded">quiz_title</code> column. The settings below (type, duration, etc.) apply to all quizzes.
-                  </div>
+                  <>
+                    <div className="p-2.5 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-700">
+                      Titles are taken from the <code className="font-mono bg-white px-1 rounded">quiz_title</code> column. Type, duration, passing score, coins and status below apply to every quiz. Subject is decided per quiz from the rows' own <code className="font-mono bg-white px-1 rounded">subject</code> column — see the breakdown below.
+                    </div>
+                    {/* Per-quiz subject preview — shows exactly what will be created,
+                        and flags groups whose rows span more than one subject so the
+                        admin can fix the offending cells above before importing. */}
+                    <div className="space-y-1.5">
+                      {uniqueQuizTitles.map(title => {
+                        const qs = questions.filter(q => (q.quiz_title || '').trim() === title)
+                        const subj = majoritySubject(qs, meta.subject)
+                        const distinct = distinctSubjects(qs)
+                        const mixed = distinct.length > 1
+                        return (
+                          <div key={title} className="flex items-center justify-between gap-2 px-3 py-2 bg-white rounded-xl border border-emerald-100 text-xs">
+                            <span className="font-semibold text-slate-700 truncate">{title} <span className="text-slate-400 font-normal">· {qs.length} Qs</span></span>
+                            <span className="flex items-center gap-1.5 shrink-0">
+                              <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-bold">{subj || '—'}</span>
+                              {mixed && (
+                                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-bold" title={`Rows have different subjects: ${distinct.join(', ')}`}>
+                                  <AlertTriangle size={10} /> mixed: {distinct.join(', ')}
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </>
                 )}
                 <div className="grid grid-cols-2 gap-2">
                   {!questions.some(q => q.quiz_title) && (
                     <div className="col-span-2"><label className="block text-[10px] font-bold text-slate-500 mb-1">Title *</label><input value={meta.title} onChange={e => setMeta(m => ({ ...m, title: e.target.value }))} placeholder="Quiz title" className="input w-full text-sm" /></div>
                   )}
-                  <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Subject *</label><input value={meta.subject} onChange={e => setMeta(m => ({ ...m, subject: e.target.value }))} placeholder="Subject" className="input text-sm w-full" /></div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">
+                      {questions.some(q => q.quiz_title) ? 'Fallback Subject' : 'Subject *'}
+                    </label>
+                    <input value={meta.subject} onChange={e => setMeta(m => ({ ...m, subject: e.target.value }))} placeholder="Subject" className="input text-sm w-full" />
+                    {questions.some(q => q.quiz_title) && (
+                      <p className="text-[10px] text-slate-400 mt-1">Only used for a quiz whose rows have no subject set — see breakdown above.</p>
+                    )}
+                  </div>
                   <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Type</label><select value={meta.type} onChange={e => setMeta(m => ({ ...m, type: e.target.value }))} className="input text-sm w-full"><option value="topic">Topic</option><option value="mock">Mock Test</option><option value="daily">Daily</option></select></div>
                   <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Duration (mins)</label><input type="number" value={meta.durationMins} onChange={e => setMeta(m => ({ ...m, durationMins: +e.target.value }))} className="input text-sm w-full" min={1} /></div>
                   <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Passing Score (%)</label><input type="number" value={meta.passingScore} onChange={e => setMeta(m => ({ ...m, passingScore: +e.target.value }))} className="input text-sm w-full" min={1} max={100} /></div>
