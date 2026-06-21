@@ -47,7 +47,7 @@ export interface Quiz {
   duration: number; attempts: number; avgScore: number
   status: ContentStatus; createdAt: string
   type: 'daily' | 'topic' | 'mock'
-  passingScore: number; coins: number
+  coins: number
 }
 
 // ─── Job Vacancy ──────────────────────────────────────────────

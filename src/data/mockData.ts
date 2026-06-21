@@ -89,11 +89,11 @@ export const libraryNotes: LibraryNote[] = [
 
 // ─── Quizzes ─────────────────────────────────────────────────
 export const quizzes: Quiz[] = [
-  { id:'q1', title:'Daily Quiz — Polity', subject:'Polity', examTags:['BPSC 70th CCE'], totalQuestions:10, difficulty:'medium', duration:15, attempts:8420, avgScore:72, status:'published', createdAt:'Today', type:'daily', passingScore:60, coins:10 },
-  { id:'q2', title:'Fundamental Rights Deep Quiz', subject:'Polity', examTags:['BPSC 70th CCE','UPSC CSE'], totalQuestions:25, difficulty:'hard', duration:30, attempts:3200, avgScore:65, status:'published', createdAt:'10 Mar 2026', type:'topic', passingScore:70, coins:20 },
-  { id:'q3', title:'Bihar GK — 100 Important Questions', subject:'Bihar GK', examTags:['BPSC 70th CCE','Bihar Police SI'], totalQuestions:100, difficulty:'medium', duration:90, attempts:6800, avgScore:68, status:'published', createdAt:'08 Mar 2026', type:'mock', passingScore:55, coins:50 },
-  { id:'q4', title:'BPSC 70th Full Mock Test #5', subject:'All Subjects', examTags:['BPSC 70th CCE'], totalQuestions:150, difficulty:'hard', duration:120, attempts:4200, avgScore:61, status:'published', createdAt:'05 Mar 2026', type:'mock', passingScore:55, coins:100 },
-  { id:'q5', title:'Economy — RBI & Banking Quiz', subject:'Economy', examTags:['BPSC 70th CCE','SSC CGL'], totalQuestions:20, difficulty:'medium', duration:25, attempts:2900, avgScore:70, status:'draft', createdAt:'12 Mar 2026', type:'topic', passingScore:60, coins:15 },
+  { id:'q1', title:'Daily Quiz — Polity', subject:'Polity', examTags:['BPSC 70th CCE'], totalQuestions:10, difficulty:'medium', duration:15, attempts:8420, avgScore:72, status:'published', createdAt:'Today', type:'daily', coins:10 },
+  { id:'q2', title:'Fundamental Rights Deep Quiz', subject:'Polity', examTags:['BPSC 70th CCE','UPSC CSE'], totalQuestions:25, difficulty:'hard', duration:30, attempts:3200, avgScore:65, status:'published', createdAt:'10 Mar 2026', type:'topic', coins:20 },
+  { id:'q3', title:'Bihar GK — 100 Important Questions', subject:'Bihar GK', examTags:['BPSC 70th CCE','Bihar Police SI'], totalQuestions:100, difficulty:'medium', duration:90, attempts:6800, avgScore:68, status:'published', createdAt:'08 Mar 2026', type:'mock', coins:50 },
+  { id:'q4', title:'BPSC 70th Full Mock Test #5', subject:'All Subjects', examTags:['BPSC 70th CCE'], totalQuestions:150, difficulty:'hard', duration:120, attempts:4200, avgScore:61, status:'published', createdAt:'05 Mar 2026', type:'mock', coins:100 },
+  { id:'q5', title:'Economy — RBI & Banking Quiz', subject:'Economy', examTags:['BPSC 70th CCE','SSC CGL'], totalQuestions:20, difficulty:'medium', duration:25, attempts:2900, avgScore:70, status:'draft', createdAt:'12 Mar 2026', type:'topic', coins:15 },
 ]
 
 // ─── Job Vacancies ────────────────────────────────────────────

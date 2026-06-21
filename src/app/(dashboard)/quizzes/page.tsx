@@ -66,7 +66,7 @@ function DecimalInput({ value, onChange, placeholder='', className='', min=0, ma
 
 const EMPTY_FORM = {
   title:'', subject:'', type:'topic',
-  totalQuestions:10, durationMins:15, passingScore:60,
+  totalQuestions:10, durationMins:15,
   coinsReward:10, status:'published', scheduledFor:'',
   examTags:[] as string[],
   negativeMarkingEnabled:false, marksPerCorrect:1, marksPerWrong:0,
@@ -95,7 +95,6 @@ function downloadTemplate() {
     ['subject',       'Polity',         'Required. e.g. Polity, History, Bihar GK, Economy'],
     ['type',          'topic',          'topic  /  mock  /  daily   (default: topic)'],
     ['duration_mins', '15',             'Duration in minutes  (default: 15)'],
-    ['passing_score', '60',             'Pass percentage threshold  (default: 60)'],
     ['coins_reward',  '10',             'Coins given on completion  (default: 10)'],
     ['status',        'published',      'published  (live in app)  or  draft  (hidden)'],
   ]
@@ -144,7 +143,7 @@ function extractMetaFromSheet(wb: any): Record<string, string> {
   const infoSheet = wb.Sheets['Quiz Info'] || wb.Sheets['quiz_info'] || wb.Sheets['QuizInfo']
   if (!infoSheet) return {}
   const rows: any[] = XLSX.utils.sheet_to_json(infoSheet, { header: 1, defval: '' })
-  const KNOWN = ['title', 'subject', 'type', 'duration_mins', 'duration', 'passing_score', 'pass_score', 'coins_reward', 'coins', 'status']
+  const KNOWN = ['title', 'subject', 'type', 'duration_mins', 'duration', 'coins_reward', 'coins', 'status']
   const meta: Record<string, string> = {}
   for (const row of rows) {
     const r = row as any[]
@@ -245,7 +244,7 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
   const [result, setResult] = useState<any>(null)
   const [dragOver, setDragOver] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
-  const [meta, setMeta] = useState({ title: '', subject: '', type: 'topic', durationMins: 15, passingScore: 60, coinsReward: 10, status: 'published', negativeMarkingEnabled: false, marksPerCorrect: 1, marksPerWrong: 0 })
+  const [meta, setMeta] = useState({ title: '', subject: '', type: 'topic', durationMins: 15, coinsReward: 10, status: 'published', negativeMarkingEnabled: false, marksPerCorrect: 1, marksPerWrong: 0 })
 
   const FIELD_MAP: Record<string, string> = {
     quiz_title: 'quiz_title', quiz: 'quiz_title',
@@ -284,7 +283,6 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
         subject:      quizMeta['subject']       || norm[0]?.subject || m.subject,
         type:         TYPE_MAP[String(quizMeta['type'] || '').toLowerCase()] || m.type,
         durationMins: parseInt(quizMeta['duration_mins'] || quizMeta['duration'] || '0') || m.durationMins,
-        passingScore: parseInt(quizMeta['passing_score'] || quizMeta['pass_score'] || '0') || m.passingScore,
         coinsReward:  parseInt(quizMeta['coins_reward']  || quizMeta['coins']     || '0') || m.coinsReward,
         status:       quizMeta['status'] || m.status,
       }))
@@ -466,7 +464,7 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
                 {questions.some(q => q.quiz_title) && (
                   <>
                     <div className="p-2.5 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-700">
-                      Titles are taken from the <code className="font-mono bg-white px-1 rounded">quiz_title</code> column. Type, duration, passing score, coins and status below apply to every quiz. Subject is decided per quiz from the rows' own <code className="font-mono bg-white px-1 rounded">subject</code> column — see the breakdown below.
+                      Titles are taken from the <code className="font-mono bg-white px-1 rounded">quiz_title</code> column. Type, duration, coins and status below apply to every quiz. Subject is decided per quiz from the rows' own <code className="font-mono bg-white px-1 rounded">subject</code> column — see the breakdown below.
                     </div>
                     {/* Per-quiz subject preview — shows exactly what will be created,
                         and flags groups whose rows span more than one subject so the
@@ -509,7 +507,6 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
                   </div>
                   <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Type</label><select value={meta.type} onChange={e => setMeta(m => ({ ...m, type: e.target.value }))} className="input text-sm w-full"><option value="topic">Topic</option><option value="mock">Mock Test</option><option value="daily">Daily</option></select></div>
                   <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Duration (mins)</label><input type="number" value={meta.durationMins} onChange={e => setMeta(m => ({ ...m, durationMins: +e.target.value }))} className="input text-sm w-full" min={1} /></div>
-                  <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Passing Score (%)</label><input type="number" value={meta.passingScore} onChange={e => setMeta(m => ({ ...m, passingScore: +e.target.value }))} className="input text-sm w-full" min={1} max={100} /></div>
                   <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Coins Reward</label><input type="number" value={meta.coinsReward} onChange={e => setMeta(m => ({ ...m, coinsReward: +e.target.value }))} className="input text-sm w-full" min={0} /></div>
                   <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Status</label><select value={meta.status} onChange={e => setMeta(m => ({ ...m, status: e.target.value }))} className="input text-sm w-full"><option value="published">Published</option><option value="draft">Draft</option></select></div>
                   <div className="col-span-2 flex items-center gap-2 pt-1">
@@ -657,7 +654,7 @@ export default function QuizzesPage() {
     setForm({
       title: q.title, subject: q.subject, type: q.type,
       totalQuestions: q.total_questions, durationMins: q.duration_mins,
-      passingScore: q.passing_score, coinsReward: q.coins_reward,
+      coinsReward: q.coins_reward,
       status: q.status, scheduledFor: q.scheduled_for ? q.scheduled_for.split('T')[0] : '',
       examTags: q.exam_tags || [],
       negativeMarkingEnabled: q.negative_marking_enabled === true,
@@ -927,10 +924,6 @@ export default function QuizzesPage() {
                 <div>
                   <label className="block text-xs font-bold text-slate-600 mb-1.5">Duration (mins)</label>
                   <NumInput value={form.durationMins} onChange={v => setForm({...form,durationMins:v})} min={1} max={180} placeholder="15" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1.5">Passing Score %</label>
-                  <NumInput value={form.passingScore} onChange={v => setForm({...form,passingScore:v})} min={1} max={100} placeholder="60" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-600 mb-1.5">🪙 Coins Reward</label>
