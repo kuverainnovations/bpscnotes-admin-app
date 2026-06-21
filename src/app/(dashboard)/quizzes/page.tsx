@@ -47,11 +47,29 @@ function NumInput({ value, onChange, placeholder='', className='', min=0, max=99
   )
 }
 
+// Decimal-capable variant of NumInput — used for marks-per-question fields
+// (e.g. +2, -0.66) where NumInput's parseInt would truncate fractions.
+function DecimalInput({ value, onChange, placeholder='', className='', min=0, max=99, step=0.25 }:
+  {value:number; onChange:(v:number)=>void; placeholder?:string; className?:string; min?:number; max?:number; step?:number}) {
+  const [raw, setRaw] = useState(value === 0 ? '' : String(value))
+  useEffect(() => { setRaw(value === 0 ? '' : String(value)) }, [value])
+  return (
+    <input
+      type="number" step={step} className={`input ${className}`}
+      value={raw} min={min} max={max}
+      placeholder={placeholder || String(min)}
+      onChange={e => { setRaw(e.target.value); const n = parseFloat(e.target.value); if (!isNaN(n)) onChange(n) }}
+      onBlur={() => { if (raw === '' || isNaN(Number(raw))) { setRaw(''); onChange(0) } }}
+    />
+  )
+}
+
 const EMPTY_FORM = {
   title:'', subject:'', type:'topic',
   totalQuestions:10, durationMins:15, passingScore:60,
   coinsReward:10, status:'published', scheduledFor:'',
   examTags:[] as string[],
+  negativeMarkingEnabled:false, marksPerCorrect:1, marksPerWrong:0,
 }
 
 // Issue 13: admin chooses option count (2–5)
@@ -87,9 +105,9 @@ function downloadTemplate() {
 
   const qRows = [
     ['quiz_title', 'question', 'option_a', 'option_b', 'option_c', 'option_d', 'option_e', 'correct_option', 'explanation', 'subject'],
-    ['Bihar GK Quiz 1', 'What is the capital of Bihar?', 'Patna', 'Ranchi', 'Gaya', 'Muzaffarpur', '', 'a', 'Patna has been the capital since ancient times.', 'Bihar GK'],
-    ['Bihar GK Quiz 1', 'Who was the first Chief Minister of Bihar?', 'Shri Krishna Sinha', 'Anugrah Narayan Sinha', 'Binodanand Jha', 'Mahamaya Prasad Sinha', '', 'a', 'Sri Krishna Sinha became the first CM in 1946.', 'Bihar GK'],
-    ['Geography Quiz 1', 'Which river flows through Patna?', 'Ganga', 'Yamuna', 'Godavari', 'Kaveri', '', 'a', 'The Ganga river flows through Patna.', 'Geography'],
+    ['Polity Quiz 1', 'What is the capital of Bihar?', 'Patna', 'Ranchi', 'Gaya', 'Muzaffarpur', '', 'a', 'Patna has been the capital since ancient times.', 'Bihar GK'],
+    ['Polity Quiz 1', 'Who was the first Chief Minister of Bihar?', 'Shri Krishna Sinha', 'Anugrah Narayan Sinha', 'Binodanand Jha', 'Mahamaya Prasad Sinha', '', 'a', 'Sri Krishna Sinha became the first CM in 1946.', 'Bihar GK'],
+    ['Polity Quiz 1', 'Which river flows through Patna?', 'Ganga', 'Yamuna', 'Godavari', 'Kaveri', '', 'a', 'The Ganga river flows through Patna.', 'Geography'],
     ['Polity Quiz 1', 'Article 370 was related to which state?', 'Jammu & Kashmir', 'Himachal Pradesh', 'Uttarakhand', 'Sikkim', '', 'a', 'Article 370 granted special status to J&K.', 'Polity'],
     ['Polity Quiz 1', 'Fundamental Rights are in which Part?', 'Part III', 'Part IV', 'Part II', 'Part V', '', 'a', 'Part III (Articles 12-35) contains Fundamental Rights.', 'Polity'],
     ['History Quiz 1', 'Who is the Iron Man of India?', 'Sardar Vallabhbhai Patel', 'Subhas Chandra Bose', 'Bal Gangadhar Tilak', 'Lal Bahadur Shastri', '', 'a', 'Sardar Patel unified the princely states.', 'History'],
@@ -189,22 +207,7 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
   const [result, setResult] = useState<any>(null)
   const [dragOver, setDragOver] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
-  // Single-quiz fallback (used only when the sheet has no quiz_title column)
-  const [meta, setMeta] = useState({ title: '', subject: '', type: 'topic', durationMins: 15, passingScore: 60, coinsReward: 10, status: 'published' })
-
-  // Per-quiz settings — one entry keyed by quiz_title, used when the sheet
-  // groups rows into multiple quizzes. Each quiz gets its own independent
-  // Subject/Type/Duration/Passing Score/Coins/Status — fixes the bug where
-  // one global Subject field was silently applied to every detected quiz.
-  type QuizConfig = { subject: string; type: string; durationMins: number; passingScore: number; coinsReward: number; status: string; importMode: 'merge' | 'replace' | 'create' }
-  const [quizConfigs, setQuizConfigs] = useState<Record<string, QuizConfig>>({})
-  const updateQuizConfig = (title: string, patch: Partial<QuizConfig>) =>
-    setQuizConfigs(prev => ({ ...prev, [title]: { ...prev[title], ...patch } as QuizConfig }))
-
-  // Duplicate detection — populated by checking detected quiz titles
-  // against existing quizzes in the system before import is allowed.
-  const [existingTitles, setExistingTitles] = useState<Record<string, { id: string; subject: string; type: string; total_questions: number }>>({})
-  const [checkingDupes, setCheckingDupes] = useState(false)
+  const [meta, setMeta] = useState({ title: '', subject: '', type: 'topic', durationMins: 15, passingScore: 60, coinsReward: 10, status: 'published', negativeMarkingEnabled: false, marksPerCorrect: 1, marksPerWrong: 0 })
 
   const FIELD_MAP: Record<string, string> = {
     quiz_title: 'quiz_title', quiz: 'quiz_title',
@@ -237,52 +240,16 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
       if (norm.length > 500) throw new Error('Maximum 500 questions per upload')
       setQuestions(norm)
       const TYPE_MAP: Record<string, string> = { topic: 'topic', mock: 'mock', daily: 'daily', 'mock test': 'mock' }
-      const sheetType   = TYPE_MAP[String(quizMeta['type'] || '').toLowerCase()] || 'topic'
-      const sheetDur    = parseInt(quizMeta['duration_mins'] || quizMeta['duration'] || '0') || 15
-      const sheetPass   = parseInt(quizMeta['passing_score'] || quizMeta['pass_score'] || '0') || 60
-      const sheetCoins  = parseInt(quizMeta['coins_reward']  || quizMeta['coins']     || '0') || 10
-      const sheetStatus = quizMeta['status'] || 'published'
-
       setMeta(m => ({
         ...m,
         title:        quizMeta['title']        || m.title,
         subject:      quizMeta['subject']       || norm[0]?.subject || m.subject,
-        type:         sheetType, durationMins: sheetDur, passingScore: sheetPass,
-        coinsReward:  sheetCoins, status: sheetStatus,
+        type:         TYPE_MAP[String(quizMeta['type'] || '').toLowerCase()] || m.type,
+        durationMins: parseInt(quizMeta['duration_mins'] || quizMeta['duration'] || '0') || m.durationMins,
+        passingScore: parseInt(quizMeta['passing_score'] || quizMeta['pass_score'] || '0') || m.passingScore,
+        coinsReward:  parseInt(quizMeta['coins_reward']  || quizMeta['coins']     || '0') || m.coinsReward,
+        status:       quizMeta['status'] || m.status,
       }))
-
-      // Build one config per detected quiz_title — subject is the MAJORITY
-      // subject among that quiz's rows (not just the first row), since a
-      // quiz_title group can legitimately contain a couple of stray rows
-      // tagged with a different subject by mistake.
-      const titles = Array.from(new Set(norm.map((q: any) => q.quiz_title).filter(Boolean))) as string[]
-      if (titles.length) {
-        const configs: Record<string, QuizConfig> = {}
-        for (const title of titles) {
-          const rowsForTitle = norm.filter((q: any) => q.quiz_title === title)
-          const counts: Record<string, number> = {}
-          rowsForTitle.forEach((q: any) => { const s = (q.subject || '').trim(); if (s) counts[s] = (counts[s] || 0) + 1 })
-          const majoritySubject = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || quizMeta['subject'] || ''
-          configs[title] = {
-            subject: majoritySubject, type: sheetType, durationMins: sheetDur,
-            passingScore: sheetPass, coinsReward: sheetCoins, status: sheetStatus,
-            importMode: 'merge',
-          }
-        }
-        setQuizConfigs(configs)
-
-        // Check for existing quizzes with these titles so the admin can
-        // choose Merge / Replace / Create New instead of silently merging.
-        setCheckingDupes(true)
-        try {
-          const res = await api.quizzes.checkTitles(titles)
-          const found: Record<string, any> = {}
-          for (const row of (res.data?.existing || [])) found[row.title] = row
-          setExistingTitles(found)
-        } catch { /* non-fatal — import still works without dupe info */ }
-        finally { setCheckingDupes(false) }
-      }
-
       setStep('preview')
     } catch (e: any) { setParseError(e.message || 'Failed to parse file') }
   }
@@ -300,13 +267,12 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
 
     const hasQuizTitle = cleanedQuestions.some(q => q.quiz_title?.trim())
     if (!hasQuizTitle && !meta.title.trim()) return
-    if (!hasQuizTitle && !meta.subject.trim()) return
-    if (hasQuizTitle && Object.values(quizConfigs).some(c => !c?.subject?.trim())) return
+    if (!meta.subject.trim()) return
     setImporting(true)
     try {
+      const hasQuizTitle = cleanedQuestions.some(q => q.quiz_title?.trim())
       if (hasQuizTitle) {
-        // Group by quiz_title — each group now carries its OWN config
-        // (subject/type/duration/etc.), not one global meta applied to all.
+        // Group by quiz_title
         const groupMap: Record<string, any[]> = {}
         for (const q of cleanedQuestions) {
           const key = q.quiz_title?.trim() || meta.title || 'Untitled Quiz'
@@ -314,13 +280,10 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
           const { quiz_title, ...rest } = q
           groupMap[key].push(rest)
         }
-        const groups = Object.entries(groupMap).map(([title, qs]) => {
-          const cfg = quizConfigs[title] || { subject: qs[0]?.subject || meta.subject, type: meta.type, durationMins: meta.durationMins, passingScore: meta.passingScore, coinsReward: meta.coinsReward, status: meta.status, importMode: 'merge' as const }
-          return {
-            quiz: { title, subject: cfg.subject, type: cfg.type, durationMins: cfg.durationMins, passingScore: cfg.passingScore, coinsReward: cfg.coinsReward, status: cfg.status, importMode: cfg.importMode },
-            questions: qs,
-          }
-        })
+        const groups = Object.entries(groupMap).map(([title, qs]) => ({
+          quiz: { ...meta, title, subject: qs[0]?.subject || meta.subject },
+          questions: qs,
+        }))
         const res = await (api.quizzes as any).bulkImportMulti(groups)
         setResult({ multi: true, ...res.data })
       } else {
@@ -334,19 +297,7 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
 
   const LETTERS = ['a', 'b', 'c', 'd', 'e']
   const isMultiMode = questions.some(q => q.quiz_title?.trim())
-  const uniqueQuizTitles = Array.from(new Set(questions.map((q: any) => q.quiz_title).filter(Boolean))) as string[]
-
-  // Per-quiz breakdown — question count + subject distribution, so the
-  // admin can see at a glance if a quiz_title group mixes subjects
-  // (e.g. "Polity Quiz 1" containing a couple of Bihar GK rows).
-  const quizBreakdown = uniqueQuizTitles.map(title => {
-    const rows = questions.filter((q: any) => q.quiz_title === title)
-    const subjCounts: Record<string, number> = {}
-    rows.forEach((q: any) => { const s = (q.subject || '').trim(); if (s) subjCounts[s] = (subjCounts[s] || 0) + 1 })
-    const subjects = Object.entries(subjCounts).sort((a, b) => b[1] - a[1])
-    return { title, count: rows.length, subjects, isMixed: subjects.length > 1 }
-  })
-
+  const uniqueQuizTitles = Array.from(new Set(questions.map((q: any) => q.quiz_title).filter(Boolean)))
   const errors = questions.map((q, i) => {
     const msgs: string[] = []
     if (!q.question) msgs.push('question missing')
@@ -384,7 +335,7 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs space-y-2">
                 <p className="font-bold text-slate-700">Column Reference</p>
                 <div className="grid grid-cols-2 gap-1.5">
-                  {[['quiz_title','Quiz name — groups rows into separate quizzes'],['question','The question text'],['option_a','First option'],['option_b','Second option'],['option_c','Third (optional)'],['option_d','Fourth (optional)'],['option_e','Fifth (optional)'],['correct_option','a/b/c/d/e or 1/2/3/4'],['explanation','Shown after answering (optional)'],['subject','Subject for this question — auto-detected per quiz']].map(([col, desc]) => (
+                  {[['quiz_title','Quiz name — groups rows into separate quizzes'],['question','The question text'],['option_a','First option'],['option_b','Second option'],['option_c','Third (optional)'],['option_d','Fourth (optional)'],['option_e','Fifth (optional)'],['correct_option','a/b/c/d/e or 1/2/3/4'],['explanation','Shown after answering (optional)'],['subject','Per-question subject (optional)']].map(([col, desc]) => (
                     <div key={col} className="flex gap-1.5">
                       <code className="bg-white border border-slate-200 px-1.5 py-0.5 rounded text-emerald-700 font-mono shrink-0">{col}</code>
                       <span className="text-slate-500">{desc}</span>
@@ -468,119 +419,46 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
               {/* Add Row removed — blank rows caused validation errors on import.
                   Use Excel/CSV upload to add more questions, or use the delete ✕ on each row. */}
 
-              {!isMultiMode ? (
-                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl space-y-3">
-                  <p className="text-xs font-bold text-emerald-800 uppercase tracking-wide">Quiz Details — from your sheet</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="col-span-2"><label className="block text-[10px] font-bold text-slate-500 mb-1">Title *</label><input value={meta.title} onChange={e => setMeta(m => ({ ...m, title: e.target.value }))} placeholder="Quiz title" className="input w-full text-sm" /></div>
-                    <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Subject *</label><input value={meta.subject} onChange={e => setMeta(m => ({ ...m, subject: e.target.value }))} placeholder="Subject" className="input text-sm w-full" /></div>
-                    <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Type</label><select value={meta.type} onChange={e => setMeta(m => ({ ...m, type: e.target.value }))} className="input text-sm w-full"><option value="topic">Topic</option><option value="mock">Mock Test</option><option value="daily">Daily</option></select></div>
-                    <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Duration (mins)</label><input type="number" value={meta.durationMins} onChange={e => setMeta(m => ({ ...m, durationMins: +e.target.value }))} className="input text-sm w-full" min={1} /></div>
-                    <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Passing Score (%)</label><input type="number" value={meta.passingScore} onChange={e => setMeta(m => ({ ...m, passingScore: +e.target.value }))} className="input text-sm w-full" min={1} max={100} /></div>
-                    <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Coins Reward</label><input type="number" value={meta.coinsReward} onChange={e => setMeta(m => ({ ...m, coinsReward: +e.target.value }))} className="input text-sm w-full" min={0} /></div>
-                    <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Status</label><select value={meta.status} onChange={e => setMeta(m => ({ ...m, status: e.target.value }))} className="input text-sm w-full"><option value="published">Published</option><option value="draft">Draft</option></select></div>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-bold text-emerald-800 uppercase tracking-wide">
-                      Quiz Details — {uniqueQuizTitles.length} quizzes detected from quiz_title column
-                    </p>
-                    {checkingDupes && <span className="flex items-center gap-1 text-[10px] text-slate-400"><Loader2 size={10} className="animate-spin" /> Checking for duplicates…</span>}
-                  </div>
+              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl space-y-3">
+                <p className="text-xs font-bold text-emerald-800 uppercase tracking-wide">
+                  {questions.some(q => q.quiz_title)
+                    ? `Quiz Details — ${uniqueQuizTitles.length} quizzes detected from quiz_title column`
+                    : 'Quiz Details — from your sheet'}
+                </p>
+                {questions.some(q => q.quiz_title) && (
                   <div className="p-2.5 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-700">
-                    Each quiz below has its own settings — subject is auto-detected per quiz from the majority subject in its rows. Review and adjust before importing.
+                    Titles are taken from the <code className="font-mono bg-white px-1 rounded">quiz_title</code> column. The settings below (type, duration, etc.) apply to all quizzes.
                   </div>
-
-                  {quizBreakdown.map(({ title, count, subjects, isMixed }) => {
-                    const cfg = quizConfigs[title]
-                    if (!cfg) return null
-                    const dup = existingTitles[title]
-                    return (
-                      <div key={title} className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl space-y-3">
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <p className="font-bold text-slate-800 text-sm">{title}</p>
-                            <p className="text-[11px] text-slate-500 mt-0.5">{count} question{count !== 1 ? 's' : ''}</p>
-                          </div>
-                          {dup && (
-                            <span className="shrink-0 text-[10px] px-2 py-1 bg-amber-100 text-amber-800 border border-amber-300 rounded-full font-bold">
-                              ⚠ Already exists ({dup.total_questions} Qs)
-                            </span>
-                          )}
-                        </div>
-
-                        {isMixed && (
-                          <div className="p-2 bg-amber-50 border border-amber-200 rounded-lg text-[11px] text-amber-800">
-                            <span className="font-bold">Mixed subjects in this quiz: </span>
-                            {subjects.map(([s, c]) => `${s} (${c})`).join(', ')}
-                            {' — '}using <b>{cfg.subject || subjects[0]?.[0]}</b> as the quiz subject. Adjust per-row Subject in the table above if needed.
-                          </div>
-                        )}
-
-                        {dup && (
-                          <div className="grid grid-cols-3 gap-1.5">
-                            {([
-                              ['merge', 'Merge', 'Append to existing'],
-                              ['replace', 'Replace', 'Delete old Qs first'],
-                              ['create', 'Create New', 'New quiz, keep old'],
-                            ] as const).map(([val, label, desc]) => (
-                              <button
-                                key={val}
-                                onClick={() => updateQuizConfig(title, { importMode: val })}
-                                className={`text-left p-2 rounded-xl border text-[11px] transition-colors ${
-                                  cfg.importMode === val ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'
-                                }`}
-                              >
-                                <p className="font-bold">{label}</p>
-                                <p className={cfg.importMode === val ? 'text-indigo-100' : 'text-slate-400'}>{desc}</p>
-                              </button>
-                            ))}
-                          </div>
-                        )}
-
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 mb-1">Subject *</label>
-                            <input value={cfg.subject} onChange={e => updateQuizConfig(title, { subject: e.target.value })} placeholder="Subject" className="input text-sm w-full" />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 mb-1">Type</label>
-                            <select value={cfg.type} onChange={e => updateQuizConfig(title, { type: e.target.value })} className="input text-sm w-full">
-                              <option value="topic">Topic</option><option value="mock">Mock Test</option><option value="daily">Daily</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 mb-1">Duration (mins)</label>
-                            <input type="number" value={cfg.durationMins} onChange={e => updateQuizConfig(title, { durationMins: +e.target.value })} className="input text-sm w-full" min={1} />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 mb-1">Passing Score (%)</label>
-                            <input type="number" value={cfg.passingScore} onChange={e => updateQuizConfig(title, { passingScore: +e.target.value })} className="input text-sm w-full" min={1} max={100} />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 mb-1">Coins Reward</label>
-                            <input type="number" value={cfg.coinsReward} onChange={e => updateQuizConfig(title, { coinsReward: +e.target.value })} className="input text-sm w-full" min={0} />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 mb-1">Status</label>
-                            <select value={cfg.status} onChange={e => updateQuizConfig(title, { status: e.target.value })} className="input text-sm w-full">
-                              <option value="published">Published</option><option value="draft">Draft</option>
-                            </select>
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
+                )}
+                <div className="grid grid-cols-2 gap-2">
+                  {!questions.some(q => q.quiz_title) && (
+                    <div className="col-span-2"><label className="block text-[10px] font-bold text-slate-500 mb-1">Title *</label><input value={meta.title} onChange={e => setMeta(m => ({ ...m, title: e.target.value }))} placeholder="Quiz title" className="input w-full text-sm" /></div>
+                  )}
+                  <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Subject *</label><input value={meta.subject} onChange={e => setMeta(m => ({ ...m, subject: e.target.value }))} placeholder="Subject" className="input text-sm w-full" /></div>
+                  <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Type</label><select value={meta.type} onChange={e => setMeta(m => ({ ...m, type: e.target.value }))} className="input text-sm w-full"><option value="topic">Topic</option><option value="mock">Mock Test</option><option value="daily">Daily</option></select></div>
+                  <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Duration (mins)</label><input type="number" value={meta.durationMins} onChange={e => setMeta(m => ({ ...m, durationMins: +e.target.value }))} className="input text-sm w-full" min={1} /></div>
+                  <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Passing Score (%)</label><input type="number" value={meta.passingScore} onChange={e => setMeta(m => ({ ...m, passingScore: +e.target.value }))} className="input text-sm w-full" min={1} max={100} /></div>
+                  <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Coins Reward</label><input type="number" value={meta.coinsReward} onChange={e => setMeta(m => ({ ...m, coinsReward: +e.target.value }))} className="input text-sm w-full" min={0} /></div>
+                  <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Status</label><select value={meta.status} onChange={e => setMeta(m => ({ ...m, status: e.target.value }))} className="input text-sm w-full"><option value="published">Published</option><option value="draft">Draft</option></select></div>
+                  <div className="col-span-2 flex items-center gap-2 pt-1">
+                    <input type="checkbox" id="bulkNegMarking" checked={meta.negativeMarkingEnabled}
+                      onChange={e => setMeta(m => ({ ...m, negativeMarkingEnabled: e.target.checked }))} className="w-4 h-4 accent-red-500" />
+                    <label htmlFor="bulkNegMarking" className="text-xs font-bold text-slate-600">⚠️ Enable Negative Marking</label>
+                  </div>
+                  {meta.negativeMarkingEnabled && (
+                    <>
+                      <div><label className="block text-[10px] font-bold text-slate-500 mb-1">✅ Marks / Correct</label><input type="number" step={0.25} value={meta.marksPerCorrect} onChange={e => setMeta(m => ({ ...m, marksPerCorrect: +e.target.value }))} className="input text-sm w-full" min={0.25} placeholder="2" /></div>
+                      <div><label className="block text-[10px] font-bold text-slate-500 mb-1">❌ Marks / Wrong</label><input type="number" step={0.01} value={meta.marksPerWrong} onChange={e => setMeta(m => ({ ...m, marksPerWrong: +e.target.value }))} className="input text-sm w-full" min={0} placeholder="0.66" /></div>
+                    </>
+                  )}
                 </div>
-              )}
+              </div>
 
               {parseError && (<div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm"><AlertTriangle size={14} className="shrink-0" /> {parseError}</div>)}
 
               <div className="flex gap-2 justify-end">
-                <button onClick={() => { setStep('upload'); setQuestions([]); setQuizConfigs({}); setExistingTitles({}) }} className="btn-secondary text-sm">Re-upload</button>
-                <button onClick={submit} disabled={importing || (!isMultiMode && (!meta.title.trim() || !meta.subject.trim())) || (isMultiMode && Object.values(quizConfigs).some(c => !c?.subject?.trim()))} className="btn-primary text-sm disabled:opacity-40 min-w-44">
+                <button onClick={() => { setStep('upload'); setQuestions([]) }} className="btn-secondary text-sm">Re-upload</button>
+                <button onClick={submit} disabled={importing || (!isMultiMode && !meta.title.trim()) || !meta.subject.trim()} className="btn-primary text-sm disabled:opacity-40 min-w-44">
                   {importing ? <><Loader2 size={14} className="animate-spin" /> Importing…</> : questions.some(q => q.quiz_title)
                     ? <><Upload size={14} /> Import {uniqueQuizTitles.length} Quizzes ({questions.length} Qs)</>
                     : <><Upload size={14} /> Import {questions.length} Questions</>}
@@ -600,14 +478,7 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
                     <div className="mt-3 text-left space-y-1 max-h-40 overflow-y-auto">
                       {result.quizzes?.map((q: any, i: number) => (
                         <div key={i} className="flex items-center justify-between px-3 py-1.5 bg-slate-50 rounded-lg text-xs">
-                          <span className="font-medium text-slate-700">
-                            {q.title}
-                            {q.action && q.action !== 'created' && (
-                              <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded-full font-bold ${q.action === 'replaced' ? 'bg-orange-100 text-orange-700' : 'bg-indigo-100 text-indigo-700'}`}>
-                                {q.action === 'replaced' ? 'replaced' : 'merged'}
-                              </span>
-                            )}
-                          </span>
+                          <span className="font-medium text-slate-700">{q.title}</span>
                           <span className="text-emerald-600 font-bold">{q.questionsInserted} Qs</span>
                         </div>
                       ))}
@@ -717,6 +588,9 @@ export default function QuizzesPage() {
       passingScore: q.passing_score, coinsReward: q.coins_reward,
       status: q.status, scheduledFor: q.scheduled_for ? q.scheduled_for.split('T')[0] : '',
       examTags: q.exam_tags || [],
+      negativeMarkingEnabled: q.negative_marking_enabled === true,
+      marksPerCorrect: q.marks_per_correct != null ? +q.marks_per_correct : 1,
+      marksPerWrong:   q.marks_per_wrong   != null ? +q.marks_per_wrong   : 0,
     })
     setShowModal(true)
   }
@@ -852,6 +726,11 @@ export default function QuizzesPage() {
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${quiz.status==='published'?'bg-green-50 text-green-700 border-green-200':'bg-slate-50 text-slate-500 border-slate-200'}`}>
                           {quiz.status}
                         </span>
+                        {quiz.negative_marking_enabled && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-red-50 text-red-600 border-red-200" title={`-${quiz.marks_per_wrong} per wrong answer`}>
+                            ⚠️ -{quiz.marks_per_wrong}
+                          </span>
+                        )}
                       </div>
                       <h3 className="font-bold text-slate-900 text-sm leading-snug line-clamp-2">{quiz.title}</h3>
                       {quiz.subject && <p className="text-xs text-slate-500 mt-0.5">{quiz.subject}</p>}
@@ -985,6 +864,41 @@ export default function QuizzesPage() {
                   <label className="block text-xs font-bold text-slate-600 mb-1.5">🪙 Coins Reward</label>
                   <NumInput value={form.coinsReward} onChange={v => setForm({...form,coinsReward:v})} min={0} placeholder="10" />
                 </div>
+              </div>
+
+              {/* Negative Marking — admin-configurable per test, applies to
+                  Daily Quiz / Topic & Subject-wise / Mock & Full-Length tests
+                  alike since they all share this same quiz record. */}
+              <div className="rounded-2xl border-2 border-slate-200 overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-3 bg-slate-50">
+                  <label className="flex items-center gap-2.5 cursor-pointer select-none"
+                    onClick={() => setForm({...form, negativeMarkingEnabled: !form.negativeMarkingEnabled})}>
+                    <div className={`w-10 h-5 rounded-full transition-colors relative shrink-0 ${form.negativeMarkingEnabled ? 'bg-red-500' : 'bg-slate-200'}`}>
+                      <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${form.negativeMarkingEnabled ? 'translate-x-5' : 'translate-x-0.5'}`}/>
+                    </div>
+                    <span className="text-sm font-bold text-slate-700">⚠️ Negative Marking</span>
+                  </label>
+                  {form.negativeMarkingEnabled && (
+                    <span className="text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-1 rounded-full">ON</span>
+                  )}
+                </div>
+                {form.negativeMarkingEnabled && (
+                  <div className="p-4 space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-600 mb-1.5">✅ Marks / Correct</label>
+                        <DecimalInput value={form.marksPerCorrect} onChange={v => setForm({...form,marksPerCorrect:v})} min={0.25} max={20} step={0.25} placeholder="2" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-600 mb-1.5">❌ Marks / Wrong</label>
+                        <DecimalInput value={form.marksPerWrong} onChange={v => setForm({...form,marksPerWrong:v})} min={0} max={20} step={0.01} placeholder="0.66" />
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-slate-500 bg-white border border-slate-200 rounded-xl px-3 py-2">
+                      Correct answer: <span className="font-bold text-emerald-600">+{form.marksPerCorrect || 0}</span> marks · Wrong answer: <span className="font-bold text-red-600">-{form.marksPerWrong || 0}</span> marks · Unanswered: <span className="font-bold text-slate-600">0</span> marks
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Status */}
