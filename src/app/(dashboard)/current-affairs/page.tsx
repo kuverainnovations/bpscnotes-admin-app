@@ -8,7 +8,7 @@ import api from '@/lib/api'
 import { useToast } from '@/components/ui/feedback'
 import { useDebounce } from '@/lib/hooks'
 import DynamicSelect from '@/components/ui/DynamicSelect'
-import RichTextEditor from '@/components/ui/RichTextEditor'
+import RichTextEditor, { CaToolbar, CaEditorField, CaEditorStyles, type ActiveCaEditor } from '@/components/ui/RichTextEditor'
 import RichContentView from '@/components/ui/RichContentView'
 import {
   Plus, Search, RefreshCw, Edit, Trash2, Eye, X,
@@ -17,7 +17,7 @@ import {
 } from 'lucide-react'
 
 const CATEGORIES = ['General','Economy','Polity','Science & Tech','Environment','International','Bihar','Sports','Defence','Awards']
-const EMPTY_FORM = { title:'', summary:'', detail:'', category:'General', type:'prelims', examTags:[] as string[], isImportant:false, publishDate:'', status:'draft', readTime:1 }
+const EMPTY_FORM = { title:'', summary:'', detail:'', category:'General', type:'prelims', examTags:[] as string[], isImportant:false, publishDate:'', status:'draft', readTime:1, mcqNegativeMarkingOverride: null as boolean | null, mcqMarksPerCorrectOverride: 1, mcqMarksPerWrongOverride: 0.33 }
 const OPTION_LABELS = ['A','B','C','D','E']
 const LIMIT = 20
 
@@ -55,6 +55,9 @@ function Inner() {
   const [editing, setEditing]     = useState<any>(null)
   const [form, setForm]           = useState<any>(EMPTY_FORM)
   const [saving, setSaving]       = useState(false)
+  // Tracks which editor field is currently focused so the shared CaToolbar
+  // operates on the right editor instance.
+  const [activeEditor, setActiveEditor] = useState<ActiveCaEditor>(null)
 
   // Preview modal
   const [preview, setPreview] = useState<any>(null)
@@ -215,26 +218,46 @@ function Inner() {
     }
   }
 
-  const openNew  = () => { setEditing(null); setForm(EMPTY_FORM); setShowModal(true) }
+  const openNew  = () => { setEditing(null); setForm(EMPTY_FORM); setActiveEditor(null); setShowModal(true) }
   const openEdit = (item: any) => {
     setEditing(item)
-    setForm({ title:item.title, summary:item.summary||'', detail:item.full_content||item.fullContent||'', category:item.category,
-      type:item.type||(item.exam_tags?.find((t:string)=>['prelims','mains','both'].includes(t))||'prelims'), examTags:item.exam_tags||[], isImportant:item.is_important||false,
-      publishDate:item.date?.split('T')[0]||'', status:item.status||'draft', readTime:item.read_time||1 })
+    setForm({
+      title:   item.title, summary: item.summary||'', detail: item.full_content||item.fullContent||'',
+      category: item.category,
+      type: item.type||(item.exam_tags?.find((t:string)=>['prelims','mains','both'].includes(t))||'prelims'),
+      examTags: item.exam_tags||[], isImportant: item.is_important||false,
+      publishDate: item.date?.split('T')[0]||'', status: item.status||'draft', readTime: item.read_time||1,
+      // Per-article MCQ override — null means "inherit global setting"
+      mcqNegativeMarkingOverride:   item.mcq_negative_marking_override  ?? null,
+      mcqMarksPerCorrectOverride:   item.mcq_marks_per_correct_override != null ? Number(item.mcq_marks_per_correct_override) : 1,
+      mcqMarksPerWrongOverride:     item.mcq_marks_per_wrong_override   != null ? Number(item.mcq_marks_per_wrong_override)   : 0.33,
+    })
+    setActiveEditor(null)
     setShowModal(true)
   }
 
   const save = async () => {
-    if (!form.title.trim()) { showToast('Title is required', 'error'); return }
+    if (!stripHtml(form.title).trim()) { showToast('Title is required', 'error'); return }
     setSaving(true)
     try {
-      // Summary is the short plain-text blurb shown in list cards, share
-      // text, and push notifications — fall back to a stripped snippet of
-      // the rich content if the admin left it blank.
+      // Summary feeds push notifications/share text — fall back to a
+      // plain-text snippet from full content if left blank. Even when the
+      // admin types into the rich summary field we send the HTML — the
+      // backend sanitizer keeps it inline-only; the Android side uses
+      // stripHtml() for notification/share payloads.
       const summary = form.summary.trim() || stripHtml(form.detail).slice(0, 200)
-      const payload = { title:form.title, summary, fullContent:form.detail,
-        category:form.category, type:form.type, examTags:form.examTags,
-        isImportant:form.isImportant, date:form.publishDate, status:form.status, readTime:Number(form.readTime)||1 }
+      const payload: any = {
+        title: form.title, summary, fullContent: form.detail,
+        category: form.category, type: form.type, examTags: form.examTags,
+        isImportant: form.isImportant, date: form.publishDate, status: form.status, readTime: Number(form.readTime)||1,
+      }
+      // Only send override fields on edit — new articles always inherit
+      // global until an admin explicitly configures an override.
+      if (editing) {
+        payload.mcqNegativeMarkingOverride  = form.mcqNegativeMarkingOverride  // null = clear override
+        payload.mcqMarksPerCorrectOverride  = form.mcqNegativeMarkingOverride != null ? form.mcqMarksPerCorrectOverride  : undefined
+        payload.mcqMarksPerWrongOverride    = form.mcqNegativeMarkingOverride != null ? form.mcqMarksPerWrongOverride    : undefined
+      }
       if (editing) await api.currentAffairs.update(editing.id, payload)
       else         await api.currentAffairs.create(payload)
       setShowModal(false); load(); loadCounts(); showToast(editing ? 'Updated ✅' : 'Created ✅')
@@ -358,10 +381,9 @@ function Inner() {
                     )}
                   </div>
 
-                  {/* Title */}
-                  <h3 className="font-bold text-slate-900 text-sm leading-snug line-clamp-3">
-                    {item.title}
-                  </h3>
+                  {/* Title — now rich HTML since headline supports inline marks */}
+                  <h3 className="font-bold text-slate-900 text-sm leading-snug line-clamp-3"
+                    dangerouslySetInnerHTML={{ __html: item.title }} />
 
                   {/* Stats mini-grid — matches quiz cards */}
                   <div className="grid grid-cols-3 gap-1.5">
@@ -384,10 +406,10 @@ function Inner() {
                     </div>
                   </div>
 
-                  {/* Summary preview */}
+                  {/* Summary preview — plain text strip for card compact display */}
                   {(item.summary || item.full_content) && (
                     <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed">
-                      {item.summary || stripHtml(item.full_content)}
+                      {stripHtml(item.summary) || stripHtml(item.full_content)}
                     </p>
                   )}
 
@@ -435,106 +457,175 @@ function Inner() {
         )}
       </div>
 
-      {/* ══════════════════ CREATE / EDIT MODAL ══════════════════ */}
+      {/* ══════════════════ CREATE / EDIT — FULL SCREEN PANEL ══════════════════
+          Replacing the old max-w-2xl dialog. Rationale:
+          • The full-content TipTap editor needs vertical room; inside a
+            92vh modal it scrolls awkwardly and the toolbar clips near the edge.
+          • With Headline + Summary now also being rich fields, having a
+            shared toolbar that floats above all three simultaneously is much
+            cleaner than embedding three separate toolbars in a small dialog.
+          • Pattern is the same as the MCQ page's full-screen add/edit flow.
+      ══════════════════════════════════════════════════════════════════════ */}
       {showModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowModal(false)}>
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="bg-gradient-to-r from-brand-700 to-brand-500 px-6 py-5 flex items-center justify-between shrink-0">
-              <div>
-                <h3 className="font-bold text-white text-lg">{editing ? 'Edit Current Affair' : 'Add Current Affair'}</h3>
-                <p className="text-white/60 text-xs mt-0.5">{editing ? 'Update the article details' : 'Fill in all details for a new article'}</p>
-              </div>
+        <div className="fixed inset-0 z-50 bg-white flex flex-col">
+          <CaEditorStyles />
+
+          {/* Top bar */}
+          <div className="bg-gradient-to-r from-brand-700 to-brand-500 px-5 py-3.5 flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-3">
               <button onClick={() => setShowModal(false)} className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center">
-                <X size={15} className="text-white"/>
+                <ChevronLeft size={16} className="text-white"/>
+              </button>
+              <div>
+                <h3 className="font-bold text-white text-base leading-tight">{editing ? 'Edit Article' : 'New Article'}</h3>
+                <p className="text-white/60 text-[11px]">Click into any field, then use the toolbar to format it</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex rounded-xl overflow-hidden border border-white/30 text-xs font-semibold">
+                {(['draft','published'] as const).map(s => (
+                  <button key={s} onClick={() => setForm((f:any) => ({...f, status: s}))}
+                    className={`px-3 py-1.5 transition-colors
+                      ${form.status === s
+                        ? s === 'published' ? 'bg-green-500 text-white' : 'bg-white/20 text-white'
+                        : 'text-white/60 hover:text-white hover:bg-white/10'}`}>
+                    {s === 'published' ? '✅ Publish' : '📝 Draft'}
+                  </button>
+                ))}
+              </div>
+              <button onClick={save} disabled={saving || !stripHtml(form.title).trim()} className="btn-primary disabled:opacity-40 bg-white text-brand-700 hover:bg-white/90 text-sm px-4 py-1.5">
+                {saving ? <><Loader2 size={13} className="animate-spin"/> Saving…</> : editing ? 'Update' : 'Create'}
               </button>
             </div>
+          </div>
 
-            <div className="overflow-y-auto flex-1 p-6 space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5">Headline *</label>
-                <textarea value={form.title} onChange={e => setForm({...form,title:e.target.value})}
-                  className="input h-20 resize-none" placeholder="e.g. India signs trade agreement with…" autoFocus />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5">
-                  Summary <span className="font-normal text-slate-400">(short blurb — list cards, share text, notifications)</span>
-                </label>
-                <textarea value={form.summary} onChange={e => setForm({...form,summary:e.target.value})}
-                  className="input h-16 resize-none" placeholder="One or two sentences. Leave blank to auto-generate from the full article." />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5">Full Article Content</label>
-                <RichTextEditor
-                  value={form.detail}
-                  onChange={html => setForm((f: any) => ({...f, detail: html}))}
-                  uploadImage={async (file) => {
-                    const res = await api.currentAffairs.uploadImage(file)
-                    return res.data?.url
-                  }}
-                  placeholder="Full analysis for Mains preparation… use the toolbar for headings, tables, images and more."
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1.5">Category</label>
-                  <DynamicSelect type="affair-categories" value={form.category} onChange={v => setForm({...form,category:v})} placeholder="Select Category" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1.5">Type</label>
-                  <div className="flex items-center gap-1.5 px-3 py-2.5 bg-slate-50 rounded-xl border border-slate-200">
-                    <select value={form.type} onChange={e => setForm({...form,type:e.target.value})}
-                      className="text-sm bg-transparent outline-none text-slate-700 w-full">
+          {/* Shared formatting toolbar — sticky below the top bar */}
+          <div className="shrink-0 border-b border-slate-200 bg-slate-50 shadow-sm">
+            <CaToolbar active={activeEditor} />
+          </div>
+
+          {/* Scrollable content */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="max-w-4xl mx-auto px-6 py-6 space-y-5">
+
+              {/* Three editor fields — each calls setActiveEditor on focus */}
+              <CaEditorField
+                mode="inlineSingleLine"
+                label="Headline *"
+                value={form.title}
+                onChange={html => setForm((f:any) => ({...f, title: html}))}
+                placeholder="e.g. India signs trade agreement with…"
+                onActivate={setActiveEditor}
+              />
+
+              <CaEditorField
+                mode="inline"
+                label="Summary"
+                hint="(short blurb — list cards, share text, notifications)"
+                value={form.summary}
+                onChange={html => setForm((f:any) => ({...f, summary: html}))}
+                placeholder="One or two sentences. Leave blank to auto-generate from the full article."
+                onActivate={setActiveEditor}
+              />
+
+              <CaEditorField
+                mode="full"
+                label="Full Article Content"
+                value={form.detail}
+                onChange={html => setForm((f:any) => ({...f, detail: html}))}
+                placeholder="Full analysis for Mains preparation… use the toolbar for headings, tables, images and more."
+                uploadImage={async (file) => {
+                  const res = await api.currentAffairs.uploadImage(file)
+                  return res.data?.url
+                }}
+                onActivate={setActiveEditor}
+              />
+
+              {/* ── Metadata ── */}
+              <div className="border-t border-slate-100 pt-5 space-y-4">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Article Details</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Category</label>
+                    <DynamicSelect type="affair-categories" value={form.category} onChange={v => setForm((f:any) => ({...f,category:v}))} placeholder="Select Category" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Type</label>
+                    <select value={form.type} onChange={e => setForm((f:any) => ({...f,type:e.target.value}))} className="input w-full">
                       <option value="prelims">Prelims</option>
                       <option value="mains">Mains</option>
                       <option value="both">Both</option>
                     </select>
                   </div>
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1.5">Publish Date</label>
-                  <input type="date" value={form.publishDate} onChange={e => setForm({...form,publishDate:e.target.value})} className="input w-full"/>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Publish Date</label>
+                    <input type="date" value={form.publishDate} onChange={e => setForm((f:any) => ({...f,publishDate:e.target.value}))} className="input w-full"/>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Read Time <span className="text-slate-400 font-normal">(minutes)</span></label>
+                    <input type="number" min={1} max={60} value={form.readTime} onChange={e => setForm((f:any) => ({...f,readTime:parseInt(e.target.value)||1}))} className="input w-full" placeholder="e.g. 3"/>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1.5">Read Time <span className="text-slate-400 font-normal">(minutes)</span></label>
-                  <input type="number" min={1} max={60} value={form.readTime} onChange={e => setForm({...form,readTime:parseInt(e.target.value)||1})} className="input w-full" placeholder="e.g. 3"/>
-                </div>
-              </div>
-              <div className="flex items-center pt-1">
                 <label className="flex items-center gap-2.5 cursor-pointer select-none"
-                  onClick={() => setForm({...form,isImportant:!form.isImportant})}>
+                  onClick={() => setForm((f:any) => ({...f,isImportant:!f.isImportant}))}>
                   <div className={`w-10 h-5 rounded-full transition-colors relative ${form.isImportant?'bg-amber-400':'bg-slate-200'}`}>
                     <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${form.isImportant?'translate-x-5':'translate-x-0.5'}`}/>
                   </div>
                   <span className="text-sm font-medium text-slate-700">⭐ Mark Important</span>
                 </label>
               </div>
-              {/* Status toggle — draft / published */}
-              <div className="flex items-center gap-3 pt-1">
-                <span className="text-xs font-bold text-slate-600">Status</span>
-                <div className="flex rounded-xl overflow-hidden border border-slate-200 text-xs font-semibold">
-                  {(['draft','published'] as const).map(s => (
-                    <button key={s} onClick={() => setForm({...form, status: s})}
-                      className={`px-4 py-2 transition-colors capitalize
-                        ${form.status === s
-                          ? s === 'published' ? 'bg-green-500 text-white' : 'bg-slate-500 text-white'
-                          : 'bg-white text-slate-500 hover:bg-slate-50'}`}>
-                      {s === 'published' ? '✅ Published' : '📝 Draft'}
-                    </button>
-                  ))}
-                </div>
-                {form.status === 'published' && (
-                  <span className="text-[10px] text-green-600 font-medium">Visible to users in app</span>
-                )}
-              </div>
-            </div>
 
-            <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50/50 shrink-0">
-              <button onClick={() => setShowModal(false)} className="btn-secondary">Cancel</button>
-              <button onClick={save} disabled={saving||!form.title.trim()} className="btn-primary disabled:opacity-40">
-                {saving ? <><Loader2 size={14} className="animate-spin"/> Saving…</> : editing ? 'Update' : 'Create'}
-              </button>
+              {/* ── Per-article MCQ Marking Override ── */}
+              {editing && (
+                <div className="border border-red-100 bg-red-50/40 rounded-2xl p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-bold text-slate-700">⚠️ MCQ Marking Override</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">Override the global setting just for this article's MCQs. Leave off to inherit global.</p>
+                    </div>
+                    <label className="flex items-center gap-2 cursor-pointer select-none"
+                      onClick={() => setForm((f:any) => ({
+                        ...f,
+                        mcqNegativeMarkingOverride: f.mcqNegativeMarkingOverride === null ? false : null
+                      }))}>
+                      <div className={`w-10 h-5 rounded-full transition-colors relative shrink-0 ${form.mcqNegativeMarkingOverride !== null ? 'bg-red-500' : 'bg-slate-200'}`}>
+                        <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${form.mcqNegativeMarkingOverride !== null ? 'translate-x-5' : 'translate-x-0.5'}`}/>
+                      </div>
+                      <span className="text-xs font-semibold text-slate-700">{form.mcqNegativeMarkingOverride !== null ? 'Override active' : 'Inherit global'}</span>
+                    </label>
+                  </div>
+                  {form.mcqNegativeMarkingOverride !== null && (
+                    <>
+                      <label className="flex items-center gap-2 cursor-pointer select-none"
+                        onClick={() => setForm((f:any) => ({...f, mcqNegativeMarkingOverride: !f.mcqNegativeMarkingOverride}))}>
+                        <div className={`w-8 h-4 rounded-full transition-colors relative shrink-0 ${form.mcqNegativeMarkingOverride ? 'bg-red-500' : 'bg-slate-300'}`}>
+                          <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-transform ${form.mcqNegativeMarkingOverride ? 'translate-x-4' : 'translate-x-0.5'}`}/>
+                        </div>
+                        <span className="text-xs text-slate-600">Enable negative marking for this article</span>
+                      </label>
+                      {form.mcqNegativeMarkingOverride && (
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-600 mb-1">✅ Marks / Correct</label>
+                            <input type="number" step={0.25} min={0.25} value={form.mcqMarksPerCorrectOverride}
+                              onChange={e => setForm((f:any) => ({...f, mcqMarksPerCorrectOverride: +e.target.value || 1}))}
+                              className="input w-full" placeholder="1"/>
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-600 mb-1">❌ Marks / Wrong</label>
+                            <input type="number" step={0.01} min={0} value={form.mcqMarksPerWrongOverride}
+                              onChange={e => setForm((f:any) => ({...f, mcqMarksPerWrongOverride: +e.target.value || 0}))}
+                              className="input w-full" placeholder="0.33"/>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+
             </div>
           </div>
         </div>
@@ -560,7 +651,7 @@ function Inner() {
             </div>
 
             <div className="overflow-y-auto flex-1 p-6 space-y-4">
-              <h2 className="text-lg font-bold text-slate-900 leading-snug">{preview.title}</h2>
+              <h2 className="text-lg font-bold text-slate-900 leading-snug" dangerouslySetInnerHTML={{ __html: preview.title }} />
 
               {preview.date && (
                 <div className="flex items-center gap-2 text-xs text-slate-400">
@@ -572,7 +663,7 @@ function Inner() {
               {preview.summary && (
                 <div className="p-4 bg-slate-50 rounded-2xl">
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Summary</p>
-                  <p className="text-sm text-slate-700 leading-relaxed">{preview.summary}</p>
+                  <RichContentView html={preview.summary} />
                 </div>
               )}
 
