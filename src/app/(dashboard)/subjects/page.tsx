@@ -233,7 +233,7 @@ export default function SubjectsPage() {
   return (
     <div className="min-h-screen bg-slate-50">
       <Header title="Subject Master" />
-      <ToastComponent />
+      {ToastComponent}
 
       <div className="max-w-3xl mx-auto px-6 py-8">
         {/* Header row */}
