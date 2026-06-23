@@ -46,8 +46,8 @@ function Inner() {
   const [typeFilter, setType]   = useState('')
   const [page, setPage]         = useState(1)
   const [total, setTotal]       = useState(0)
-  // Unfiltered totals for stats chips — fetched once on mount, not affected by filters
-  const [counts, setCounts]     = useState({ prelims: 0, mains: 0, important: 0, both: 0 })
+  // Filtered counts — all derived from the same API response as the grid (single source of truth)
+  const [counts, setCounts]     = useState({ prelims: 0, mains: 0, important: 0 })
   const debouncedSearch         = useDebounce(search, 400)
 
   // Create/edit modal
@@ -99,42 +99,31 @@ function Inner() {
   }
 
   // Issue 3: debounced search wired to load
+  // Single source of truth — stats come from the SAME request as the grid,
+  // so Total/Prelims/Mains/Important always match exactly what's visible.
   const load = async () => {
     setLoading(true)
     try {
       const res = await api.currentAffairs.list({
         search: debouncedSearch,
         category: catFilter,
-        exam: typeFilter || undefined,  // sends 'prelims'/'mains' to backend exam_tags filter
+        exam: typeFilter || undefined,
         page,
         limit: LIMIT,
       })
       setList(res.data?.affairs || [])
       setTotal(res.meta?.total ?? res.data?.total ?? 0)
+      // counts now come from the backend alongside the same filtered result
+      if (res.data?.counts) {
+        setCounts({
+          prelims:   res.data.counts.prelims   ?? 0,
+          mains:     res.data.counts.mains     ?? 0,
+          important: res.data.counts.important ?? 0,
+        })
+      }
     } catch (e: any) { showToast(e.message, 'error') }
     finally { setLoading(false) }
   }
-
-  // Fetch unfiltered type/important counts for stats chips
-  const loadCounts = async () => {
-    try {
-      // Fetch all 3 type counts in parallel
-      const [prelims, mains, both, important] = await Promise.all([
-        api.currentAffairs.list({ exam: 'prelims', limit: 1 }),
-        api.currentAffairs.list({ exam: 'mains',   limit: 1 }),
-        api.currentAffairs.list({ exam: 'both',    limit: 1 }),
-        api.currentAffairs.list({ important: true, limit: 1 } as any),
-      ])
-      setCounts({
-        prelims:   prelims.meta?.total ?? 0,
-        mains:     mains.meta?.total   ?? 0,
-        both:      both.meta?.total    ?? 0,
-        important: important.meta?.total ?? 0,
-      })
-    } catch (_) {}
-  }
-
-  useEffect(() => { loadCounts() }, [])
   useEffect(() => { setPage(1) }, [debouncedSearch, catFilter, typeFilter])
   useEffect(() => { load() }, [debouncedSearch, catFilter, typeFilter, page])
 
@@ -266,14 +255,14 @@ function Inner() {
       }
       if (editing) await api.currentAffairs.update(editing.id, payload)
       else         await api.currentAffairs.create(payload)
-      setShowModal(false); load(); loadCounts(); showToast(editing ? 'Updated ✅' : 'Created ✅')
+      setShowModal(false); load(); showToast(editing ? 'Updated ✅' : 'Created ✅')
     } catch (e: any) { showToast(e.message, 'error') }
     finally { setSaving(false) }
   }
 
   const del = async (id: string, title: string) => {
     if (!confirm(`Delete "${title.slice(0,60)}…"?`)) return
-    try { await api.currentAffairs.delete(id); load(); loadCounts(); showToast('Deleted') }
+    try { await api.currentAffairs.delete(id); load(); showToast('Deleted') }
     catch (e: any) { showToast(e.message, 'error') }
   }
 
