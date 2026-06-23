@@ -158,7 +158,7 @@ export default function SubjectsPage() {
   const [modalSubject, setModalSubject] = useState<Subject | null | undefined>(undefined) // undefined=closed, null=new, Subject=edit
   const [deleting, setDeleting] = useState<string | null>(null)
   const [toggling, setToggling] = useState<string | null>(null)
-  const { showToast, ToastContainer } = useToast()
+  const { showToast, ToastComponent } = useToast()
 
   const load = useCallback(async () => {
     try {
@@ -233,7 +233,7 @@ export default function SubjectsPage() {
   return (
     <div className="min-h-screen bg-slate-50">
       <Header title="Subject Master" />
-      <ToastContainer />
+      <ToastComponent />
 
       <div className="max-w-3xl mx-auto px-6 py-8">
         {/* Header row */}
