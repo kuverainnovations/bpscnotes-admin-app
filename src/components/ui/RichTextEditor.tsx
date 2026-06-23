@@ -448,26 +448,97 @@ export default function RichTextEditor({ value, onChange, uploadImage, placehold
 export function CaEditorStyles() {
   return (
     <style jsx global>{`
+      /* ── Editor container ─────────────────────────────────────────────── */
       .ca-editor-content { padding: 14px 16px; min-height: 220px; max-height: 480px; overflow-y: auto; font-size: 14px; line-height: 1.7; color: #1e293b; outline: none; }
       .ca-editor-content-inline { padding: 10px 14px; min-height: 44px; max-height: 140px; overflow-y: auto; font-size: 14px; line-height: 1.6; color: #1e293b; outline: none; }
-      .ca-editor-content p, .ca-editor-content-inline p { margin: 0 0 10px; }
-      .ca-editor-content-inline p { margin: 0; }
-      .ca-editor-content h1 { font-size: 1.5rem; font-weight: 800; margin: 18px 0 10px; }
-      .ca-editor-content h2 { font-size: 1.25rem; font-weight: 800; margin: 16px 0 8px; }
-      .ca-editor-content h3 { font-size: 1.1rem; font-weight: 700; margin: 14px 0 8px; }
-      .ca-editor-content ul, .ca-editor-content ol { padding-left: 1.4rem; margin: 0 0 10px; }
-      .ca-editor-content blockquote { border-left: 3px solid #6366f1; padding: 4px 14px; margin: 10px 0; background: #f5f5ff; border-radius: 0 8px 8px 0; color: #475569; font-style: italic; }
+
+      /* ── Paragraphs — high-specificity to override Tailwind base reset ── */
+      .ca-editor-content > p,
+      .ca-editor-content .ProseMirror > p,
+      .ca-editor-content p { margin: 0 0 10px !important; }
+      .ca-editor-content-inline > p,
+      .ca-editor-content-inline .ProseMirror > p,
+      .ca-editor-content-inline p { margin: 0 !important; }
+
+      /* ── Headings ─────────────────────────────────────────────────────── */
+      .ca-editor-content h1 { font-size: 1.5rem; font-weight: 800; margin: 18px 0 10px !important; color: #1565C0; }
+      .ca-editor-content h2 { font-size: 1.25rem; font-weight: 800; margin: 16px 0 8px !important; color: #1565C0; }
+      .ca-editor-content h3 { font-size: 1.1rem; font-weight: 700; margin: 14px 0 8px !important; color: #1565C0; }
+
+      /* ── Lists — ROOT CAUSE FIX ──────────────────────────────────────── */
+      /* Tailwind's base reset removes list-style-type, making bullets/numbers
+         invisible even though <ul>/<ol>/<li> tags are correct. These rules
+         explicitly restore the browser defaults inside the editor and preview. */
+      .ca-editor-content ul,
+      .ca-editor-content .ProseMirror ul {
+        list-style-type: disc !important;
+        padding-left: 1.6rem !important;
+        margin: 0 0 10px !important;
+      }
+      .ca-editor-content ol,
+      .ca-editor-content .ProseMirror ol {
+        list-style-type: decimal !important;
+        padding-left: 1.6rem !important;
+        margin: 0 0 10px !important;
+        counter-reset: list-counter;
+      }
+      .ca-editor-content ul li,
+      .ca-editor-content .ProseMirror ul li {
+        display: list-item !important;
+        list-style-type: disc !important;
+      }
+      .ca-editor-content ol li,
+      .ca-editor-content .ProseMirror ol li {
+        display: list-item !important;
+        list-style-type: decimal !important;
+      }
+      /* Nested lists */
+      .ca-editor-content ul ul { list-style-type: circle !important; }
+      .ca-editor-content ul ul ul { list-style-type: square !important; }
+      .ca-editor-content ol ol { list-style-type: lower-alpha !important; }
+      /* Paragraph inside list item — TipTap wraps li content in <p> */
+      .ca-editor-content li > p { margin: 0 !important; }
+
+      /* ── Same fixes for the content-view (admin preview) ─────────────── */
+      .ca-content-view ul { list-style-type: disc !important; padding-left: 1.6rem !important; margin: 0 0 10px !important; }
+      .ca-content-view ol { list-style-type: decimal !important; padding-left: 1.6rem !important; margin: 0 0 10px !important; }
+      .ca-content-view ul li { display: list-item !important; list-style-type: disc !important; }
+      .ca-content-view ol li { display: list-item !important; list-style-type: decimal !important; }
+      .ca-content-view li > p { margin: 0 !important; }
+      .ca-content-view ul ul { list-style-type: circle !important; }
+      .ca-content-view ol ol { list-style-type: lower-alpha !important; }
+
+      /* ── Blockquote ───────────────────────────────────────────────────── */
+      .ca-editor-content blockquote { border-left: 3px solid #6366f1; padding: 4px 14px; margin: 10px 0 !important; background: #f5f5ff; border-radius: 0 8px 8px 0; color: #475569; font-style: italic; }
+      .ca-content-view blockquote { border-left: 3px solid #6366f1; padding: 4px 14px; margin: 10px 0; background: #f5f5ff; border-radius: 0 8px 8px 0; color: #475569; font-style: italic; }
+
+      /* ── Links ─────────────────────────────────────────────────────────── */
       .ca-editor-content a, .ca-editor-content-inline a { color: #2563eb; text-decoration: underline; }
+      .ca-content-view a { color: #2563eb; text-decoration: underline; }
+
+      /* ── Tables ─────────────────────────────────────────────────────────── */
       .ca-editor-content table { border-collapse: collapse; margin: 12px 0; width: 100%; }
       .ca-editor-content th, .ca-editor-content td { border: 1px solid #cbd5e1; padding: 6px 10px; text-align: left; min-width: 60px; }
       .ca-editor-content th { background: #f1f5f9; font-weight: 700; }
+      .ca-content-view table { border-collapse: collapse; margin: 12px 0; width: 100%; }
+      .ca-content-view th, .ca-content-view td { border: 1px solid #cbd5e1; padding: 6px 10px; text-align: left; }
+      .ca-content-view th { background: #f1f5f9; font-weight: 700; }
+
+      /* ── Images ─────────────────────────────────────────────────────────── */
       .ca-editor-content img { max-width: 100%; border-radius: 8px; }
       .ca-editor-content img.ProseMirror-selectednode { outline: 2px solid #6366f1; outline-offset: 2px; }
+
+      /* ── Highlight / mark ───────────────────────────────────────────────── */
       .ca-editor-content mark, .ca-editor-content-inline mark { border-radius: 3px; padding: 0 2px; }
+
+      /* ── Placeholder ─────────────────────────────────────────────────────── */
       .ca-editor-content p.is-editor-empty:first-child::before,
       .ca-editor-content-inline p.is-editor-empty:first-child::before {
         content: attr(data-placeholder); float: left; color: #94a3b8; pointer-events: none; height: 0;
       }
+
+      /* ── Font size ───────────────────────────────────────────────────────── */
+      .ca-content-view { font-size: 14px; line-height: 1.7; color: #1e293b; }
     `}</style>
   )
 }

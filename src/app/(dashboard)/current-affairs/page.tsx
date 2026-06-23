@@ -17,7 +17,7 @@ import {
 } from 'lucide-react'
 
 const CATEGORIES = ['General','Economy','Polity','Science & Tech','Environment','International','Bihar','Sports','Defence','Awards']
-const EMPTY_FORM = { title:'', summary:'', detail:'', category:'General', type:'prelims', examTags:[] as string[], isImportant:false, publishDate:'', status:'draft', readTime:1, mcqNegativeMarkingOverride: null as boolean | null, mcqMarksPerCorrectOverride: 1, mcqMarksPerWrongOverride: 0.33 }
+const EMPTY_FORM = { title:'', summary:'', detail:'', keyPoints:'', examRelevance:'', importantFacts:'', category:'General', type:'prelims', examTags:[] as string[], isImportant:false, publishDate:'', status:'draft', readTime:1, mcqNegativeMarkingOverride: null as boolean | null, mcqMarksPerCorrectOverride: 1, mcqMarksPerWrongOverride: 0.33 }
 const OPTION_LABELS = ['A','B','C','D','E']
 const LIMIT = 20
 
@@ -223,6 +223,9 @@ function Inner() {
     setEditing(item)
     setForm({
       title:   item.title, summary: item.summary||'', detail: item.full_content||item.fullContent||'',
+      keyPoints:      item.key_points      || '',
+      examRelevance:  item.exam_relevance  || '',
+      importantFacts: item.important_facts || '',
       category: item.category,
       type: item.type||(item.exam_tags?.find((t:string)=>['prelims','mains','both'].includes(t))||'prelims'),
       examTags: item.exam_tags||[], isImportant: item.is_important||false,
@@ -248,6 +251,9 @@ function Inner() {
       const summary = form.summary.trim() || stripHtml(form.detail).slice(0, 200)
       const payload: any = {
         title: form.title, summary, fullContent: form.detail,
+        keyPoints:      form.keyPoints      || null,
+        examRelevance:  form.examRelevance  || null,
+        importantFacts: form.importantFacts || null,
         category: form.category, type: form.type, examTags: form.examTags,
         isImportant: form.isImportant, date: form.publishDate, status: form.status, readTime: Number(form.readTime)||1,
       }
@@ -538,6 +544,40 @@ function Inner() {
                   const res = await api.currentAffairs.uploadImage(file)
                   return res.data?.url
                 }}
+                onActivate={setActiveEditor}
+              />
+
+              {/* ── New content fields ── */}
+              <CaEditorField
+                mode="full"
+                label="Key Points"
+                hint="(bullet-form takeaways for quick revision)"
+                value={form.keyPoints}
+                onChange={html => setForm((f:any) => ({...f, keyPoints: html}))}
+                placeholder="• Use bullet lists here — one key takeaway per point…"
+                uploadImage={async (file) => { const res = await api.currentAffairs.uploadImage(file); return res.data?.url }}
+                onActivate={setActiveEditor}
+              />
+
+              <CaEditorField
+                mode="full"
+                label="Exam Relevance"
+                hint="(which exam and paper, why it matters)"
+                value={form.examRelevance}
+                onChange={html => setForm((f:any) => ({...f, examRelevance: html}))}
+                placeholder="BPSC Prelims GS Paper I — Topic: Economy. This article is important because…"
+                uploadImage={async (file) => { const res = await api.currentAffairs.uploadImage(file); return res.data?.url }}
+                onActivate={setActiveEditor}
+              />
+
+              <CaEditorField
+                mode="full"
+                label="Important Facts &amp; Figures"
+                hint="(specific numbers, names, dates to memorise)"
+                value={form.importantFacts}
+                onChange={html => setForm((f:any) => ({...f, importantFacts: html}))}
+                placeholder="₹2.5 lakh crore allocated to infrastructure in Union Budget 2025–26…"
+                uploadImage={async (file) => { const res = await api.currentAffairs.uploadImage(file); return res.data?.url }}
                 onActivate={setActiveEditor}
               />
 
