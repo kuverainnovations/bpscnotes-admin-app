@@ -30,6 +30,7 @@ const NAV: NavGroup[] = [
   { group:'Content',    defaultOpen:true,  items:[
     { href:'/courses',          icon:BookOpen,        label:'Courses' },
     { href:'/study-materials',  icon:LibraryBig,      label:'Study Materials' },
+    { href:'/subjects',         icon:Layers,          label:'Subjects' },
    // { href:'/support-escalations', icon:LifeBuoy,     label:'Support Escalations' },
     { href:'/quizzes',          icon:HelpCircle,      label:'Quizzes & Mock Tests' },
     { href:'/current-affairs',  icon:Newspaper,       label:'Current Affairs' },

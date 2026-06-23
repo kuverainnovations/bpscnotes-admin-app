@@ -142,6 +142,8 @@ export default function StudyMaterialsAdminPage() {
   // Inline language editor — opens a small picker on the language badge
   const [langEditId, setLangEditId] = useState<string | null>(null)
   const [langSaving, setLangSaving] = useState(false)
+  // Page count backfill
+  const [backfilling, setBackfilling] = useState(false)
   const [stats,     setStats]     = useState<any>(null)
   const [loading,   setLoading]   = useState(true)
   const [page, setPage]           = useState(1)
@@ -191,6 +193,22 @@ export default function StudyMaterialsAdminPage() {
       setLangEditId(null)
     }
   }
+
+  const handleBackfillPageCounts = async () => {
+    if (!confirm('Scan all PDFs on disk and fill in missing page counts. This may take a moment — proceed?')) return
+    setBackfilling(true)
+    try {
+      const res = await api.studyMaterials.backfillPageCounts()
+      const { updated, skipped, total: tot } = res.data ?? {}
+      showToast(`✅ Backfill complete: ${updated} updated, ${skipped} skipped of ${tot} PDFs`, 'success')
+      load() // refresh list so new page counts are visible
+    } catch (e: any) {
+      showToast(e.message || 'Backfill failed', 'error')
+    } finally {
+      setBackfilling(false)
+    }
+  }
+
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -364,7 +382,7 @@ export default function StudyMaterialsAdminPage() {
         )}
 
         {/* View toggle: Materials vs Seller Wallets vs Revenue */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button onClick={() => setView('materials')}
             className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all
               ${view === 'materials' ? 'text-brand-700 bg-brand-50 border-brand-200' : 'text-slate-600 bg-white border-slate-200 hover:bg-slate-50'}`}>
@@ -379,6 +397,15 @@ export default function StudyMaterialsAdminPage() {
             className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all
               ${view === 'revenue' ? 'text-amber-700 bg-amber-50 border-amber-200' : 'text-slate-600 bg-white border-slate-200 hover:bg-slate-50'}`}>
             📊 Platform Revenue
+          </button>
+          {/* One-time backfill: fills page_count for all PDFs that have 0 */}
+          <button
+            onClick={handleBackfillPageCounts}
+            disabled={backfilling}
+            title="Scan all uploaded PDFs and fill in missing page counts"
+            className="ml-auto px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-1.5"
+          >
+            {backfilling ? '⏳ Scanning PDFs…' : '📄 Backfill Page Counts'}
           </button>
         </div>
 
@@ -505,6 +532,12 @@ export default function StudyMaterialsAdminPage() {
                             {fmt(m.fileSizeBytes || m.file_size_bytes)}
                           </span>
                         ) : null}
+                        {(m.page_count ?? m.pageCount) > 0 && (
+                          <span className="flex items-center gap-1">
+                            <FileText size={11} className="text-slate-400" />
+                            {(m.page_count ?? m.pageCount).toLocaleString()} pages
+                          </span>
+                        )}
                         <span className="flex items-center gap-1">
                           <Download size={11} className="text-slate-400" />
                           {(m.downloadCount ?? m.download_count ?? 0).toLocaleString()} downloads

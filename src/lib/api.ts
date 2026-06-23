@@ -26,8 +26,12 @@ const request = async (url: string, options: any = {}) => {
 
 
   const headers: any = {
-    'Content-Type': 'application/json',
     ...(options.headers || {}),
+  }
+
+  // Only set Content-Type for JSON — FormData sets its own boundary
+  if (!options.isFormData) {
+    headers['Content-Type'] = 'application/json'
   }
 
   // 🔥 THIS IS THE MISSING PART
@@ -277,6 +281,10 @@ export const api = {
   
     signedUrl: (id: string) =>
       request(`/admin/study-materials/${id}/url`),
+
+    // Backfill page_count for all PDFs with page_count=0
+    backfillPageCounts: () =>
+      request(`/admin/study-materials/backfill-page-counts`, { method: 'POST' }),
   },
 
   // ── Support Escalations (Phase 5) ──────────────────────────
@@ -334,6 +342,12 @@ export const api = {
     create: (data: any) => request('/admin/jobs', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: any) => request(`/admin/jobs/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: string) => request(`/admin/jobs/${id}`, { method: 'DELETE' }),
+    // Upload advertisement PDF for a specific job
+    uploadAdvertPdf: (id: string, file: File) => {
+      const form = new FormData()
+      form.append('file', file)
+      return request(`/admin/jobs/${id}/advert-pdf`, { method: 'POST', body: form, isFormData: true })
+    },
   },
 
   // ── Subscriptions & Coupons ───────────────────────────────
@@ -518,6 +532,9 @@ export const api = {
     create: (data: any)  => request('/admin/flashcards', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: any) => request(`/admin/flashcards/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: string) => request(`/admin/flashcards/${id}`, { method: 'DELETE' }),
+    // Push "New Flashcards Available" notification to subject subscribers
+    publishNotify: (subject: string, count?: number) =>
+      request('/admin/flashcards/publish-notify', { method: 'POST', body: JSON.stringify({ subject, count }) }),
   },
 }
 

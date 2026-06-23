@@ -8,7 +8,7 @@ import { useDebounce } from '@/lib/hooks'
 import {
   Search, Plus, Edit, Trash2, RefreshCw, Brain,
   Eye, X, Image as ImageIcon, FileText, ChevronLeft,
-  ChevronRight, Loader2, CheckCircle,
+  ChevronRight, Loader2, CheckCircle, Bell,
 } from 'lucide-react'
 
 type SideType = 'text' | 'image'
@@ -95,6 +95,7 @@ export default function FlashcardsPage() {
   const [preview, setPreview]   = useState<any>(null)
   const [frontUploading, setFrontUploading] = useState(false)
   const [backUploading, setBackUploading]   = useState(false)
+  const [notifying, setNotifying] = useState(false)
   const frontRef = useRef<HTMLInputElement>(null)
   const backRef  = useRef<HTMLInputElement>(null)
   const debouncedSearch = useDebounce(search, 400)
@@ -153,6 +154,19 @@ export default function FlashcardsPage() {
     catch (e: any) { showToast(e.message,'error') }
   }
 
+  const publishNotify = async (subject: string) => {
+    setNotifying(true)
+    try {
+      const count = list.filter(c => c.subject === subject && c.is_active !== false).length
+      await api.flashcards.publishNotify(subject, count)
+      showToast(`🔔 Notification sent for ${subject} flashcards`, 'success')
+    } catch (e: any) {
+      showToast(e.message || 'Notification failed', 'error')
+    } finally {
+      setNotifying(false)
+    }
+  }
+
   const totalPages = Math.ceil(total / LIMIT)
 
   return (
@@ -191,7 +205,18 @@ export default function FlashcardsPage() {
             <DynamicSelect type="subjects" value={filterSubject} onChange={v => { setFilter(v); setPage(1) }} placeholder="All Subjects" />
           </div>
           <button onClick={load} className="btn-secondary px-3 py-2" title="Refresh"><RefreshCw size={13}/></button>
-          {/* Issue 4: button text clean */}
+          {/* Publish & Notify — sends push to flashcard subscribers for current subject filter */}
+          {filterSubject && (
+            <button
+              onClick={() => publishNotify(filterSubject)}
+              disabled={notifying}
+              title={`Send "New Flashcards" push for ${filterSubject}`}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 disabled:opacity-50 transition-colors"
+            >
+              {notifying ? <Loader2 size={13} className="animate-spin"/> : <Bell size={13}/>}
+              Notify {filterSubject}
+            </button>
+          )}
           <button onClick={openNew} className="btn-primary"><Plus size={14}/> New Flashcard</button>
         </div>
 
