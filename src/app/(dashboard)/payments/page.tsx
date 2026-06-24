@@ -107,7 +107,9 @@ function CoursePurchasesTab() {
   const dSearch = useDebounce(search, 400)
 
   const params = { search: dSearch, status, dateFrom, dateTo, page, limit: 20 }
-  const { data, loading, error, refetch } = useApiData(
+  const { data, loading, error, refetch } = useApiData<{
+    purchases: any[]; meta: { total: number }
+  }>(
     () => api.payments.getCoursePurchases(params),
     [dSearch, status, dateFrom, dateTo, page]
   )
@@ -180,7 +182,9 @@ function MaterialPurchasesTab() {
   const dSearch = useDebounce(search, 400)
 
   const params = { search: dSearch, dateFrom, dateTo, page, limit: 20 }
-  const { data, loading, error, refetch } = useApiData(
+  const { data, loading, error, refetch } = useApiData<{
+    purchases: any[]; meta: { total: number }; totals: { total_collected: number; total_platform_fee: number }
+  }>(
     () => api.payments.getMaterialPurchases(params),
     [dSearch, dateFrom, dateTo, page]
   )
@@ -261,7 +265,9 @@ function SubscriptionsTab() {
   const dSearch = useDebounce(search, 400)
 
   const params = { search: dSearch, status, dateFrom, dateTo, page, limit: 20 }
-  const { data, loading, error, refetch } = useApiData(
+  const { data, loading, error, refetch } = useApiData<{
+    payments: any[]; meta: { total: number }
+  }>(
     () => api.payments.getSubscriptionPayments(params),
     [dSearch, status, dateFrom, dateTo, page]
   )
@@ -325,10 +331,14 @@ function SubscriptionsTab() {
 // Dashboard Tab
 // ─────────────────────────────────────────────────────────────
 function DashboardTab() {
-  const { data, loading, error, refetch } = useApiData(
+  const { data, loading, error, refetch } = useApiData<{
+    totalRevenue: number; revenueToday: number; revenueThisMonth: number
+    courseRevenue: number; studyMaterialRevenue: number; subscriptionRevenue: number
+    successfulPayments: number; failedPayments: number; refunds: number
+  }>(
     () => api.payments.getDashboard(), []
   )
-  const d = data ?? {}
+  const d = data ?? {} as any
 
   if (loading) return <PageLoader />
   if (error)   return <ErrorMessage message={error} onRetry={refetch} />
