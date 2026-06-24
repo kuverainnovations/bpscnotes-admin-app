@@ -26,10 +26,10 @@ export default function SubscriptionsPage() {
   // Payment settings
   const [showSettings, setShowSettings] = useState(false)
   const [settings, setSettings] = useState({
-    razorpayKeyId:     '',
-    razorpayKeySecret: '',
-    razorpayWebhookSecret: '',
-    razorpayMode:      'test',
+    cashfreeAppId:         '',
+    cashfreeSecretKey:     '',
+    cashfreeWebhookSecret: '',
+    paymentMode:           'sandbox',
     upiDisplayName:    'BPSCNotes',
     paymentEnabled:    true,
   })
@@ -95,14 +95,14 @@ export default function SubscriptionsPage() {
       <Header title="Subscriptions & Payments" subtitle="Manage all subscriptions and revenue" />
       <div className="p-6 space-y-5 animate-fade-in">
 
-        {/* Razorpay Settings Modal */}
+        {/* Cashfree Payment Settings Modal */}
         {showSettings && (
           <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={() => setShowSettings(false)}>
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between p-5 border-b">
                 <div>
                   <h2 className="font-bold text-gray-900 text-lg">💳 Payment Gateway Settings</h2>
-                  <p className="text-sm text-gray-500">Razorpay configuration</p>
+                  <p className="text-sm text-gray-500">Cashfree Payment Gateway configuration</p>
                 </div>
                 <button onClick={() => setShowSettings(false)} className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500">✕</button>
               </div>
@@ -114,10 +114,10 @@ export default function SubscriptionsPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-semibold text-gray-600 mb-1 block">Mode</label>
-                    <select value={settings.razorpayMode} onChange={e => setSettings(p => ({...p, razorpayMode: e.target.value}))}
+                    <select value={settings.paymentMode} onChange={e => setSettings(p => ({...p, paymentMode: e.target.value}))}
                       className="w-full border border-gray-200 rounded-lg p-2 text-sm">
-                      <option value="test">🧪 Test Mode</option>
-                      <option value="live">🟢 Live Mode</option>
+                      <option value="sandbox">🧪 Sandbox Mode</option>
+                      <option value="production">🟢 Production Mode</option>
                     </select>
                   </div>
                   <div>
@@ -127,18 +127,18 @@ export default function SubscriptionsPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-600 mb-1 block">Razorpay Key ID (rzp_test_... or rzp_live_...)</label>
-                  <input value={settings.razorpayKeyId} onChange={e => setSettings(p => ({...p, razorpayKeyId: e.target.value}))}
-                    className="w-full border border-gray-200 rounded-lg p-2.5 text-sm font-mono" placeholder="rzp_test_xxxxxxxxxxxx"/>
+                  <label className="text-xs font-semibold text-gray-600 mb-1 block">Cashfree App ID</label>
+                  <input value={settings.cashfreeAppId} onChange={e => setSettings(p => ({...p, cashfreeAppId: e.target.value}))}
+                    className="w-full border border-gray-200 rounded-lg p-2.5 text-sm font-mono" placeholder="CF_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"/>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-600 mb-1 block">Razorpay Key Secret</label>
-                  <input type="password" value={settings.razorpayKeySecret} onChange={e => setSettings(p => ({...p, razorpayKeySecret: e.target.value}))}
+                  <label className="text-xs font-semibold text-gray-600 mb-1 block">Cashfree Secret Key</label>
+                  <input type="password" value={settings.cashfreeSecretKey} onChange={e => setSettings(p => ({...p, cashfreeSecretKey: e.target.value}))}
                     className="w-full border border-gray-200 rounded-lg p-2.5 text-sm font-mono" placeholder="••••••••••••••••••••"/>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-600 mb-1 block">Webhook Secret (from Razorpay dashboard)</label>
-                  <input type="password" value={settings.razorpayWebhookSecret} onChange={e => setSettings(p => ({...p, razorpayWebhookSecret: e.target.value}))}
+                  <label className="text-xs font-semibold text-gray-600 mb-1 block">Webhook Secret Key (from Cashfree dashboard)</label>
+                  <input type="password" value={settings.cashfreeWebhookSecret} onChange={e => setSettings(p => ({...p, cashfreeWebhookSecret: e.target.value}))}
                     className="w-full border border-gray-200 rounded-lg p-2.5 text-sm font-mono" placeholder="••••••••••••••••••••"/>
                 </div>
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
@@ -152,9 +152,9 @@ export default function SubscriptionsPage() {
                   </button>
                 </div>
                 <div className="p-3 bg-blue-50 rounded-xl text-xs text-blue-700">
-                  <strong>Webhook URL to configure in Razorpay Dashboard:</strong><br/>
-                  <code className="bg-blue-100 px-1 rounded">{process.env.NEXT_PUBLIC_API_URL}/webhooks/razorpay</code><br/>
-                  Events: <code>payment.captured</code>, <code>payment.failed</code>
+                  <strong>Webhook URL to configure in Cashfree Dashboard:</strong><br/>
+                  <code className="bg-blue-100 px-1 rounded">{process.env.NEXT_PUBLIC_API_URL}/webhooks/cashfree</code><br/>
+                  Events: <code>PAYMENT_SUCCESS_WEBHOOK</code>, <code>PAYMENT_FAILED_WEBHOOK</code>
                 </div>
                 <button onClick={savePaymentSettings} disabled={settingsSaving}
                   className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-2.5 rounded-xl font-semibold text-sm">
