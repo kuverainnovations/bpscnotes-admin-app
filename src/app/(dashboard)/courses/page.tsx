@@ -1018,11 +1018,7 @@ export default function ContentPage() {
                         <p className="text-[10px] text-slate-400 mt-1">Shown as strikethrough</p>
                       </div>
                       <div className="col-span-2">
-                        <label className="block text-xs font-bold text-slate-500 mb-1.5">Max Coins Redeemable</label>
-                        <input type="number" min={0} value={form.maxCoinsRedeemable ?? ''}
-                          onChange={e => setForm({...form, maxCoinsRedeemable: e.target.value === '' ? null : +e.target.value})}
-                          className="input w-full" placeholder="Default (50)" />
-                        <p className="text-[10px] text-slate-400 mt-1">Max coins a buyer can redeem as a discount on this course. Leave blank to use the global default.</p>
+                        {/* FIX Issue 3: maxCoinsRedeemable removed — coins cannot be used for purchases */}
                       </div>
                     </>
                   )}

@@ -532,9 +532,22 @@ export const api = {
     create: (data: any)  => request('/admin/flashcards', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: any) => request(`/admin/flashcards/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: string) => request(`/admin/flashcards/${id}`, { method: 'DELETE' }),
-    // Push "New Flashcards Available" notification to subject subscribers
     publishNotify: (subject: string, count?: number) =>
       request('/admin/flashcards/publish-notify', { method: 'POST', body: JSON.stringify({ subject, count }) }),
+  },
+
+  // ── Payment Management (Issue 4) ──────────────────────────────
+  payments: {
+    getDashboard:          ()             => request('/admin/payments/dashboard'),
+    getCoursePurchases:    (params: any = {}) => request(`/admin/payments/courses?${qs(params)}`),
+    getMaterialPurchases:  (params: any = {}) => request(`/admin/payments/materials?${qs(params)}`),
+    getSubscriptionPayments: (params: any = {}) => request(`/admin/payments/subscriptions?${qs(params)}`),
+    exportCsv: (type: string) => {
+      // Direct download — open in new tab so browser triggers file save
+      const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : ''
+      const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.bpscnotes.in/api/v1'
+      window.open(`${BASE_URL}/admin/payments/export?type=${type}&token=${token}`, '_blank')
+    },
   },
 }
 
