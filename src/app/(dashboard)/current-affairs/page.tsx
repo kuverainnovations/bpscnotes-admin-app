@@ -513,6 +513,30 @@ function Inner() {
                 onActivate={setActiveEditor}
               />
 
+               {/* ── New content fields ── */}
+               <CaEditorField
+                mode="full"
+                label="Key Points"
+                hint="(bullet-form takeaways for quick revision)"
+                value={form.keyPoints}
+                onChange={html => setForm((f:any) => ({...f, keyPoints: html}))}
+                placeholder="• Use bullet lists here — one key takeaway per point…"
+                uploadImage={async (file) => { const res = await api.currentAffairs.uploadImage(file); return res.data?.url }}
+                onActivate={setActiveEditor}
+              />
+
+              <CaEditorField
+                mode="full"
+                label="Exam Relevance"
+                hint="(which exam and paper, why it matters)"
+                value={form.examRelevance}
+                onChange={html => setForm((f:any) => ({...f, examRelevance: html}))}
+                placeholder="BPSC Prelims GS Paper I — Topic: Economy. This article is important because…"
+                uploadImage={async (file) => { const res = await api.currentAffairs.uploadImage(file); return res.data?.url }}
+                onActivate={setActiveEditor}
+              />
+
+
               <CaEditorField
                 mode="inline"
                 label="Summary"
@@ -536,29 +560,7 @@ function Inner() {
                 onActivate={setActiveEditor}
               />
 
-              {/* ── New content fields ── */}
-              <CaEditorField
-                mode="full"
-                label="Key Points"
-                hint="(bullet-form takeaways for quick revision)"
-                value={form.keyPoints}
-                onChange={html => setForm((f:any) => ({...f, keyPoints: html}))}
-                placeholder="• Use bullet lists here — one key takeaway per point…"
-                uploadImage={async (file) => { const res = await api.currentAffairs.uploadImage(file); return res.data?.url }}
-                onActivate={setActiveEditor}
-              />
-
-              <CaEditorField
-                mode="full"
-                label="Exam Relevance"
-                hint="(which exam and paper, why it matters)"
-                value={form.examRelevance}
-                onChange={html => setForm((f:any) => ({...f, examRelevance: html}))}
-                placeholder="BPSC Prelims GS Paper I — Topic: Economy. This article is important because…"
-                uploadImage={async (file) => { const res = await api.currentAffairs.uploadImage(file); return res.data?.url }}
-                onActivate={setActiveEditor}
-              />
-
+             
               <CaEditorField
                 mode="full"
                 label="Important Facts &amp; Figures"
