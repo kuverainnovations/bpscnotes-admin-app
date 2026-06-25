@@ -43,6 +43,8 @@ const NAV: NavGroup[] = [
     { href:'/jobs',             icon:Briefcase,       label:'Job Vacancies' },
   ]},
   { group:'Revenue', items:[
+    { href:'/payments',         icon:CreditCard,      label:'Payment Management' },
+
     // { href:'/subscriptions',    icon:CreditCard,      label:'Subscriptions' },
     // { href:'/coupons',          icon:Tag,             label:'Coupon Codes' },
     { href:'/coins',            icon:Coins,           label:'Coins & Rewards' },
