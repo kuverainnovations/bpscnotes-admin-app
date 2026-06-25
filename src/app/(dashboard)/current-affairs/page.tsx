@@ -513,8 +513,20 @@ function Inner() {
                 onActivate={setActiveEditor}
               />
 
-               {/* ── New content fields ── */}
-               <CaEditorField
+          
+
+              <CaEditorField
+                mode="inline"
+                label="Summary"
+                hint="(short blurb — list cards, share text, notifications)"
+                value={form.summary}
+                onChange={html => setForm((f:any) => ({...f, summary: html}))}
+                placeholder="One or two sentences. Leave blank to auto-generate from the full article."
+                onActivate={setActiveEditor}
+              />
+
+                   {/* ── New content fields ── */}
+              <CaEditorField
                 mode="full"
                 label="Key Points"
                 hint="(bullet-form takeaways for quick revision)"
@@ -536,16 +548,6 @@ function Inner() {
                 onActivate={setActiveEditor}
               />
 
-
-              <CaEditorField
-                mode="inline"
-                label="Summary"
-                hint="(short blurb — list cards, share text, notifications)"
-                value={form.summary}
-                onChange={html => setForm((f:any) => ({...f, summary: html}))}
-                placeholder="One or two sentences. Leave blank to auto-generate from the full article."
-                onActivate={setActiveEditor}
-              />
 
               <CaEditorField
                 mode="full"
