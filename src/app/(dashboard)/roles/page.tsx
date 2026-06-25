@@ -356,6 +356,7 @@ export default function RolesPage() {
                     onChange={e => setForm({ ...form, name: e.target.value })}
                     className="input"
                     placeholder="John Doe"
+                    autoComplete="off"
                     autoFocus
                   />
                 </div>
@@ -367,6 +368,7 @@ export default function RolesPage() {
                     onChange={e => setForm({ ...form, email: e.target.value })}
                     className="input"
                     placeholder="admin@example.com"
+                    autoComplete="off"
                     disabled={!!editing}
                   />
                   {editing && <p className="text-[10px] text-slate-400 mt-1">Email cannot be changed</p>}
@@ -385,6 +387,8 @@ export default function RolesPage() {
                     onChange={e => setForm({ ...form, password: e.target.value })}
                     className="input pr-10"
                     placeholder={editing ? 'Leave blank to keep current' : 'Min. 8 characters'}
+                    autoComplete="new-password"
+                    name="new-admin-password"
                   />
                   <button
                     type="button"

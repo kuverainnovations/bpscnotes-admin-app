@@ -482,6 +482,31 @@ export default function ContentPage() {
           </div>
         )}
 
+        {/* ── Stats bar — FIX Issue 4: total/published/draft/free/paid counts ── */}
+        {list.length > 0 && (() => {
+          const published = list.filter((c: any) => c.status === 'published').length
+          const draft     = list.filter((c: any) => c.status === 'draft').length
+          const review    = list.filter((c: any) => c.status === 'review').length
+          const free      = list.filter((c: any) => !c.is_paid).length
+          const paid      = list.filter((c: any) => c.is_paid).length
+          return (
+            <div className="flex flex-wrap gap-2">
+              {[
+                { label: 'Total',     value: total,     color: 'bg-slate-100 text-slate-700 border-slate-200' },
+                { label: 'Published', value: published, color: 'bg-green-50 text-green-700 border-green-200' },
+                { label: 'Draft',     value: draft,     color: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
+                { label: 'In Review', value: review,    color: 'bg-blue-50 text-blue-700 border-blue-200' },
+                { label: 'Free',      value: free,      color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+                { label: 'Paid',      value: paid,      color: 'bg-purple-50 text-purple-700 border-purple-200' },
+              ].map(s => (
+                <span key={s.label} className={`px-3 py-1 rounded-full text-xs font-bold border ${s.color}`}>
+                  {s.label}: {s.value}
+                </span>
+              ))}
+            </div>
+          )
+        })()}
+
         {/* ── Filters bar ───────────────────────────────────── */}
         <div className="card p-4 flex flex-wrap items-center gap-3">
           <div className="relative flex-1 min-w-52">
@@ -1018,7 +1043,11 @@ export default function ContentPage() {
                         <p className="text-[10px] text-slate-400 mt-1">Shown as strikethrough</p>
                       </div>
                       <div className="col-span-2">
-                        {/* FIX Issue 3: maxCoinsRedeemable removed — coins cannot be used for purchases */}
+                        <label className="block text-xs font-bold text-slate-500 mb-1.5">Max Coins Redeemable</label>
+                        <input type="number" min={0} value={form.maxCoinsRedeemable ?? ''}
+                          onChange={e => setForm({...form, maxCoinsRedeemable: e.target.value === '' ? null : +e.target.value})}
+                          className="input w-full" placeholder="Default (50)" />
+                        <p className="text-[10px] text-slate-400 mt-1">Max coins a buyer can redeem as a discount on this course. Leave blank to use the global default.</p>
                       </div>
                     </>
                   )}

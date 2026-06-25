@@ -43,7 +43,6 @@ const NAV: NavGroup[] = [
     { href:'/jobs',             icon:Briefcase,       label:'Job Vacancies' },
   ]},
   { group:'Revenue', items:[
-    { href:'/payments',         icon:CreditCard,      label:'Payment Management' },
     // { href:'/subscriptions',    icon:CreditCard,      label:'Subscriptions' },
     // { href:'/coupons',          icon:Tag,             label:'Coupon Codes' },
     { href:'/coins',            icon:Coins,           label:'Coins & Rewards' },
@@ -73,7 +72,7 @@ type SidebarProps = {
 export default function Sidebar({ onClose }: SidebarProps) {
     const pathname = usePathname()
   const router   = useRouter()
-  const { admin, logout } = useAuth()
+  const { admin, logout, hasPermission } = useAuth()
 
   const [open, setOpen] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(NAV.map(g => [g.group, g.defaultOpen ?? false]))
@@ -88,6 +87,42 @@ export default function Sidebar({ onClose }: SidebarProps) {
       if (active) setOpen(prev => ({ ...prev, [g.group]: true }))
     })
   }, [pathname])
+
+  // Map each nav item href to the permission key it requires
+  const PERMISSION_MAP: Record<string, string> = {
+    '/dashboard':          'dashboard',
+    '/users':              'users',
+    '/roles':              'roles',
+    '/courses':            'courses',
+    '/study-materials':    'notes',
+    '/subjects':           'courses',    // part of courses content
+    '/quizzes':            'quizzes',
+    '/current-affairs':    'current-affairs',
+    '/flashcards':         'quizzes',    // grouped with quizzes
+    '/exams':              'settings',
+    '/districts':          'settings',
+    '/jobs':               'jobs',
+    '/payments':           'subscriptions',
+    '/coins':              'coins',
+    '/activity':           'dashboard',
+    '/notifications':      'notifications',
+    '/tier-rooms':         'study-rooms',
+    '/achievements':       'settings',
+    '/challenges':         'settings',
+    '/live-classes':       'live-classes',
+    '/leaderboard':        'leaderboard',
+    '/banners':            'banners',
+    '/settings':           'settings',
+  }
+
+  const canSeeItem = (href: string): boolean => {
+    // Super admins (permissions includes 'all') see everything
+    if (!admin) return false
+    if (admin.permissions?.includes('all')) return true
+    const required = PERMISSION_MAP[href]
+    if (!required) return true   // no restriction defined → visible
+    return admin.permissions?.includes(required) ?? false
+  }
 
   const initials = admin?.name
     ? admin.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
@@ -132,7 +167,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
               {isOpen && (
                 <div className="space-y-0.5">
-                  {group.items.map(item => {
+                  {group.items.filter(item => canSeeItem(item.href)).map(item => {
                     const active = pathname === item.href ||
                       (item.href !== '/dashboard' && pathname.startsWith(item.href))
                     return (
