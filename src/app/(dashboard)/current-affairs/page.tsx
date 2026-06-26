@@ -28,7 +28,7 @@ const stripHtml = (html?: string) => (html || '').replace(/<[^>]*>/g, ' ').repla
 // Issue 8: dynamic option count for MCQs
 const emptyMcqForm = (optCount = 4) => ({
   question: '', options: Array(optCount).fill('') as string[],
-  correct: 0, explanation: '', optionCount: optCount,
+  correct: 0, hint: '', explanation: '', optionCount: optCount,
 })
 
 export default function CurrentAffairsPage() {
@@ -151,6 +151,7 @@ function Inner() {
       const payload = {
         question:    mcqForm.question.trim(),
         correct:     correctLetter,           // letter, not index
+        hint:        mcqForm.hint?.trim()        || '',
         explanation: mcqForm.explanation?.trim() || '',
         optionA:     opts[0]?.trim() || '',   // required NOT NULL
         optionB:     opts[1]?.trim() || '',   // required NOT NULL
@@ -769,8 +770,22 @@ function Inner() {
                   </div>
                 </div>
 
-                <textarea value={mcqForm.question} onChange={e => setMcqForm({...mcqForm,question:e.target.value})}
-                  placeholder="Question text *" className="input w-full resize-none h-16" autoFocus />
+                {/* ── Question text — tall editor with table helper ── */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-bold text-slate-600">Question Text <span className="text-red-500">*</span></label>
+                    <button type="button" onClick={() => {
+                      const tbl = '\n\n| Column 1 | Column 2 | Column 3 |\n|----------|----------|----------|\n| Row 1    | Data     | Data     |\n| Row 2    | Data     | Data     |\n'
+                      setMcqForm((f: any) => ({...f, question: f.question + tbl}))
+                    }} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-semibold transition-colors">
+                      ⊞ Insert Table
+                    </button>
+                  </div>
+                  <textarea value={mcqForm.question} onChange={e => setMcqForm({...mcqForm,question:e.target.value})}
+                    placeholder="Question text — supports plain text or Markdown tables *"
+                    className="input w-full resize-y" style={{minHeight: '96px'}} autoFocus />
+                  <p className="text-[10px] text-slate-400 mt-1">Tip: Use ⊞ to insert a table scaffold. Tables render in the app.</p>
+                </div>
 
                 {/* Dynamic options */}
                 <div className="space-y-2">
@@ -793,12 +808,24 @@ function Inner() {
                   ))}
                 </div>
 
+                {/* ── Hint — shown DURING attempt ── */}
                 <div>
                   <label className="block text-xs font-bold text-slate-600 mb-1">
-                    Hint / Explanation <span className="font-normal text-slate-400">(shown after answering)</span>
+                    💡 Hint <span className="font-normal text-slate-400">(shown while attempting — nudges toward the answer)</span>
                   </label>
-                  <input value={mcqForm.explanation} onChange={e => setMcqForm({...mcqForm,explanation:e.target.value})}
-                    className="input w-full" placeholder="Brief explanation of the correct answer…" />
+                  <textarea value={mcqForm.hint || ''} onChange={e => setMcqForm({...mcqForm, hint: e.target.value})}
+                    className="input w-full resize-y" style={{minHeight: '60px'}}
+                    placeholder="Optional nudge shown before the student submits their answer…" />
+                </div>
+
+                {/* ── Explanation — shown AFTER submission ── */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1">
+                    📖 Explanation <span className="font-normal text-slate-400">(shown after submitting — full reasoning)</span>
+                  </label>
+                  <textarea value={mcqForm.explanation || ''} onChange={e => setMcqForm({...mcqForm, explanation: e.target.value})}
+                    className="input w-full resize-y" style={{minHeight: '72px'}}
+                    placeholder="Full explanation of why the correct answer is right…" />
                 </div>
 
                 <div className="flex gap-2">
@@ -831,7 +858,7 @@ function Inner() {
                         setEditingMcq(mcq)
                         const opts = [mcq.option_a,mcq.option_b,mcq.option_c,mcq.option_d,mcq.option_e].filter(Boolean)
                         const correctIdx = ['a','b','c','d','e'].indexOf(mcq.correct||'a')
-                        setMcqForm({question:mcq.question,options:opts,correct:correctIdx>=0?correctIdx:0,explanation:mcq.explanation||'',optionCount:opts.length})
+                        setMcqForm({question:mcq.question,options:opts,correct:correctIdx>=0?correctIdx:0,hint:mcq.hint||'',explanation:mcq.explanation||'',optionCount:opts.length})
                       }} className="w-7 h-7 rounded-lg bg-amber-50 hover:bg-amber-100 flex items-center justify-center">
                         <Edit size={12} className="text-amber-600"/>
                       </button>
@@ -852,7 +879,8 @@ function Inner() {
                       </div>
                     ))}
                   </div>
-                  {mcq.explanation && <p className="text-xs text-blue-600 mt-2 bg-blue-50 px-2.5 py-1.5 rounded-lg">💡 {mcq.explanation}</p>}
+                  {mcq.hint        && <p className="text-xs text-amber-700 mt-2 bg-amber-50 px-2.5 py-1.5 rounded-lg">💡 <span className="font-semibold">Hint:</span> {mcq.hint}</p>}
+                  {mcq.explanation && <p className="text-xs text-blue-600  mt-1 bg-blue-50  px-2.5 py-1.5 rounded-lg">📖 <span className="font-semibold">Explanation:</span> {mcq.explanation}</p>}
                 </div>
               ))}
             </div>
