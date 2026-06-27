@@ -734,8 +734,11 @@ function Inner() {
 
       {/* ══════════════════ MCQ MODAL ══════════════════ */}
       {mcqAffair && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setMcqAffair(null)}>
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex">
+          {/* Left overlay — click to close */}
+          <div className="hidden lg:block flex-1 bg-black/40 backdrop-blur-sm" onClick={() => setMcqAffair(null)} />
+          {/* Full-height slide-over — no max-height cap, scrolls naturally */}
+          <div className="bg-white w-full lg:w-[680px] flex flex-col overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
 
             <div className="bg-gradient-to-r from-purple-700 to-purple-500 px-6 py-4 flex items-center justify-between shrink-0">
               <div>
@@ -770,21 +773,74 @@ function Inner() {
                   </div>
                 </div>
 
-                {/* ── Question text — tall editor with table helper ── */}
+                {/* ── Question text — tall editor with HTML-table paste support ── */}
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="text-xs font-bold text-slate-600">Question Text <span className="text-red-500">*</span></label>
                     <button type="button" onClick={() => {
-                      const tbl = '\n\n| Column 1 | Column 2 | Column 3 |\n|----------|----------|----------|\n| Row 1    | Data     | Data     |\n| Row 2    | Data     | Data     |\n'
+                      const tbl = '\n\n| Header 1 | Header 2 | Header 3 |\n|---|---|---|\n| Cell 1   | Cell 2   | Cell 3   |\n| Cell 4   | Cell 5   | Cell 6   |\n\n'
                       setMcqForm((f: any) => ({...f, question: f.question + tbl}))
-                    }} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-semibold transition-colors">
+                    }} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-purple-100 hover:bg-purple-200 text-purple-700 text-[11px] font-semibold transition-colors">
                       ⊞ Insert Table
                     </button>
                   </div>
-                  <textarea value={mcqForm.question} onChange={e => setMcqForm({...mcqForm,question:e.target.value})}
-                    placeholder="Question text — supports plain text or Markdown tables *"
-                    className="input w-full resize-y" style={{minHeight: '96px'}} autoFocus />
-                  <p className="text-[10px] text-slate-400 mt-1">Tip: Use ⊞ to insert a table scaffold. Tables render in the app.</p>
+                  <textarea
+                    value={mcqForm.question}
+                    onChange={e => setMcqForm({...mcqForm, question: e.target.value})}
+                    onPaste={e => {
+                      // Convert HTML tables (copied from websites/Word/Sheets) to Markdown
+                      const html = e.clipboardData?.getData('text/html') || ''
+                      if (html && /<table/i.test(html)) {
+                        e.preventDefault()
+                        const parser = new DOMParser()
+                        const doc = parser.parseFromString(html, 'text/html')
+                        const tables = doc.querySelectorAll('table')
+                        let mdTables = ''
+                        tables.forEach(table => {
+                          const rows = Array.from(table.querySelectorAll('tr'))
+                          if (!rows.length) return
+                          const toMdRow = (cells: Element[]) =>
+                            '| ' + cells.map(c => (c.textContent || '').replace(/\n/g,' ').trim()).join(' | ') + ' |'
+                          const headerRow = rows[0]
+                          const headerCells = Array.from(headerRow.querySelectorAll('th,td'))
+                          const separator  = '|' + headerCells.map(() => '---|').join('')
+                          const dataRows   = rows.slice(1).map(r => toMdRow(Array.from(r.querySelectorAll('td,th'))))
+                          mdTables += '\n\n' + toMdRow(headerCells) + '\n' + separator + '\n' + dataRows.join('\n') + '\n\n'
+                        })
+                        // Strip remaining HTML, prefix any non-table text
+                        const plainText = (e.clipboardData?.getData('text/plain') || '').replace(/\t/g, ' ')
+                        const hasNonTableText = plainText.trim() && !/<table/i.test(plainText)
+                        const insert = (hasNonTableText ? plainText + '\n' : '') + mdTables
+                        setMcqForm((f: any) => ({...f, question: f.question + insert}))
+                      }
+                      // If no HTML table, let the default paste handle it (plain text)
+                    }}
+                    placeholder="Type or paste question here. Paste an HTML table (from any website or Google Sheets) — it converts to Markdown automatically."
+                    className="input w-full font-mono text-sm"
+                    style={{minHeight: '120px', resize: 'vertical'}}
+                    autoFocus
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">💡 Copy a table from any website or Google Sheets and paste here — it auto-converts to Markdown.</p>
+                  {/* Live Markdown table preview */}
+                  {/\|.+\|/.test(mcqForm.question) && (
+                    <div className="mt-2 border border-purple-100 rounded-xl overflow-auto">
+                      <p className="text-[10px] font-bold text-purple-500 px-3 pt-2">Table preview</p>
+                      <div className="p-3 overflow-x-auto">
+                        <table className="text-xs border-collapse w-full">
+                          {(() => {
+                            const lines = mcqForm.question.split('\n').filter((l: string) => /^\|/.test(l.trim()))
+                            if (lines.length < 2) return null
+                            const parse = (l: string) => l.replace(/^\||\|$/g,'').split('|').map((c: string) => c.trim())
+                            const isSep = (l: string) => /^\|[\s\-|]+\|$/.test(l.trim())
+                            const header = parse(lines[0])
+                            const body   = lines.slice(2).filter((l: string) => !isSep(l)).map(parse)
+                            return (<><thead><tr>{header.map((h: string, i: number) => <th key={i} className="border border-slate-200 bg-slate-50 px-2 py-1 font-bold text-left">{h}</th>)}</tr></thead>
+                            <tbody>{body.map((row: string[], ri: number) => <tr key={ri}>{row.map((c: string, ci: number) => <td key={ci} className="border border-slate-200 px-2 py-1">{c}</td>)}</tr>)}</tbody></>)
+                          })()}
+                        </table>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Dynamic options */}
