@@ -737,21 +737,17 @@ function Inner() {
         <div className="fixed inset-0 z-50 flex">
           {/* Left overlay — click to close */}
           <div className="hidden lg:block flex-1 bg-black/40 backdrop-blur-sm" onClick={() => setMcqAffair(null)} />
-          {/* Full-height slide-over — no max-height cap, scrolls naturally */}
-          <div className="bg-white w-full lg:w-[680px] flex flex-col overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
+          {/* Full-height right panel — fixed width on desktop, full-width on mobile */}
+          <div className="bg-slate-50 w-full lg:w-[780px] flex flex-col overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
 
             <div className="bg-gradient-to-r from-purple-700 to-purple-500 px-6 py-4 flex items-center justify-between shrink-0">
               <div>
-                <h3 className="font-bold text-white">Multiple Choice Questions (MCQs)</h3>
-                <p className="text-white/60 text-xs mt-0.5 line-clamp-1">{mcqAffair.title}</p>
+                <h3 className="font-bold text-white text-lg">MCQs — {mcqAffair.title?.slice(0,55)}{mcqAffair.title?.length > 55 ? '…' : ''}</h3>
+                <p className="text-white/60 text-xs mt-0.5">Add, edit or delete multiple-choice questions</p>
               </div>
               <button onClick={() => setMcqAffair(null)} className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center">
                 <X size={15} className="text-white"/>
               </button>
-            </div>
-            {/* Shared TipTap toolbar — floats below header, operates on whichever editor field is focused */}
-            <div className="shrink-0 border-b border-slate-100 bg-white">
-              <CaToolbar active={activeEditor} />
             </div>
             </div>
 
@@ -778,17 +774,18 @@ function Inner() {
                   </div>
                 </div>
 
-                {/* ── Question text — TipTap rich editor (same as Key Points in CA article) ── */}
+                {/* ── Question text — standalone TipTap editor with its own toolbar ── */}
                 <div>
-                  <CaEditorField
-                    mode="full"
-                    label="Question Text"
-                    hint="(paste tables, bold text, lists — exactly as you add Key Points in CA)"
-                    value={mcqForm.question}
-                    onChange={(html: string) => setMcqForm((f: any) => ({...f, question: html}))}
-                    placeholder="Type or paste the question here. Paste a table from any website — it inserts as a real table."
-                    onActivate={setActiveEditor}
-                  />
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">
+                    Question Text <span className="text-red-500">*</span>
+                    <span className="font-normal text-slate-400 ml-1">(paste tables, bold text, lists from anywhere)</span>
+                  </label>
+                  <RichTextEditor
+                  value={mcqForm.question}
+                  onChange={(html: string) => setMcqForm((f: any) => ({ ...f, question: html }))}
+                  placeholder="Type or paste the question here. Use the toolbar to insert a table, or paste one directly from any website or Google Sheets." uploadImage={function (file: File): Promise<string> {
+                    throw new Error('Function not implemented.')
+                  } }                  />
                 </div>
 
                 {/* Dynamic options */}
