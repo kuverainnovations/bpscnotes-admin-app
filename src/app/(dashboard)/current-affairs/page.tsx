@@ -749,6 +749,11 @@ function Inner() {
                 <X size={15} className="text-white"/>
               </button>
             </div>
+            {/* Shared TipTap toolbar — floats below header, operates on whichever editor field is focused */}
+            <div className="shrink-0 border-b border-slate-100 bg-white">
+              <CaToolbar active={activeEditor} />
+            </div>
+            </div>
 
             <div className="overflow-y-auto flex-1 p-5 space-y-5">
               {/* Issue 7: No difficulty. Issue 8: Option count picker */}
@@ -773,74 +778,17 @@ function Inner() {
                   </div>
                 </div>
 
-                {/* ── Question text — tall editor with HTML-table paste support ── */}
+                {/* ── Question text — TipTap rich editor (same as Key Points in CA article) ── */}
                 <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-bold text-slate-600">Question Text <span className="text-red-500">*</span></label>
-                    <button type="button" onClick={() => {
-                      const tbl = '\n\n| Header 1 | Header 2 | Header 3 |\n|---|---|---|\n| Cell 1   | Cell 2   | Cell 3   |\n| Cell 4   | Cell 5   | Cell 6   |\n\n'
-                      setMcqForm((f: any) => ({...f, question: f.question + tbl}))
-                    }} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-purple-100 hover:bg-purple-200 text-purple-700 text-[11px] font-semibold transition-colors">
-                      ⊞ Insert Table
-                    </button>
-                  </div>
-                  <textarea
+                  <CaEditorField
+                    mode="full"
+                    label="Question Text"
+                    hint="(paste tables, bold text, lists — exactly as you add Key Points in CA)"
                     value={mcqForm.question}
-                    onChange={e => setMcqForm({...mcqForm, question: e.target.value})}
-                    onPaste={e => {
-                      // Convert HTML tables (copied from websites/Word/Sheets) to Markdown
-                      const html = e.clipboardData?.getData('text/html') || ''
-                      if (html && /<table/i.test(html)) {
-                        e.preventDefault()
-                        const parser = new DOMParser()
-                        const doc = parser.parseFromString(html, 'text/html')
-                        const tables = doc.querySelectorAll('table')
-                        let mdTables = ''
-                        tables.forEach(table => {
-                          const rows = Array.from(table.querySelectorAll('tr'))
-                          if (!rows.length) return
-                          const toMdRow = (cells: Element[]) =>
-                            '| ' + cells.map(c => (c.textContent || '').replace(/\n/g,' ').trim()).join(' | ') + ' |'
-                          const headerRow = rows[0]
-                          const headerCells = Array.from(headerRow.querySelectorAll('th,td'))
-                          const separator  = '|' + headerCells.map(() => '---|').join('')
-                          const dataRows   = rows.slice(1).map(r => toMdRow(Array.from(r.querySelectorAll('td,th'))))
-                          mdTables += '\n\n' + toMdRow(headerCells) + '\n' + separator + '\n' + dataRows.join('\n') + '\n\n'
-                        })
-                        // Strip remaining HTML, prefix any non-table text
-                        const plainText = (e.clipboardData?.getData('text/plain') || '').replace(/\t/g, ' ')
-                        const hasNonTableText = plainText.trim() && !/<table/i.test(plainText)
-                        const insert = (hasNonTableText ? plainText + '\n' : '') + mdTables
-                        setMcqForm((f: any) => ({...f, question: f.question + insert}))
-                      }
-                      // If no HTML table, let the default paste handle it (plain text)
-                    }}
-                    placeholder="Type or paste question here. Paste an HTML table (from any website or Google Sheets) — it converts to Markdown automatically."
-                    className="input w-full font-mono text-sm"
-                    style={{minHeight: '120px', resize: 'vertical'}}
-                    autoFocus
+                    onChange={(html: string) => setMcqForm((f: any) => ({...f, question: html}))}
+                    placeholder="Type or paste the question here. Paste a table from any website — it inserts as a real table."
+                    onActivate={setActiveEditor}
                   />
-                  <p className="text-[10px] text-slate-400 mt-1">💡 Copy a table from any website or Google Sheets and paste here — it auto-converts to Markdown.</p>
-                  {/* Live Markdown table preview */}
-                  {/\|.+\|/.test(mcqForm.question) && (
-                    <div className="mt-2 border border-purple-100 rounded-xl overflow-auto">
-                      <p className="text-[10px] font-bold text-purple-500 px-3 pt-2">Table preview</p>
-                      <div className="p-3 overflow-x-auto">
-                        <table className="text-xs border-collapse w-full">
-                          {(() => {
-                            const lines = mcqForm.question.split('\n').filter((l: string) => /^\|/.test(l.trim()))
-                            if (lines.length < 2) return null
-                            const parse = (l: string) => l.replace(/^\||\|$/g,'').split('|').map((c: string) => c.trim())
-                            const isSep = (l: string) => /^\|[\s\-|]+\|$/.test(l.trim())
-                            const header = parse(lines[0])
-                            const body   = lines.slice(2).filter((l: string) => !isSep(l)).map(parse)
-                            return (<><thead><tr>{header.map((h: string, i: number) => <th key={i} className="border border-slate-200 bg-slate-50 px-2 py-1 font-bold text-left">{h}</th>)}</tr></thead>
-                            <tbody>{body.map((row: string[], ri: number) => <tr key={ri}>{row.map((c: string, ci: number) => <td key={ci} className="border border-slate-200 px-2 py-1">{c}</td>)}</tr>)}</tbody></>)
-                          })()}
-                        </table>
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 {/* Dynamic options */}
@@ -941,7 +889,6 @@ function Inner() {
               ))}
             </div>
           </div>
-        </div>
       )}
 
       {/* ════════════════ NEGATIVE MARKING CONFIG MODAL ════════════════ */}
