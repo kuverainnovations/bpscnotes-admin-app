@@ -734,11 +734,7 @@ function Inner() {
 
       {/* ══════════════════ MCQ MODAL ══════════════════ */}
       {mcqAffair && (
-        <div className="fixed inset-0 z-50 flex">
-          {/* Left overlay — click to close */}
-          <div className="hidden lg:block flex-1 bg-black/40 backdrop-blur-sm" onClick={() => setMcqAffair(null)} />
-          {/* Full-height right panel — fixed width on desktop, full-width on mobile */}
-          <div className="bg-slate-50 w-full lg:w-[780px] flex flex-col overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 bg-white flex flex-col overflow-hidden">
 
             <div className="bg-gradient-to-r from-purple-700 to-purple-500 px-6 py-4 flex items-center justify-between shrink-0">
               <div>
@@ -749,111 +745,120 @@ function Inner() {
                 <X size={15} className="text-white"/>
               </button>
             </div>
-            </div>
+            {/* ── Full-page 2-column body ── */}
+            <div className="flex flex-1 overflow-hidden">
 
-            <div className="overflow-y-auto flex-1 p-5 space-y-5">
-              {/* Issue 7: No difficulty. Issue 8: Option count picker */}
-              <div className="bg-purple-50 rounded-2xl p-4 space-y-4 border border-purple-100">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-bold text-purple-900">{editingMcq ? '✏️ Edit MCQ' : '➕ Add New MCQ'}</p>
-                  {/* Issue 8: option count */}
-                  <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white rounded-xl border border-purple-200">
-                    <span className="text-[10px] text-slate-500 font-medium">Options:</span>
-                    {[2,3,4,5].map(n => (
-                      <button key={n} onClick={() => {
-                        const cur = mcqForm.optionCount || 4
-                        const opts = Array(n).fill('').map((_,i) => mcqForm.options[i] || '')
-                        const correct = (mcqForm.correct||0) >= n ? 0 : (mcqForm.correct||0)
-                        setMcqForm({...mcqForm, options:opts, optionCount:n, correct})
-                      }}
-                        className={`w-6 h-6 rounded-lg text-xs font-bold transition-colors
+              {/* LEFT COLUMN — Question editor */}
+              <div className="flex flex-col flex-1 min-w-0 overflow-y-auto border-r border-slate-100 bg-white">
+                {/* Form toolbar */}
+                <div className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-slate-100 bg-white sticky top-0 z-10">
+                  <div className="flex items-center gap-3">
+                    <span className="text-base font-extrabold text-slate-800">
+                      {editingMcq ? '✏️ Edit Question' : '➕ New Question'}
+                    </span>
+                    <div className="flex items-center gap-1 px-2.5 py-1 bg-slate-100 rounded-xl">
+                      <span className="text-[10px] text-slate-500 font-medium mr-1">Options:</span>
+                      {[2,3,4,5].map((n: number) => (
+                        <button key={n} onClick={() => {
+                          const opts = Array(n).fill('').map((_:any,i:number) => mcqForm.options[i] || '')
+                          const correct = (mcqForm.correct||0) >= n ? 0 : (mcqForm.correct||0)
+                          setMcqForm({...mcqForm, options:opts, optionCount:n, correct})
+                        }} className={`w-7 h-7 rounded-lg text-xs font-bold transition-colors
                           ${(mcqForm.optionCount||4)===n?'bg-purple-600 text-white':'text-slate-500 hover:bg-purple-100'}`}>
-                        {n}
-                      </button>
-                    ))}
+                          {n}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    {editingMcq && (
+                      <button onClick={() => { setEditingMcq(null); setMcqForm(emptyMcqForm(mcqForm.optionCount)) }}
+                        className="btn-secondary text-sm px-4">Cancel</button>
+                    )}
+                    <button onClick={saveMcq} disabled={mcqSaving || !mcqForm.question.trim()}
+                      className="btn-primary text-sm px-5 disabled:opacity-40">
+                      {mcqSaving ? <><Loader2 size={13} className="animate-spin mr-1 inline"/>Saving…</> : editingMcq ? 'Update' : 'Save MCQ'}
+                    </button>
                   </div>
                 </div>
 
-                {/* ── Question text — standalone TipTap editor with its own toolbar ── */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1.5">
-                    Question Text <span className="text-red-500">*</span>
-                    <span className="font-normal text-slate-400 ml-1">(paste tables, bold text, lists from anywhere)</span>
+                {/* Question rich-text editor */}
+                <div className="flex-1 p-6 flex flex-col gap-2">
+                  <label className="text-xs font-bold text-slate-600">
+                    Question <span className="text-red-500">*</span>
+                    <span className="font-normal text-slate-400 ml-1">— type, or paste a table from any website / Google Sheets</span>
                   </label>
-                  <RichTextEditor
-                  value={mcqForm.question}
-                  onChange={(html: string) => setMcqForm((f: any) => ({ ...f, question: html }))}
-                  placeholder="Type or paste the question here. Use the toolbar to insert a table, or paste one directly from any website or Google Sheets." uploadImage={function (file: File): Promise<string> {
-                    throw new Error('Function not implemented.')
-                  } }                  />
+                  <div className="[&_.ca-editor-content]:min-h-[400px]">
+                    <RichTextEditor
+                    value={mcqForm.question}
+                    onChange={(html: string) => setMcqForm((f: any) => ({ ...f, question: html }))}
+                    placeholder="Type the question here. Use the ⊞ table button in the toolbar to insert a table, or paste one from any website." uploadImage={function (file: File): Promise<string> {
+                      throw new Error('Function not implemented.')
+                    } }                    />
+                  </div>
                 </div>
+              </div>
 
-                {/* Dynamic options */}
-                <div className="space-y-2">
+              {/* RIGHT COLUMN — Options, Hint, Explanation, list */}
+              <div className="w-[380px] shrink-0 flex flex-col overflow-y-auto bg-slate-50">
+
+                {/* Options */}
+                <div className="p-5 space-y-2 border-b border-slate-100">
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-3">Answer Options</p>
                   {(mcqForm.options || []).map((opt: string, oi: number) => (
-                    <div key={oi} className={`flex items-center gap-2 p-2 rounded-xl border-2 transition-colors
-                      ${mcqForm.correct===oi?'border-green-400 bg-green-50':'border-transparent bg-white'}`}>
+                    <div key={oi} className={`flex items-center gap-2 p-2.5 rounded-xl border-2 transition-colors
+                      ${mcqForm.correct===oi?'border-green-400 bg-green-50':'border-transparent bg-white shadow-sm'}`}>
                       <button onClick={() => setMcqForm({...mcqForm,correct:oi})}
-                        className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs font-black shrink-0 transition-colors
-                          ${mcqForm.correct===oi?'bg-green-500 text-white':'bg-slate-100 border-2 border-slate-200 text-slate-500 hover:border-green-400'}`}>
+                        className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black shrink-0 transition-colors
+                          ${mcqForm.correct===oi?'bg-green-500 text-white':'bg-slate-100 text-slate-500 hover:bg-green-100 border-2 border-slate-200'}`}>
                         {OPTION_LABELS[oi]}
                       </button>
                       <input value={opt} onChange={e => {
                         const opts = [...mcqForm.options]; opts[oi] = e.target.value
                         setMcqForm({...mcqForm,options:opts})
-                      }}
-                        className="flex-1 bg-transparent outline-none text-sm text-slate-800 placeholder-slate-400"
+                      }} className="flex-1 bg-transparent outline-none text-sm text-slate-800 placeholder-slate-400"
                         placeholder={`Option ${OPTION_LABELS[oi]}…`}/>
                       {mcqForm.correct === oi && <span className="text-[10px] font-bold text-green-600 shrink-0">✓ Correct</span>}
                     </div>
                   ))}
                 </div>
 
-                {/* ── Hint — shown DURING attempt ── */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1">
-                    💡 Hint <span className="font-normal text-slate-400">(shown while attempting — nudges toward the answer)</span>
+                {/* Hint */}
+                <div className="p-5 space-y-1.5 border-b border-slate-100">
+                  <label className="text-xs font-bold text-amber-700">
+                    💡 Hint <span className="font-normal text-slate-400">(shown while attempting)</span>
                   </label>
                   <textarea value={mcqForm.hint || ''} onChange={e => setMcqForm({...mcqForm, hint: e.target.value})}
-                    className="input w-full resize-y" style={{minHeight: '60px'}}
-                    placeholder="Optional nudge shown before the student submits their answer…" />
+                    className="input w-full resize-y text-sm" rows={3}
+                    placeholder="Optional nudge before the student answers…" />
                 </div>
 
-                {/* ── Explanation — shown AFTER submission ── */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1">
-                    📖 Explanation <span className="font-normal text-slate-400">(shown after submitting — full reasoning)</span>
+                {/* Explanation */}
+                <div className="p-5 space-y-1.5 border-b border-slate-100">
+                  <label className="text-xs font-bold text-green-700">
+                    📖 Explanation <span className="font-normal text-slate-400">(shown after answering)</span>
                   </label>
                   <textarea value={mcqForm.explanation || ''} onChange={e => setMcqForm({...mcqForm, explanation: e.target.value})}
-                    className="input w-full resize-y" style={{minHeight: '72px'}}
-                    placeholder="Full explanation of why the correct answer is right…" />
+                    className="input w-full resize-y text-sm" rows={4}
+                    placeholder="Full reasoning for why the correct answer is right…" />
                 </div>
 
-                <div className="flex gap-2">
-                  <button onClick={saveMcq} disabled={mcqSaving||!mcqForm.question.trim()}
-                    className="btn-primary text-sm disabled:opacity-40">
-                    {mcqSaving ? <><Loader2 size={13} className="animate-spin"/> Saving…</> : editingMcq ? 'Update MCQ' : 'Add MCQ'}
-                  </button>
-                  {editingMcq && (
-                    <button onClick={() => { setEditingMcq(null); setMcqForm(emptyMcqForm(mcqForm.optionCount)) }} className="btn-secondary text-sm">
-                      Cancel
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Existing MCQs */}
+              {/* Existing MCQs list */}
+              <div className="p-5 space-y-3">
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">
+                  {mcqs.length > 0 ? `${mcqs.length} MCQ${mcqs.length > 1 ? 's' : ''} added` : 'No MCQs yet'}
+                </p>
               {mcqLoading ? (
                 <div className="py-8 text-center"><Loader2 size={24} className="animate-spin mx-auto text-slate-300"/></div>
               ) : mcqs.length === 0 ? (
                 <div className="py-8 text-center text-slate-400">
                   <p className="text-2xl mb-2">❓</p>
-                  <p className="text-sm">No MCQs yet — add the first one above</p>
+                  <p className="text-sm">Add the first question using the editor on the left</p>
                 </div>
               ) : mcqs.map((mcq, i) => (
-                <div key={mcq.id} className="bg-slate-50 rounded-2xl p-4 border border-slate-200">
+                <div key={mcq.id} className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <p className="text-sm font-bold text-slate-800">{i+1}. {mcq.question}</p>
+                    <p className="text-sm font-bold text-slate-800 line-clamp-2">{i+1}. {mcq.question?.replace(/<[^>]+>/g,'').slice(0,100)}{(mcq.question?.replace(/<[^>]+>/g,'').length > 100) ? '…' : ''}</p>
                     <div className="flex gap-1 shrink-0">
                       <button onClick={() => {
                         setEditingMcq(mcq)
@@ -868,10 +873,10 @@ function Inner() {
                       </button>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-1.5">
+                  <div className="grid grid-cols-1 gap-1">
                     {['a','b','c','d','e'].map(l => mcq[`option_${l}`] && (
                       <div key={l} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs
-                        ${mcq.correct===l?'bg-green-100 text-green-800 font-semibold border border-green-200':'bg-white text-slate-600 border border-slate-200'}`}>
+                        ${mcq.correct===l?'bg-green-100 text-green-800 font-semibold border border-green-200':'bg-slate-50 text-slate-600 border border-slate-100'}`}>
                         <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-black shrink-0
                           ${mcq.correct===l?'bg-green-500 text-white':'bg-slate-200 text-slate-500'}`}>
                           {l.toUpperCase()}
@@ -884,9 +889,11 @@ function Inner() {
                   {mcq.explanation && <p className="text-xs text-blue-600  mt-1 bg-blue-50  px-2.5 py-1.5 rounded-lg">📖 <span className="font-semibold">Explanation:</span> {mcq.explanation}</p>}
                 </div>
               ))}
-            </div>
-          </div>
-      )}
+              </div>
+              </div>{/* end right column */}
+            </div>{/* end 2-column wrapper */}
+      </div>
+)}
 
       {/* ════════════════ NEGATIVE MARKING CONFIG MODAL ════════════════ */}
       {showMcqConfig && (
