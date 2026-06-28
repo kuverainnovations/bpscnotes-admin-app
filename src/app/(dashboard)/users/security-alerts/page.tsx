@@ -90,8 +90,8 @@ export default function SecurityAlertsPage() {
     try {
       const params: any = { page: p, limit: LIMIT }
       if (sev !== 'all') params.severity = sev
-      const res = await api.get('/admin/users/security-alerts', { params })
-      const d = res.data?.data || {}
+      const res = await api.users.securityAlerts(params)
+      const d = res.data?.data || res.data || {}
       setAlerts(d.alerts || [])
       setFlaggedSessions(d.flaggedSessions || [])
       setTotal(d.total || 0)

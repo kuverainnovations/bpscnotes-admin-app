@@ -132,9 +132,10 @@ export default function SuspiciousAccountsPage() {
   const load = useCallback(async (p: number) => {
     setLoading(true)
     try {
-      const res = await api.get('/admin/users/suspicious', { params: { page: p, limit: LIMIT } })
-      setGroups(res.data?.data?.groups || [])
-      setTotal(res.data?.data?.total || 0)
+      const res = await api.users.suspicious({ page: p, limit: LIMIT })
+      const d = res.data?.data || res.data || {}
+      setGroups(d.groups || [])
+      setTotal(d.total || 0)
     } catch {
       showToast('Failed to load suspicious accounts', 'error')
     } finally {

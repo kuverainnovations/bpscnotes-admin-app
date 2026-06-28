@@ -149,10 +149,12 @@ export const api = {
     delete:      (id: string) => request(`/admin/users/${id}`, { method: 'DELETE' }),
     awardCoins:  (userId: string, amount: number, reason: string) =>
                    request('/admin/users/award-coins', { method: 'POST', body: JSON.stringify({ userId, amount, reason }) }),
-    getAdmins:   () => request('/admin/users/admin-accounts/list'),
-    createAdmin: (data: any) => request('/admin/users/admin-accounts', { method: 'POST', body: JSON.stringify(data) }),
-    updateAdmin: (id: string, data: any) => request(`/admin/users/admin-accounts/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-    deleteAdmin: (id: string) => request(`/admin/users/admin-accounts/${id}`, { method: 'DELETE' }),
+    getAdmins:      () => request('/admin/users/admin-accounts/list'),
+    createAdmin:    (data: any) => request('/admin/users/admin-accounts', { method: 'POST', body: JSON.stringify(data) }),
+    updateAdmin:    (id: string, data: any) => request(`/admin/users/admin-accounts/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    deleteAdmin:    (id: string) => request(`/admin/users/admin-accounts/${id}`, { method: 'DELETE' }),
+    suspicious:     (params: any = {}) => request(`/admin/users/suspicious?${qs(params)}`),
+    securityAlerts: (params: any = {}) => request(`/admin/users/security-alerts?${qs(params)}`),
   },
 
   // ── Courses ───────────────────────────────────────────────
