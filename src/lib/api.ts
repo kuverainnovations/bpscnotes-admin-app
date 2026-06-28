@@ -5,26 +5,22 @@
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'
 
 // ── Token helpers ─────────────────────────────────────────────
-export const getToken = (): string | null => {
-  if (typeof window === 'undefined') return null
-  return localStorage.getItem('adminToken')
-}
-export const setToken = (token: string) => {
-  if (typeof window !== 'undefined') localStorage.setItem('adminToken', token)
-}
+// Token is now an httpOnly cookie set by POST /admin/login.
+// JS cannot read it, so these helpers only manage non-sensitive localStorage state.
+export const getToken = (): string | null => null
+export const setToken = (_token: string) => {}
 export const clearToken = () => {
   if (typeof window !== 'undefined') {
-    localStorage.removeItem('adminToken')
     localStorage.removeItem('adminUser')
   }
 }
-export const isLoggedIn = (): boolean => !!getToken()
+export const isLoggedIn = (): boolean => {
+  if (typeof window === 'undefined') return false
+  return !!localStorage.getItem('adminUser')
+}
 
 // ── Core request ──────────────────────────────────────────────
 const request = async (url: string, options: any = {}) => {
-  const token = getToken()
-
-
   const headers: any = {
     ...(options.headers || {}),
   }
@@ -34,15 +30,10 @@ const request = async (url: string, options: any = {}) => {
     headers['Content-Type'] = 'application/json'
   }
 
-  // 🔥 THIS IS THE MISSING PART
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`
-  }
-
-  // const res = await fetch(`http://localhost:5000/api/v1${url}`, {
-    const res = await fetch(`${BASE_URL}${url}`, {
+  const res = await fetch(`${BASE_URL}${url}`, {
     ...options,
     headers,
+    credentials: 'include',
   })
 
   const data = await res.json()
@@ -65,11 +56,11 @@ const request = async (url: string, options: any = {}) => {
 
 // ── File upload ───────────────────────────────────────────────
 const uploadRequest = async (path: string, formData: FormData): Promise<any> => {
-  const token = getToken()
   const res = await fetch(`${BASE_URL}${path}`, {
-    method: 'POST',
-    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-    body: formData,
+    method:      'POST',
+    headers:     {},
+    body:        formData,
+    credentials: 'include',
   })
   const data = await res.json().catch(() => ({ success: false, message: 'Upload failed' }))
   if (res.status === 401) {
@@ -86,10 +77,9 @@ const uploadRequest = async (path: string, formData: FormData): Promise<any> => 
 // ── File upload with progress (XHR — fetch doesn't expose upload progress) ──
 const uploadRequestWithProgress = (path: string, formData: FormData, onProgress?: (pct: number) => void): Promise<any> => {
   return new Promise((resolve, reject) => {
-    const token = getToken()
     const xhr = new XMLHttpRequest()
     xhr.open('POST', `${BASE_URL}${path}`)
-    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`)
+    xhr.withCredentials = true
 
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable && onProgress) {
@@ -132,17 +122,12 @@ export const api = {
   // ── Auth ──────────────────────────────────────────────────
   auth: {
     login: async (email: string, password: string) => {
-      const res = await request('/admin/login', {
+      return request('/admin/login', {
         method: 'POST',
         body: JSON.stringify({ email, password }),
       })
-      // Save token immediately on login
-      if (res.data?.token) {
-          setToken(res.data.token)
-      }
-      return res
     },
-    logout: () => clearToken(),
+    logout: () => request('/admin/logout', { method: 'POST' }).catch(() => {}),
   },
 
   // ── Dashboard ─────────────────────────────────────────────
@@ -543,10 +528,9 @@ export const api = {
     getMaterialPurchases:  (params: any = {}) => request(`/admin/payments/materials?${qs(params)}`),
     getSubscriptionPayments: (params: any = {}) => request(`/admin/payments/subscriptions?${qs(params)}`),
     exportCsv: (type: string) => {
-      // Direct download — open in new tab so browser triggers file save
-      const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : ''
-      const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.bpscnotes.in/api/v1'
-      window.open(`${BASE_URL}/admin/payments/export?type=${type}&token=${token}`, '_blank')
+      // Cookie is sent automatically by the browser for same-site navigation
+      const base = process.env.NEXT_PUBLIC_API_URL || 'https://api.bpscnotes.in/api/v1'
+      window.open(`${base}/admin/payments/export?type=${type}`, '_blank')
     },
   },
 }

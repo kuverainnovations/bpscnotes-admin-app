@@ -16,7 +16,7 @@ async function uploadImage(file: File): Promise<string> {
   const fd = new FormData(); fd.append('image', file)
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL||'http://localhost:5000/api/v1'}/admin/upload/image`,
-    { method:'POST', headers:{ Authorization:`Bearer ${localStorage.getItem('adminToken')}` }, body:fd }
+    { method:'POST', headers:{}, body:fd, credentials:'include' }
   )
   const data = await res.json()
   const url  = data.data?.url || data.data?.imageUrl || data.url

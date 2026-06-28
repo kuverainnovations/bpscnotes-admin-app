@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import Header from '@/components/layout/Header'
 import api from '@/lib/api'
 import { useToast } from '@/components/ui/feedback'
-import { Save, RefreshCw, Database, Smartphone, Coins, AlertTriangle } from 'lucide-react'
+import { Save, RefreshCw, Database, Smartphone, Coins, AlertTriangle, Bell } from 'lucide-react'
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<Record<string, string>>({})
@@ -92,10 +92,76 @@ export default function SettingsPage() {
               <h2 className="section-title mb-0">App Controls</h2>
             </div>
             <div>
-              <Toggle k="maintenance_mode"    label="🔧 Maintenance Mode"    desc="Show maintenance screen to all users" />
-              <Toggle k="force_update"        label="📲 Force Update"        desc="Force users to update the app" />
-              <Toggle k="new_registrations"   label="📝 New Registrations"   desc="Allow new user registrations" />
-              <Toggle k="study_rooms_enabled" label="👥 Group Study Rooms"   desc="Allow students to create/join study rooms" />
+              <Toggle k="maintenance_mode"        label="🔧 Maintenance Mode"         desc="Show maintenance screen to all users" />
+              <Toggle k="force_update"            label="📲 Force Update"             desc="Force users to update the app" />
+              <Toggle k="new_registrations"       label="📝 New Registrations"        desc="Allow new user registrations" />
+              <Toggle k="study_rooms_enabled"     label="👥 Group Study Rooms"        desc="Allow students to create/join study rooms" />
+              <Toggle k="screen_capture_protection" label="🔒 Screen Capture Protection" desc="Block screenshots/recording on quiz screens" />
+            </div>
+          </div>
+
+          {/* Quiz Settings */}
+          <div className="card p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Smartphone size={18} className="text-brand-500" />
+              <h2 className="section-title mb-0">Quiz Settings</h2>
+            </div>
+            <div>
+              <Toggle k="quiz_shuffle_questions" label="🔀 Shuffle Questions" desc="Randomise question order for each attempt" />
+              <Toggle k="quiz_shuffle_options"   label="🔀 Shuffle Options"   desc="Randomise option order for each attempt" />
+            </div>
+          </div>
+
+          {/* Scheduled Notifications */}
+          <div className="card p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Bell size={18} className="text-brand-500" />
+              <h2 className="section-title mb-0">Scheduled Notifications</h2>
+            </div>
+            <div className="space-y-4">
+              {/* Daily Quiz Unlock */}
+              <div className="p-3 bg-slate-50 rounded-xl space-y-2">
+                <Toggle k="notif_daily_quiz_enabled" label="📝 Daily Quiz Unlock" desc="Notify users who haven't started today's quiz" />
+                <div className="flex items-center gap-2 pl-1">
+                  <label className="text-xs text-slate-500 w-28">Send at (IST hour):</label>
+                  <input
+                    type="number" min="0" max="23"
+                    value={settings.notif_daily_quiz_hour_ist || '7'}
+                    onChange={e => set('notif_daily_quiz_hour_ist', e.target.value)}
+                    className="input w-20 text-sm py-1"
+                  />
+                  <span className="text-xs text-slate-400">:00 IST</span>
+                </div>
+              </div>
+              {/* Streak at Risk */}
+              <div className="p-3 bg-slate-50 rounded-xl space-y-2">
+                <Toggle k="notif_streak_risk_enabled" label="🔥 Streak at Risk" desc="Notify users with streak &gt; 0 who haven't studied today" />
+                <div className="flex items-center gap-2 pl-1">
+                  <label className="text-xs text-slate-500 w-28">Send at (IST hour):</label>
+                  <input
+                    type="number" min="0" max="23"
+                    value={settings.notif_streak_risk_hour_ist || '20'}
+                    onChange={e => set('notif_streak_risk_hour_ist', e.target.value)}
+                    className="input w-20 text-sm py-1"
+                  />
+                  <span className="text-xs text-slate-400">:00 IST</span>
+                </div>
+              </div>
+              {/* Daily Target Reminder */}
+              <div className="p-3 bg-slate-50 rounded-xl space-y-2">
+                <Toggle k="notif_target_reminder_enabled" label="🎯 Daily Target Reminder" desc="Remind users with a daily goal who haven't studied" />
+                <div className="flex items-center gap-2 pl-1">
+                  <label className="text-xs text-slate-500 w-28">Send at (IST hour):</label>
+                  <input
+                    type="number" min="0" max="23"
+                    value={settings.notif_target_reminder_hour_ist || '9'}
+                    onChange={e => set('notif_target_reminder_hour_ist', e.target.value)}
+                    className="input w-20 text-sm py-1"
+                  />
+                  <span className="text-xs text-slate-400">:00 IST</span>
+                </div>
+              </div>
+              <p className="text-xs text-slate-400">Note: Cron times are fixed at migration defaults. Changing the hour here updates the app_settings record but the cron itself runs at the hardcoded UTC time. Contact engineering to change cron schedule.</p>
             </div>
           </div>
 

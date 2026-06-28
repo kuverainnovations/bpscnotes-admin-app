@@ -81,9 +81,10 @@ export default function AnalyticsDashboard() {
     setSending(true); setNotifResult(null)
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/notifications/send`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('adminToken')}` },
-        body: JSON.stringify({ ...form, targetExam: form.targetExam||undefined, scheduledAt: form.scheduledAt||undefined })
+        method:      'POST',
+        headers:     { 'Content-Type': 'application/json' },
+        body:        JSON.stringify({ ...form, targetExam: form.targetExam||undefined, scheduledAt: form.scheduledAt||undefined }),
+        credentials: 'include',
       })
       const data = await res.json()
       setNotifResult(`✅ Sent to ${data.data?.totalSent || 0} users (push: ${data.data?.pushSuccess || 0})`)

@@ -131,7 +131,7 @@ function Inner() {
     setMcqAffair(item); setMcqs([]); setMcqLoading(true); setEditingMcq(null); setMcqForm(emptyMcqForm(4))
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/current-affairs/${item.id}/mcqs`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` }
+        credentials: 'include',
       })
       setMcqs((await res.json()).data?.mcqs || [])
     } catch { setMcqs([]) }
@@ -160,16 +160,16 @@ function Inner() {
         optionE:     opts[4]?.trim() || '',   // 5th option if selected
       }
 
-      const base  = process.env.NEXT_PUBLIC_API_URL
-      const token = localStorage.getItem('adminToken')
-      const url   = editingMcq
+      const base = process.env.NEXT_PUBLIC_API_URL
+      const url  = editingMcq
         ? `${base}/admin/current-affairs/mcqs/${editingMcq.id}`
         : `${base}/admin/current-affairs/${mcqAffair.id}/mcqs`
 
       const res = await fetch(url, {
-        method: editingMcq ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify(payload),
+        method:      editingMcq ? 'PUT' : 'POST',
+        headers:     { 'Content-Type': 'application/json' },
+        body:        JSON.stringify(payload),
+        credentials: 'include',
       })
 
       // Check for HTTP errors — fetch doesn't throw on 4xx/5xx
@@ -183,7 +183,7 @@ function Inner() {
       setMcqForm(emptyMcqForm(4))  // reset to blank form
       // Reload MCQ list
       const res2 = await fetch(`${base}/admin/current-affairs/${mcqAffair.id}/mcqs`, {
-        headers: { Authorization: `Bearer ${token}` }
+        credentials: 'include',
       })
       setMcqs((await res2.json()).data?.mcqs || [])
     } catch (e: any) {
@@ -197,8 +197,8 @@ function Inner() {
     if (!confirm('Delete this MCQ?')) return
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/current-affairs/mcqs/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` },
+        method:      'DELETE',
+        credentials: 'include',
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       setMcqs(p => p.filter(m => m.id !== id))

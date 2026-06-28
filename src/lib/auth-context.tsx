@@ -1,7 +1,7 @@
 'use client'
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
-import api, { getToken, clearToken } from '@/lib/api'
+import api, { clearToken } from '@/lib/api'
 
 interface AdminUser {
   id:          string
@@ -26,21 +26,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setLoading] = useState(true)
   const router = useRouter()
 
-  // Restore session from localStorage on mount
+  // Restore session from localStorage on mount.
+  // The adminToken is an httpOnly cookie (JS-inaccessible); we keep adminUser
+  // in localStorage as a non-sensitive indicator that a session exists.
+  // A 401 from any API call will clear adminUser and redirect to login.
   useEffect(() => {
     const stored = localStorage.getItem('adminUser')
-    const token  = getToken()
-    if (stored && token) {
+    if (stored) {
       try {
         setAdmin(JSON.parse(stored))
       } catch {
-        // Corrupted stored user — clear everything, force re-login
         clearToken()
         setAdmin(null)
       }
     } else {
-      // Missing token or user — ensure fully logged out state
-      clearToken()
       setAdmin(null)
     }
     setLoading(false)
@@ -48,20 +47,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     const res = await api.auth.login(email, password)
-  
-    console.log('LOGIN RESPONSE 👉', res)
-  
-    const token = res.data?.token   // ✅ FIX HERE
     const adminData = res.data?.admin
-  
-    if (!token) {
-      throw new Error('Login failed — no token received')
+    if (!adminData) {
+      throw new Error('Login failed')
     }
-  
-    // Save admin user data
     localStorage.setItem('adminUser', JSON.stringify(adminData))
     setAdmin(adminData)
-  
     router.push('/dashboard')
   }
 
@@ -75,6 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const logout = () => {
+    api.auth.logout().catch(() => {})
     clearToken()
     setAdmin(null)
     router.push('/')

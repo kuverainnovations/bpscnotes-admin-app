@@ -67,9 +67,10 @@ function DecimalInput({ value, onChange, placeholder='', className='', min=0, ma
 const EMPTY_FORM = {
   title:'', subject:'', type:'topic',
   totalQuestions:10, durationMins:15,
-  coinsReward:10, status:'published', scheduledFor:'',
+  coinsReward:10, status:'draft', scheduledFor:'',
   examTags:[] as string[],
   negativeMarkingEnabled:false, marksPerCorrect:1, marksPerWrong:0,
+  shuffleQuestions:true, shuffleOptions:true,
 }
 
 // Issue 13: admin chooses option count (2–5)
@@ -660,6 +661,8 @@ export default function QuizzesPage() {
       negativeMarkingEnabled: q.negative_marking_enabled === true,
       marksPerCorrect: q.marks_per_correct != null ? +q.marks_per_correct : 1,
       marksPerWrong:   q.marks_per_wrong   != null ? +q.marks_per_wrong   : 0,
+      shuffleQuestions: q.shuffle_questions !== false,
+      shuffleOptions:   q.shuffle_options   !== false,
     })
     setShowModal(true)
   }
@@ -976,6 +979,19 @@ export default function QuizzesPage() {
                     <option value="draft">Draft — hidden</option>
                   </select>
                 </div>
+              </div>
+
+              {/* Shuffle */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-slate-600">Shuffle</label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={form.shuffleQuestions} onChange={e => setForm({...form,shuffleQuestions:e.target.checked})} className="w-4 h-4 accent-brand-500"/>
+                  <span className="text-sm text-slate-700">Shuffle question order</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={form.shuffleOptions} onChange={e => setForm({...form,shuffleOptions:e.target.checked})} className="w-4 h-4 accent-brand-500"/>
+                  <span className="text-sm text-slate-700">Shuffle option order</span>
+                </label>
               </div>
 
               {/* Exam Tags — optional. Leave empty to show this quiz to
