@@ -71,6 +71,7 @@ const EMPTY_FORM = {
   examTags:[] as string[],
   negativeMarkingEnabled:false, marksPerCorrect:1, marksPerWrong:0,
   shuffleQuestions:true, shuffleOptions:true,
+  isExamMode: false,
 }
 
 // Issue 13: admin chooses option count (2–5)
@@ -663,6 +664,7 @@ export default function QuizzesPage() {
       marksPerWrong:   q.marks_per_wrong   != null ? +q.marks_per_wrong   : 0,
       shuffleQuestions: q.shuffle_questions !== false,
       shuffleOptions:   q.shuffle_options   !== false,
+      isExamMode:       q.is_exam_mode === true,
     })
     setShowModal(true)
   }
@@ -992,6 +994,20 @@ export default function QuizzesPage() {
                   <input type="checkbox" checked={form.shuffleOptions} onChange={e => setForm({...form,shuffleOptions:e.target.checked})} className="w-4 h-4 accent-brand-500"/>
                   <span className="text-sm text-slate-700">Shuffle option order</span>
                 </label>
+              </div>
+
+              {/* Exam Mode */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-600">Exam Mode</label>
+                <label className="flex items-center gap-2 cursor-pointer" onClick={() => setForm({...form, isExamMode: !form.isExamMode})}>
+                  <div className={`w-10 h-5 rounded-full transition-colors relative shrink-0 ${form.isExamMode ? 'bg-blue-600' : 'bg-slate-200'}`}>
+                    <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${form.isExamMode ? 'translate-x-5' : 'translate-x-0.5'}`}/>
+                  </div>
+                  <span className="text-sm text-slate-700">Enable Exam Mode</span>
+                </label>
+                {form.isExamMode && (
+                  <p className="text-[11px] text-blue-600">Screen stays on, status bar hidden during test.</p>
+                )}
               </div>
 
               {/* Exam Tags — optional. Leave empty to show this quiz to
