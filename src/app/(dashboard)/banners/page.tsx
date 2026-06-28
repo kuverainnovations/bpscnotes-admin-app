@@ -27,7 +27,7 @@ async function uploadImage(file: File): Promise<string> {
 
 const EMPTY = {
   title:'', subtitle:'', imageUrl:'', ctaLabel:'',
-  ctaRoute:'', bgColor:'#1565C0', isActive:true, sortOrder:0,
+  ctaRoute:'', bgColor:'#1565C0', bgColorEnd:'#1E88E5', isActive:true, sortOrder:0,
 }
 const ROUTES = ['/quizzes','/current-affairs','/study-materials','/wallet','/subscription','/rooms_hub','/jobs','/leaderboard','/flashcards','/achievements','/challenges','/courses']
 
@@ -76,10 +76,14 @@ function BannersPageContent() {
   const openNew  = () => { setEditing(null); setForm(EMPTY); setShowModal(true) }
   const openEdit = (b: any) => {
     setEditing(b)
+    // bg_gradient may be stored as "linear-gradient(135deg, #111, #222)" or plain hex
+    const gradRaw = b.bg_gradient || '#1565C0'
+    const hexes = gradRaw.match(/#[0-9a-fA-F]{3,8}/g) || [gradRaw]
     setForm({
       title:b.title, subtitle:b.subtitle||'', imageUrl:b.image_url||'',
       ctaLabel:b.cta_label||'', ctaRoute:b.action_link||'',
-      bgColor:b.bg_gradient||'#1565C0', isActive:b.is_active??true, sortOrder:b.sort_order||0,
+      bgColor:hexes[0]||'#1565C0', bgColorEnd:hexes[1]||hexes[0]||'#1E88E5',
+      isActive:b.is_active??true, sortOrder:b.sort_order||0,
     })
     setShowModal(true)
   }
@@ -88,7 +92,8 @@ function BannersPageContent() {
     if (!form.title) { showToast('Title required', 'error'); return }
     setSaving(true)
     try {
-      const payload = { ...form, bg_color: form.bgColor, isActive: form.isActive, sortOrder: form.sortOrder }
+      const gradient = `linear-gradient(135deg, ${form.bgColor}, ${form.bgColorEnd})`
+      const payload = { ...form, bg_gradient: gradient, bg_color: form.bgColor, isActive: form.isActive, sortOrder: form.sortOrder }
       if (editing) await api.banners.update(editing.id, payload)
       else         await api.banners.create(payload)
       setShowModal(false); load()
@@ -134,16 +139,18 @@ function BannersPageContent() {
             {banners.map(b => (
               <div key={b.id} className={`card p-4 ${!b.is_active ? 'opacity-60' : ''}`}>
                 {/* Preview */}
-                <div className="h-20 rounded-xl mb-3 flex items-center px-4 relative overflow-hidden"
+                <div className="h-24 rounded-xl mb-3 relative overflow-hidden"
                   style={{background: b.bg_gradient||'#1565C0'}}>
                   {b.image_url && (
-                    <img src={b.image_url} alt="" className="absolute right-0 top-0 h-full w-auto object-cover opacity-30"/>
+                    <img src={b.image_url} alt="" className="absolute right-0 top-0 h-full w-auto object-contain opacity-80"/>
                   )}
-                  <div className="relative z-10">
-                    <p className="text-sm font-bold text-white leading-tight">{b.title}</p>
-                    {b.subtitle && <p className="text-xs text-white/80 mt-0.5">{b.subtitle}</p>}
+                  <div className="absolute inset-0 p-3 flex flex-col justify-between" style={{width: b.image_url ? '60%' : '100%'}}>
+                    <div>
+                      <p className="text-sm font-bold text-white leading-tight">{b.title}</p>
+                      {b.subtitle && <p className="text-xs text-white/80 mt-0.5 line-clamp-1">{b.subtitle}</p>}
+                    </div>
                     {b.cta_label && (
-                      <div className="mt-1.5 bg-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded-lg w-fit">
+                      <div className="bg-white/25 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full w-fit">
                         {b.cta_label} →
                       </div>
                     )}
@@ -189,19 +196,26 @@ function BannersPageContent() {
               <button onClick={()=>setShowModal(false)} className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center"><X size={14}/></button>
             </div>
             <div className="p-5 space-y-4 overflow-y-auto">
-              {/* Live preview */}
-              <div className="h-16 rounded-xl px-4 flex items-center relative overflow-hidden"
-                style={{background: form.bgColor}}>
-                {form.imageUrl && (
-                  <img src={form.imageUrl} alt="" className="absolute right-0 top-0 h-full w-auto object-cover opacity-30"/>
-                )}
-                <div className="relative z-10">
-                  <p className="text-sm font-bold text-white">{form.title||'Banner Title'}</p>
-                  {form.subtitle && <p className="text-xs text-white/80">{form.subtitle}</p>}
+              {/* Live preview — matches app banner proportions */}
+              <div>
+                <p className="text-xs font-semibold text-slate-500 mb-1.5">Preview</p>
+                <div className="h-28 rounded-2xl relative overflow-hidden"
+                  style={{background: `linear-gradient(135deg, ${form.bgColor}, ${form.bgColorEnd})`}}>
+                  {form.imageUrl && (
+                    <img src={form.imageUrl} alt="" className="absolute right-0 top-0 h-full w-auto object-contain opacity-80"/>
+                  )}
+                  <div className="absolute inset-0 p-4 flex flex-col justify-between" style={{width: form.imageUrl ? '65%' : '100%'}}>
+                    <div>
+                      <p className="text-sm font-bold text-white leading-tight">{form.title||'Banner Title'}</p>
+                      {form.subtitle && <p className="text-xs text-white/80 mt-0.5 line-clamp-1">{form.subtitle}</p>}
+                    </div>
+                    {form.ctaLabel && (
+                      <div className="bg-white/25 backdrop-blur-sm text-white text-[11px] font-bold px-3 py-1 rounded-full w-fit">
+                        {form.ctaLabel} →
+                      </div>
+                    )}
+                  </div>
                 </div>
-                {form.ctaLabel && (
-                  <div className="relative z-10 ml-auto bg-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded-lg">{form.ctaLabel} →</div>
-                )}
               </div>
               <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Title *</label>
                 <input value={form.title} onChange={e=>setForm({...form,title:e.target.value})} className="input" placeholder="e.g. 🎯 BPSC 70th CCE — Enroll Now!"/>
@@ -222,15 +236,22 @@ function BannersPageContent() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">Background Color</label>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">Gradient Start</label>
                   <div className="flex gap-2">
                     <input type="color" value={form.bgColor} onChange={e=>setForm({...form,bgColor:e.target.value})} className="w-10 h-9 rounded-lg cursor-pointer border-0"/>
-                    <input value={form.bgColor} onChange={e=>setForm({...form,bgColor:e.target.value})} className="input flex-1" placeholder="#1565C0"/>
+                    <input value={form.bgColor} onChange={e=>setForm({...form,bgColor:e.target.value})} className="input flex-1 font-mono" placeholder="#1565C0"/>
                   </div>
                 </div>
-                <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Sort Order</label>
-                  <input type="number" value={form.sortOrder} onChange={e=>setForm({...form,sortOrder:+e.target.value})} className="input"/>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">Gradient End</label>
+                  <div className="flex gap-2">
+                    <input type="color" value={form.bgColorEnd} onChange={e=>setForm({...form,bgColorEnd:e.target.value})} className="w-10 h-9 rounded-lg cursor-pointer border-0"/>
+                    <input value={form.bgColorEnd} onChange={e=>setForm({...form,bgColorEnd:e.target.value})} className="input flex-1 font-mono" placeholder="#1E88E5"/>
+                  </div>
                 </div>
+              </div>
+              <div><label className="block text-xs font-semibold text-slate-600 mb-1.5">Sort Order</label>
+                <input type="number" value={form.sortOrder} onChange={e=>setForm({...form,sortOrder:+e.target.value})} className="input w-32"/>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1.5">Image (optional)</label>
