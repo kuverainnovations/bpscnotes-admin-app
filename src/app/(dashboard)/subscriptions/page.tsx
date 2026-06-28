@@ -26,12 +26,13 @@ export default function SubscriptionsPage() {
   // Payment settings
   const [showSettings, setShowSettings] = useState(false)
   const [settings, setSettings] = useState({
-    cashfreeAppId:         '',
-    cashfreeSecretKey:     '',
-    cashfreeWebhookSecret: '',
-    paymentMode:           'sandbox',
-    upiDisplayName:    'BPSCNotes',
-    paymentEnabled:    true,
+    cashfreeAppId:              '',
+    cashfreeSecretKey:          '',
+    cashfreeWebhookSecret:      '',
+    paymentMode:                'sandbox',
+    upiDisplayName:             'BPSCNotes',
+    paymentEnabled:             true,
+    googlePlayServiceAccountJson: '',
   })
   const [settingsSaving, setSettingsSaving] = useState(false)
 
@@ -155,6 +156,22 @@ export default function SubscriptionsPage() {
                   <strong>Webhook URL to configure in Cashfree Dashboard:</strong><br/>
                   <code className="bg-blue-100 px-1 rounded">{process.env.NEXT_PUBLIC_API_URL}/webhooks/cashfree</code><br/>
                   Events: <code>PAYMENT_SUCCESS_WEBHOOK</code>, <code>PAYMENT_FAILED_WEBHOOK</code>
+                </div>
+                <div className="border-t pt-4 mt-2">
+                  <label className="text-xs font-semibold text-gray-600 mb-1 block">Google Play Service Account JSON</label>
+                  <p className="text-xs text-gray-400 mb-2">Paste the full JSON key from Google Play Console → Setup → API access. Used to verify Play Billing purchases server-side.</p>
+                  <textarea
+                    rows={4}
+                    value={settings.googlePlayServiceAccountJson}
+                    onChange={e => setSettings(p => ({...p, googlePlayServiceAccountJson: e.target.value}))}
+                    className="w-full border border-gray-200 rounded-lg p-2.5 text-xs font-mono resize-none"
+                    placeholder='{"type":"service_account","project_id":"...","private_key":"..."}'
+                  />
+                  <div className="mt-2 p-3 bg-green-50 rounded-xl text-xs text-green-700">
+                    <strong>Google Play RTDNs webhook URL:</strong><br/>
+                    <code className="bg-green-100 px-1 rounded">{process.env.NEXT_PUBLIC_API_URL}/webhooks/gplay</code><br/>
+                    Configure this as the Pub/Sub push endpoint in Google Cloud Console.
+                  </div>
                 </div>
                 <button onClick={savePaymentSettings} disabled={settingsSaving}
                   className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-2.5 rounded-xl font-semibold text-sm">
@@ -288,6 +305,11 @@ export default function SubscriptionsPage() {
                         <CreditCard size={12} className="text-slate-400" />
                         <span className="text-xs text-slate-600">{sub.payment_method || '—'}</span>
                       </div>
+                      {sub.payment_provider === 'gplay' ? (
+                        <span className="mt-0.5 inline-flex items-center gap-1 text-[10px] font-bold bg-green-100 text-green-700 border border-green-200 px-1.5 py-0.5 rounded">▶ Google Play</span>
+                      ) : sub.payment_provider === 'cashfree' ? (
+                        <span className="mt-0.5 inline-flex text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-200 px-1.5 py-0.5 rounded">Cashfree</span>
+                      ) : null}
                       {sub.upi_id && <p className="text-xs text-slate-400">{sub.upi_id}</p>}
                     </td>
                     <td className="px-4 py-3">
