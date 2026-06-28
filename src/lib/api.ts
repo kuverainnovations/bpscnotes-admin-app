@@ -370,8 +370,13 @@ export const api = {
     getStats:     ()             => request('/admin/coins/stats'),
     getAdConfig:  ()             => request('/admin/coins/ad-config'),
     updateAdConfig:(data: any)   => request('/admin/coins/ad-config', { method: 'PUT', body: JSON.stringify(data) }),
-    getEconomy:   ()             => request('/admin/coins/economy'),
-    updateEconomy:(data: any)    => request('/admin/coins/economy', { method: 'PUT', body: JSON.stringify(data) }),
+    getEconomy:       ()             => request('/admin/coins/economy'),
+    updateEconomy:    (data: any)    => request('/admin/coins/economy', { method: 'PUT', body: JSON.stringify(data) }),
+    getStoreItems:    ()             => request('/admin/coins/store-items'),
+    createStoreItem:  (data: any)    => request('/admin/coins/store-items', { method: 'POST', body: JSON.stringify(data) }),
+    updateStoreItem:  (id: string, data: any) => request(`/admin/coins/store-items/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    deleteStoreItem:  (id: string)   => request(`/admin/coins/store-items/${id}`, { method: 'DELETE' }),
+    getRedemptions:   (page = 1, limit = 20) => request(`/admin/coins/redemptions?page=${page}&limit=${limit}`),
   },
 
   // ── Study Rooms ───────────────────────────────────────────
