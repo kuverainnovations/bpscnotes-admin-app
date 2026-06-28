@@ -1134,6 +1134,8 @@ export default function QuizzesPage() {
                                       correctOption: correctIdx,
                                       explanation: q.explanation || '',
                                       optionCount: qOptCount,
+                                      difficulty: q.difficulty || 'medium',
+                                      topicTag: q.topic_tag || '',
                                     })
                                   }}
                                   className="flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-semibold rounded-lg transition-colors"
@@ -1222,6 +1224,28 @@ export default function QuizzesPage() {
                                     className="input w-full" placeholder="Why is this the correct answer?"
                                   />
                                 </div>
+                                <div className="flex gap-3">
+                                  <div className="flex-1">
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Difficulty</label>
+                                    <select
+                                      value={editQForm.difficulty}
+                                      onChange={e => setEditQForm({...editQForm, difficulty: e.target.value})}
+                                      className="input w-full"
+                                    >
+                                      <option value="easy">Easy</option>
+                                      <option value="medium">Medium</option>
+                                      <option value="hard">Hard</option>
+                                    </select>
+                                  </div>
+                                  <div className="flex-1">
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Topic Tag</label>
+                                    <input
+                                      value={editQForm.topicTag}
+                                      onChange={e => setEditQForm({...editQForm, topicTag: e.target.value})}
+                                      className="input w-full" placeholder="e.g. Indian History"
+                                    />
+                                  </div>
+                                </div>
                                 <div className="flex gap-2 pt-1">
                                   <button
                                     onClick={async () => {
@@ -1237,6 +1261,8 @@ export default function QuizzesPage() {
                                           optionD:       (editQForm.optionCount || 4) >= 4 ? editQForm.optionD.trim() : '',
                                           correctOption: letters[editQForm.correctOption] || 'a',
                                           explanation:   editQForm.explanation.trim() || null,
+                                          difficulty:    editQForm.difficulty || 'medium',
+                                          topicTag:      editQForm.topicTag.trim() || null,
                                         })
                                         // Update local state so list reflects change immediately
                                         setExistingQuestions(prev => prev.map((eq, idx) => idx !== i ? eq : {
@@ -1246,6 +1272,8 @@ export default function QuizzesPage() {
                                           option_c: editQForm.optionC, option_d: editQForm.optionD,
                                           correct_option: letters[editQForm.correctOption],
                                           explanation: editQForm.explanation,
+                                          difficulty: editQForm.difficulty,
+                                          topic_tag: editQForm.topicTag,
                                         }))
                                         setEditingQId(null)
                                         showToast('Question updated ✅')

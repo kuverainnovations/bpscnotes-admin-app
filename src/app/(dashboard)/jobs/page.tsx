@@ -52,7 +52,7 @@ const EMPTY: any = {
   salary:'', qualification:'', ageLimit:'', experienceRequired:'Any',
   lastDate:'', notificationDate:'', examDate:'',
   applicationUrl:'', isNew:true, isFeatured:false,
-  description:'', briefDescription:'', pdfUrl:'', advertPdfUrl:'',
+  description:'', briefDescription:'', pdfUrl:'', advertPdfUrl:'', notificationUrl:'',
 }
 
 function SectionHeader({ n, color, title }: { n:number; color:string; title:string }) {
@@ -123,6 +123,7 @@ function Inner() {
       isNew:j.is_new!==undefined?j.is_new:true, isFeatured:j.is_featured||false,
       description:j.description||'', briefDescription:j.brief_description||'',
       pdfUrl:j.pdf_url||'', advertPdfUrl:j.advert_pdf_url||'',
+      notificationUrl:j.notification_url||'',
     })
     setShowModal(true)
   }
@@ -371,6 +372,7 @@ function Inner() {
                   <div><label className="field-label">Last Date to Apply *</label><input type="date" value={form.lastDate} onChange={e=>setForm({...form,lastDate:e.target.value})} className="input w-full"/></div>
                   <div><label className="field-label">Exam Date</label><input type="date" value={form.examDate} onChange={e=>setForm({...form,examDate:e.target.value})} className="input w-full"/></div>
                   <div><label className="field-label">Application URL</label><input type="url" value={form.applicationUrl} onChange={e=>setForm({...form,applicationUrl:e.target.value})} className="input w-full" placeholder="https://bpsc.bih.nic.in"/></div>
+                  <div><label className="field-label">Notification URL</label><input type="url" value={form.notificationUrl} onChange={e=>setForm({...form,notificationUrl:e.target.value})} className="input w-full" placeholder="https://bpsc.bih.nic.in/notice/…"/></div>
                   <div className="col-span-2"><label className="field-label">Notification PDF URL <span className="text-slate-400 font-normal">(or upload below)</span></label>
                     <input type="url" value={form.pdfUrl} onChange={e=>setForm({...form,pdfUrl:e.target.value})} className="input w-full" placeholder="https://…/notification.pdf"/></div>
                 </div>

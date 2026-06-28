@@ -24,8 +24,10 @@ const NAV: NavGroup[] = [
     { href:'/dashboard',        icon:LayoutDashboard, label:'Dashboard' },
   ]},
   { group:'Users',      defaultOpen:true,  items:[
-    { href:'/users',            icon:Users,           label:'User Management' },
-    { href:'/roles',            icon:Shield,          label:'Admin Roles' },
+    { href:'/users',                    icon:Users,           label:'User Management' },
+    { href:'/users/suspicious',         icon:AlertTriangle,   label:'Suspicious Accounts' },
+    { href:'/users/security-alerts',    icon:Shield,          label:'Security Alerts' },
+    { href:'/roles',                    icon:Shield,          label:'Admin Roles' },
   ]},
   { group:'Content',    defaultOpen:true,  items:[
     { href:'/courses',          icon:BookOpen,        label:'Courses' },
