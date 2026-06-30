@@ -81,8 +81,12 @@ function emptyQ(optCount=4) {
     question:'', questionType:'text', questionImageUrl:'',
     optionType:'text', options:Array(optCount).fill(''), optionImages:Array(optCount).fill(''),
     correctOption:0,
-    explanation:'', // Issue 14: explanation = hint shown in app after answer
+    explanation:'',
     optionCount:optCount,
+    // Match the Following fields
+    questionSubtype: 'standard' as 'standard'|'match',
+    matchList1: [{ label:'A', text:'' }, { label:'B', text:'' }, { label:'C', text:'' }, { label:'D', text:'' }],
+    matchList2: [{ label:'1', text:'' }, { label:'2', text:'' }, { label:'3', text:'' }, { label:'4', text:'' }],
   }
 }
 
@@ -568,6 +572,60 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
   )
 }
 
+function MatchQuestionEditor({ q, qi, updateQ }: { q: any; qi: number; updateQ: (i: number, key: string, val: any) => void }) {
+  const updateList1 = (idx: number, text: string) => {
+    const updated = q.matchList1.map((item: any, i: number) => i === idx ? { ...item, text } : item)
+    updateQ(qi, 'matchList1', updated)
+  }
+  const updateList2 = (idx: number, text: string) => {
+    const updated = q.matchList2.map((item: any, i: number) => i === idx ? { ...item, text } : item)
+    updateQ(qi, 'matchList2', updated)
+  }
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">List-I</p>
+          {q.matchList1.map((item: any, idx: number) => (
+            <div key={idx} className="flex items-center gap-2">
+              <span className="w-6 h-6 flex items-center justify-center rounded-lg bg-blue-100 text-blue-700 text-xs font-bold shrink-0">{item.label}</span>
+              <input
+                value={item.text}
+                onChange={e => updateList1(idx, e.target.value)}
+                placeholder={`Item ${item.label}…`}
+                className="input flex-1 text-sm"
+              />
+            </div>
+          ))}
+        </div>
+        <div className="space-y-1.5">
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">List-II</p>
+          {q.matchList2.map((item: any, idx: number) => (
+            <div key={idx} className="flex items-center gap-2">
+              <span className="w-6 h-6 flex items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 text-xs font-bold shrink-0">{item.label}</span>
+              <input
+                value={item.text}
+                onChange={e => updateList2(idx, e.target.value)}
+                placeholder={`Item ${item.label}…`}
+                className="input flex-1 text-sm"
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200">
+        <p className="text-[10px] font-bold text-slate-500 mb-1.5">Preview</p>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-slate-700">
+          {q.matchList1.filter((i: any) => i.text).map((item: any, idx: number) => {
+            const pair = q.matchList2[idx]
+            return <div key={idx} className="flex gap-1"><span className="font-bold text-blue-600">{item.label}.</span> {item.text} <span className="text-slate-400 mx-1">↔</span> <span className="font-bold text-emerald-600">{pair?.label}.</span> {pair?.text}</div>
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function QuizzesPage() {
   const { showToast, ToastComponent } = useToast()
 
@@ -695,18 +753,23 @@ export default function QuizzesPage() {
     // Transform to backend format: optionA/B/C/D + correctOption as letter
     const transformed = valid.map(q => {
       const opts = [...q.options]
-      // Pad to 4 options minimum (backend requires A-D)
-      while (opts.length < 4) opts.push('')  // pad with empty, NOT duplicating last option
+      while (opts.length < 4) opts.push('')
       const letters = ['a', 'b', 'c', 'd', 'e']
+      const isMatch = q.questionSubtype === 'match'
       return {
-        question:      q.question,
-        questionType:  q.questionType || 'text',
-        optionA:       opts[0] || '',
-        optionB:       opts[1] || '',
-        optionC:       opts[2] || '',
-        optionD:       opts[3] || '',
-        correctOption: letters[q.correctOption ?? 0] || 'a',
-        explanation:   q.explanation || '',
+        question:          q.question,
+        questionType:      q.questionType || 'text',
+        optionA:           opts[0] || '',
+        optionB:           opts[1] || '',
+        optionC:           opts[2] || '',
+        optionD:           opts[3] || '',
+        correctOption:     letters[q.correctOption ?? 0] || 'a',
+        explanation:       q.explanation || '',
+        questionSubtype:   isMatch ? 'match' : 'standard',
+        matchData:         isMatch ? {
+          list1: q.matchList1.filter((i: any) => i.text.trim()),
+          list2: q.matchList2.filter((i: any) => i.text.trim()),
+        } : null,
       }
     })
     saveQuestions({ id: selectedQuiz.id, qs: transformed })
@@ -1379,9 +1442,25 @@ export default function QuizzesPage() {
                             className="input resize-none h-16" placeholder="Type the question here…"/>
                         </div>
 
+                        {/* Question subtype toggle */}
+                        <div className="flex items-center gap-2 p-2.5 bg-slate-50 rounded-xl border border-slate-200">
+                          <span className="text-[10px] font-bold text-slate-500">Type:</span>
+                          {(['standard','match'] as const).map(t => (
+                            <button key={t} onClick={() => updateQ(i, 'questionSubtype', t)}
+                              className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${q.questionSubtype === t ? 'bg-blue-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-100 border border-slate-200'}`}>
+                              {t === 'standard' ? '📝 Standard MCQ' : '🔗 Match the Following'}
+                            </button>
+                          ))}
+                        </div>
+                        {q.questionSubtype === 'match' && (
+                          <MatchQuestionEditor q={q} qi={i} updateQ={updateQ} />
+                        )}
+
                         {/* Options — Issue 13: dynamic count */}
                         <div>
-                          <label className="block text-xs font-bold text-slate-500 mb-1.5">Answer Options</label>
+                          <label className="block text-xs font-bold text-slate-500 mb-1.5">
+                            {q.questionSubtype === 'match' ? 'Combination Options (A-D)' : 'Answer Options'}
+                          </label>
                           <div className="space-y-2">
                             {q.options.map((opt: string, oi: number) => (
                               <div key={oi} className={`flex items-center gap-2 p-2 rounded-xl border-2 transition-colors

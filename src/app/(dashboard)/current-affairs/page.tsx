@@ -29,7 +29,67 @@ const stripHtml = (html?: string) => (html || '').replace(/<[^>]*>/g, ' ').repla
 const emptyMcqForm = (optCount = 4) => ({
   question: '', options: Array(optCount).fill('') as string[],
   correct: 0, hint: '', explanation: '', optionCount: optCount,
+  questionSubtype: 'standard' as 'standard'|'match',
+  matchList1: [{ label:'A', text:'' }, { label:'B', text:'' }, { label:'C', text:'' }, { label:'D', text:'' }],
+  matchList2: [{ label:'1', text:'' }, { label:'2', text:'' }, { label:'3', text:'' }, { label:'4', text:'' }],
 })
+
+function MatchMcqEditor({ form, setForm }: { form: any; setForm: (f: any) => void }) {
+  const updateList1 = (idx: number, text: string) => {
+    const updated = form.matchList1.map((item: any, i: number) => i === idx ? { ...item, text } : item)
+    setForm({ ...form, matchList1: updated })
+  }
+  const updateList2 = (idx: number, text: string) => {
+    const updated = form.matchList2.map((item: any, i: number) => i === idx ? { ...item, text } : item)
+    setForm({ ...form, matchList2: updated })
+  }
+  return (
+    <div className="p-5 space-y-3 border-b border-slate-100">
+      <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Match Lists</p>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wide">List-I</p>
+          {form.matchList1.map((item: any, idx: number) => (
+            <div key={idx} className="flex items-center gap-2">
+              <span className="w-6 h-6 flex items-center justify-center rounded-lg bg-blue-100 text-blue-700 text-xs font-bold shrink-0">{item.label}</span>
+              <input value={item.text} onChange={e => updateList1(idx, e.target.value)}
+                placeholder={`Item ${item.label}…`} className="input flex-1 text-sm" />
+            </div>
+          ))}
+        </div>
+        <div className="space-y-1.5">
+          <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wide">List-II</p>
+          {form.matchList2.map((item: any, idx: number) => (
+            <div key={idx} className="flex items-center gap-2">
+              <span className="w-6 h-6 flex items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 text-xs font-bold shrink-0">{item.label}</span>
+              <input value={item.text} onChange={e => updateList2(idx, e.target.value)}
+                placeholder={`Item ${item.label}…`} className="input flex-1 text-sm" />
+            </div>
+          ))}
+        </div>
+      </div>
+      {(form.matchList1.some((i: any) => i.text) || form.matchList2.some((i: any) => i.text)) && (
+        <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200">
+          <p className="text-[10px] font-bold text-slate-500 mb-1.5">Preview</p>
+          <div className="space-y-1">
+            {form.matchList1.filter((i: any) => i.text).map((item: any, idx: number) => {
+              const pair = form.matchList2[idx]
+              return (
+                <div key={idx} className="flex gap-1 text-xs text-slate-700">
+                  <span className="font-bold text-blue-600">{item.label}.</span>
+                  <span>{item.text}</span>
+                  <span className="text-slate-400 mx-1">↔</span>
+                  <span className="font-bold text-emerald-600">{pair?.label}.</span>
+                  <span>{pair?.text}</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function CurrentAffairsPage() {
   return <Suspense fallback={<div className="p-8 text-center text-slate-400">Loading…</div>}><Inner /></Suspense>
@@ -148,16 +208,22 @@ function Inner() {
       const correctLetter = ['a','b','c','d','e'][Math.min(mcqForm.correct ?? 0, 4)]
       const opts = mcqForm.options as string[]
 
+      const isMatch = mcqForm.questionSubtype === 'match'
       const payload = {
-        question:    mcqForm.question.trim(),
-        correct:     correctLetter,           // letter, not index
-        hint:        mcqForm.hint?.trim()        || '',
-        explanation: mcqForm.explanation?.trim() || '',
-        optionA:     opts[0]?.trim() || '',   // required NOT NULL
-        optionB:     opts[1]?.trim() || '',   // required NOT NULL
-        optionC:     opts[2]?.trim() || '',   // empty string OK
-        optionD:     opts[3]?.trim() || '',   // empty string OK
-        optionE:     opts[4]?.trim() || '',   // 5th option if selected
+        question:        mcqForm.question.trim(),
+        correct:         correctLetter,
+        hint:            mcqForm.hint?.trim()        || '',
+        explanation:     mcqForm.explanation?.trim() || '',
+        optionA:         opts[0]?.trim() || '',
+        optionB:         opts[1]?.trim() || '',
+        optionC:         opts[2]?.trim() || '',
+        optionD:         opts[3]?.trim() || '',
+        optionE:         opts[4]?.trim() || '',
+        questionSubtype: isMatch ? 'match' : 'standard',
+        matchData:       isMatch ? {
+          list1: mcqForm.matchList1.filter((item: any) => item.text.trim()),
+          list2: mcqForm.matchList2.filter((item: any) => item.text.trim()),
+        } : null,
       }
 
       const base = process.env.NEXT_PUBLIC_API_URL
@@ -802,9 +868,29 @@ function Inner() {
               {/* RIGHT COLUMN — Options, Hint, Explanation, list */}
               <div className="w-[380px] shrink-0 flex flex-col overflow-y-auto bg-slate-50">
 
+                {/* Question subtype toggle */}
+                <div className="p-5 border-b border-slate-100">
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Question Type</p>
+                  <div className="flex gap-2">
+                    {(['standard','match'] as const).map(t => (
+                      <button key={t} onClick={() => setMcqForm({...mcqForm, questionSubtype: t})}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${mcqForm.questionSubtype === t ? 'bg-blue-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-100 border border-slate-200'}`}>
+                        {t === 'standard' ? '📝 Standard MCQ' : '🔗 Match the Following'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Match data editor (only for match type) */}
+                {mcqForm.questionSubtype === 'match' && (
+                  <MatchMcqEditor form={mcqForm} setForm={setMcqForm} />
+                )}
+
                 {/* Options */}
                 <div className="p-5 space-y-2 border-b border-slate-100">
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-3">Answer Options</p>
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-3">
+                    {mcqForm.questionSubtype === 'match' ? 'Combination Options (A–D)' : 'Answer Options'}
+                  </p>
                   {(mcqForm.options || []).map((opt: string, oi: number) => (
                     <div key={oi} className={`flex items-center gap-2 p-2.5 rounded-xl border-2 transition-colors
                       ${mcqForm.correct===oi?'border-green-400 bg-green-50':'border-transparent bg-white shadow-sm'}`}>
@@ -864,7 +950,9 @@ function Inner() {
                         setEditingMcq(mcq)
                         const opts = [mcq.option_a,mcq.option_b,mcq.option_c,mcq.option_d,mcq.option_e].filter(Boolean)
                         const correctIdx = ['a','b','c','d','e'].indexOf(mcq.correct||'a')
-                        setMcqForm({question:mcq.question,options:opts,correct:correctIdx>=0?correctIdx:0,hint:mcq.hint||'',explanation:mcq.explanation||'',optionCount:opts.length})
+                        const ml1 = mcq.match_data?.list1 || [{ label:'A', text:'' }, { label:'B', text:'' }, { label:'C', text:'' }, { label:'D', text:'' }]
+                        const ml2 = mcq.match_data?.list2 || [{ label:'1', text:'' }, { label:'2', text:'' }, { label:'3', text:'' }, { label:'4', text:'' }]
+                        setMcqForm({question:mcq.question,options:opts,correct:correctIdx>=0?correctIdx:0,hint:mcq.hint||'',explanation:mcq.explanation||'',optionCount:opts.length,questionSubtype:mcq.question_subtype||'standard',matchList1:ml1,matchList2:ml2})
                       }} className="w-7 h-7 rounded-lg bg-amber-50 hover:bg-amber-100 flex items-center justify-center">
                         <Edit size={12} className="text-amber-600"/>
                       </button>
