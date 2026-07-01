@@ -45,7 +45,7 @@ const categoryMeta = (cat: string) => CATEGORY_META[cat] || { label: cat.charAt(
 
 const DAY_LABELS = ['Day 1','Day 2','Day 3','Day 4','Day 5','Day 6','Day 7']
 const EMPTY_NEW_RULE = { action:'', description:'', coinsAwarded:5, maxPerDay:1, category:'custom', icon:'⚡', unitLabel:'' }
-const DEFAULT_ECONOMY = { enabled:true, coinToInrRate:1, maxCoinDiscountPctCourse:10, maxCoinDiscountPctSubscription:30, adMinPerSession:2, checkInRewards:[5,5,10,10,15,15,25] }
+const DEFAULT_ECONOMY = { enabled:true, coinToInrRate:1, maxCoinDiscountPctCourse:10, maxCoinDiscountPctMaterial:10, maxCoinDiscountPctSubscription:30, adMinPerSession:2, checkInRewards:[5,5,10,10,15,15,25] }
 
 const ITEM_TYPES = ['badge','discount','unlock','physical','digital','subscription']
 const EMPTY_ITEM = { title:'', description:'', coinCost:100, itemType:'badge', itemValue:'', stock:'', sortOrder:0, isActive:true }
@@ -442,6 +442,7 @@ export default function CoinsPage() {
                 <button onClick={() => saveEconomy({
                     coinToInrRate: econForm.coinToInrRate,
                     maxCoinDiscountPctCourse: econForm.maxCoinDiscountPctCourse,
+                    maxCoinDiscountPctMaterial: econForm.maxCoinDiscountPctMaterial,
                     maxCoinDiscountPctSubscription: econForm.maxCoinDiscountPctSubscription,
                     adMinPerSession: econForm.adMinPerSession,
                     checkInRewards: econForm.checkInRewards,
@@ -460,13 +461,22 @@ export default function CoinsPage() {
                   <p className="text-[11px] text-slate-400 mt-1">Used to convert coins into a ₹ discount on purchases</p>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">Max coin discount — courses &amp; materials</label>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">Max coin discount — courses</label>
                   <div className="relative">
                     <NumInput value={econForm.maxCoinDiscountPctCourse} min={0} max={100}
                       onChange={(v:number)=>{setEconForm((p:any)=>({...p,maxCoinDiscountPctCourse:v})); setEconDirty(true)}} placeholder="10" className="font-bold pr-7"/>
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
                   </div>
-                  <p className="text-[11px] text-slate-400 mt-1">Max % of a course/material price that can be paid with coins — e.g. 10% on ₹100 = 10 coins max</p>
+                  <p className="text-[11px] text-slate-400 mt-1">Max % of course price payable with coins — e.g. 10% on ₹100 course = 10 coins</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">Max coin discount — study materials</label>
+                  <div className="relative">
+                    <NumInput value={econForm.maxCoinDiscountPctMaterial} min={0} max={100}
+                      onChange={(v:number)=>{setEconForm((p:any)=>({...p,maxCoinDiscountPctMaterial:v})); setEconDirty(true)}} placeholder="10" className="font-bold pr-7"/>
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-1">Max % of material price payable with coins — e.g. 10% on ₹50 material = 5 coins</p>
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1.5">Max coin discount — subscriptions</label>
