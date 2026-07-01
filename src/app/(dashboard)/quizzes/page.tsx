@@ -109,20 +109,26 @@ function downloadTemplate() {
   XLSX.utils.book_append_sheet(wb, wsInfo, 'Quiz Info')
 
   const qRows = [
-    ['quiz_title', 'question', 'option_a', 'option_b', 'option_c', 'option_d', 'option_e', 'correct_option', 'explanation', 'subject'],
-    ['Bihar GK Quiz 1', 'What is the capital of Bihar?', 'Patna', 'Ranchi', 'Gaya', 'Muzaffarpur', '', 'a', 'Patna has been the capital since ancient times.', 'Bihar GK'],
-    ['Bihar GK Quiz 1', 'Who was the first Chief Minister of Bihar?', 'Shri Krishna Sinha', 'Anugrah Narayan Sinha', 'Binodanand Jha', 'Mahamaya Prasad Sinha', '', 'a', 'Sri Krishna Sinha became the first CM in 1946.', 'Bihar GK'],
-    ['Geography Quiz 1', 'Which river flows through Patna?', 'Ganga', 'Yamuna', 'Godavari', 'Kaveri', '', 'a', 'The Ganga river flows through Patna.', 'Geography'],
-    ['Polity Quiz 1', 'Article 370 was related to which state?', 'Jammu & Kashmir', 'Himachal Pradesh', 'Uttarakhand', 'Sikkim', '', 'a', 'Article 370 granted special status to J&K.', 'Polity'],
-    ['Polity Quiz 1', 'Fundamental Rights are in which Part?', 'Part III', 'Part IV', 'Part II', 'Part V', '', 'a', 'Part III (Articles 12-35) contains Fundamental Rights.', 'Polity'],
-    ['History Quiz 1', 'Who is the Iron Man of India?', 'Sardar Vallabhbhai Patel', 'Subhas Chandra Bose', 'Bal Gangadhar Tilak', 'Lal Bahadur Shastri', '', 'a', 'Sardar Patel unified the princely states.', 'History'],
-    ['History Quiz 1', 'Who wrote Arthashastra?', 'Chanakya', 'Ashoka', 'Chandragupta', 'Vikramaditya', '', 'a', 'Chanakya (Kautilya) wrote the Arthashastra.', 'History'],
-    ['History Quiz 1', 'Sarnath is associated with which religion?', 'Buddhism', 'Hinduism', 'Jainism', 'Sikhism', '', 'a', 'Buddha delivered his first sermon at Sarnath.', 'History'],
-    ['Economy Quiz 1', 'CRR stands for?', 'Cash Reserve Ratio', 'Credit Reserve Rate', 'Central Reserve Ratio', 'Cash Return Rate', '', 'a', 'CRR is the minimum cash banks must hold with RBI.', 'Economy'],
-    ['Economy Quiz 1', 'GST was implemented from?', '1 July 2017', '1 April 2016', '1 January 2018', '26 January 2017', '', 'a', 'GST was rolled out on 1 July 2017.', 'Economy'],
+    // Columns: quiz_title, question, option_a–e, correct_option, explanation, subject  ← standard columns (same as before)
+    // NEW: question_subtype (standard/match), list1_a–d, list2_1–4  ← leave blank for standard MCQs; fill for match questions
+    ['quiz_title', 'question', 'option_a', 'option_b', 'option_c', 'option_d', 'option_e', 'correct_option', 'explanation', 'subject', 'question_subtype', 'list1_a', 'list1_b', 'list1_c', 'list1_d', 'list2_1', 'list2_2', 'list2_3', 'list2_4'],
+    // ── Standard MCQ examples (leave match columns blank) ──
+    ['Bihar GK Quiz 1', 'What is the capital of Bihar?', 'Patna', 'Ranchi', 'Gaya', 'Muzaffarpur', '', 'a', 'Patna has been the capital since ancient times.', 'Bihar GK', 'standard', '', '', '', '', '', '', '', ''],
+    ['Bihar GK Quiz 1', 'Who was the first Chief Minister of Bihar?', 'Shri Krishna Sinha', 'Anugrah Narayan Sinha', 'Binodanand Jha', 'Mahamaya Prasad Sinha', '', 'a', 'Sri Krishna Sinha became the first CM in 1946.', 'Bihar GK', 'standard', '', '', '', '', '', '', '', ''],
+    ['Geography Quiz 1', 'Which river flows through Patna?', 'Ganga', 'Yamuna', 'Godavari', 'Kaveri', '', 'a', 'The Ganga river flows through Patna.', 'Geography', 'standard', '', '', '', '', '', '', '', ''],
+    ['Polity Quiz 1', 'Article 370 was related to which state?', 'Jammu & Kashmir', 'Himachal Pradesh', 'Uttarakhand', 'Sikkim', '', 'a', 'Article 370 granted special status to J&K.', 'Polity', 'standard', '', '', '', '', '', '', '', ''],
+    ['History Quiz 1', 'Who is the Iron Man of India?', 'Sardar Vallabhbhai Patel', 'Subhas Chandra Bose', 'Bal Gangadhar Tilak', 'Lal Bahadur Shastri', '', 'a', 'Sardar Patel unified the princely states.', 'History', 'standard', '', '', '', '', '', '', '', ''],
+    // ── Match the Following example ──
+    // option_a–d = the 4 combination choices the student picks from
+    // list1_a–d  = List-I items (left side)
+    // list2_1–4  = List-II items (right side)
+    ['History Quiz 1', 'Match the dynasties with their capitals', 'A-1, B-2, C-3, D-4', 'A-2, B-1, C-3, D-4', 'A-1, B-3, C-2, D-4', 'A-3, B-4, C-1, D-2', '', 'a', 'Maurya capital was Pataliputra, Gupta was Ujjain', 'History', 'match', 'Maurya', 'Gupta', 'Chola', 'Pallava', 'Pataliputra', 'Ujjain', 'Thanjavur', 'Kanchipuram'],
   ]
   const wsQ = XLSX.utils.aoa_to_sheet(qRows)
-  wsQ['!cols'] = [{ wch: 18 }, { wch: 36 }, { wch: 22 }, { wch: 22 }, { wch: 22 }, { wch: 22 }, { wch: 16 }, { wch: 14 }, { wch: 32 }, { wch: 18 }]
+  wsQ['!cols'] = [
+    { wch: 18 }, { wch: 36 }, { wch: 22 }, { wch: 22 }, { wch: 22 }, { wch: 22 }, { wch: 16 }, { wch: 14 }, { wch: 32 }, { wch: 18 },
+    { wch: 14 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 18 },
+  ]
   XLSX.utils.book_append_sheet(wb, wsQ, 'Quiz Questions')
   XLSX.writeFile(wb, 'quiz_bulk_upload_template.xlsx')
 }
@@ -263,6 +269,10 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
     correct_option: 'correct_option', answer: 'correct_option', correct: 'correct_option',
     explanation: 'explanation', hint: 'explanation',
     subject: 'subject',
+    // Match the Following support
+    question_subtype: 'question_subtype', subtype: 'question_subtype', type: 'question_subtype',
+    list1_a: 'list1_a', list1_b: 'list1_b', list1_c: 'list1_c', list1_d: 'list1_d',
+    list2_1: 'list2_1', list2_2: 'list2_2', list2_3: 'list2_3', list2_4: 'list2_4',
   }
 
   const normalise = (rows: any[]) => rows.map(r => {
@@ -347,6 +357,13 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
     if (opts.length < 2) msgs.push('need >= 2 options')
     const co = String(q.correct_option || '').toLowerCase()
     if (!LETTERS.includes(co) && !['1', '2', '3', '4', '5'].includes(co)) msgs.push('correct_option invalid')
+    // Match-type extra validation
+    if ((q.question_subtype || '').toLowerCase() === 'match') {
+      const l1 = [q.list1_a, q.list1_b].filter(Boolean)
+      const l2 = [q.list2_1, q.list2_2].filter(Boolean)
+      if (l1.length < 2) msgs.push('match: list1_a & list1_b required')
+      if (l2.length < 2) msgs.push('match: list2_1 & list2_2 required')
+    }
     return { row: i + 2, msgs }
   }).filter(e => e.msgs.length > 0)
 
@@ -377,7 +394,7 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs space-y-2">
                 <p className="font-bold text-slate-700">Column Reference</p>
                 <div className="grid grid-cols-2 gap-1.5">
-                  {[['quiz_title','Quiz name — groups rows into separate quizzes. Keep one subject per group.'],['question','The question text'],['option_a','First option'],['option_b','Second option'],['option_c','Third (optional)'],['option_d','Fourth (optional)'],['option_e','Fifth (optional)'],['correct_option','a/b/c/d/e or 1/2/3/4'],['explanation','Shown after answering (optional)'],['subject','Sets each quiz\'s subject by majority — split mixed-subject content into separate quiz_title groups']].map(([col, desc]) => (
+                  {[['quiz_title','Quiz name — groups rows into separate quizzes. Keep one subject per group.'],['question','The question text'],['option_a','First option (or combination choice A for match)'],['option_b','Second option (or combination choice B for match)'],['option_c','Third (optional)'],['option_d','Fourth (optional)'],['option_e','Fifth (optional)'],['correct_option','a/b/c/d/e or 1/2/3/4'],['explanation','Shown after answering (optional)'],['subject','Sets each quiz\'s subject by majority — split mixed-subject content into separate quiz_title groups'],['question_subtype','standard (default) or match — set to match for Match the Following questions'],['list1_a – list1_d','List-I items A/B/C/D for match questions (leave blank for standard MCQ)'],['list2_1 – list2_4','List-II items 1/2/3/4 for match questions (leave blank for standard MCQ)']].map(([col, desc]) => (
                     <div key={col} className="flex gap-1.5">
                       <code className="bg-white border border-slate-200 px-1.5 py-0.5 rounded text-emerald-700 font-mono shrink-0">{col}</code>
                       <span className="text-slate-500">{desc}</span>
@@ -417,7 +434,7 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
                   <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                     <tr>
                       <th className="px-2 py-2.5 text-left font-bold text-slate-500 w-8">#</th>
-                      {(questions.some(q => q.quiz_title) ? ['Quiz Title','Question','A','B','C','D','E','Correct','Explanation','Subject',''] : ['Question','A','B','C','D','E','Correct','Explanation','Subject','']).map(h => (
+                      {(questions.some(q => q.quiz_title) ? ['Quiz Title','Question','Type','A','B','C','D','E','Correct','Explanation','Subject',''] : ['Question','Type','A','B','C','D','E','Correct','Explanation','Subject','']).map(h => (
                         <th key={h} className="px-2 py-2.5 text-left font-bold text-slate-500 whitespace-nowrap">{h}</th>
                       ))}
                     </tr>
@@ -437,7 +454,17 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
                           <td className="px-2 py-1.5 text-slate-400 font-mono text-center">{i + 1}</td>
                           {questions.some(q => q.quiz_title) && cell('quiz_title', 'Quiz title…', true)}
                           {cell('question', 'Question…', true)}
-                          {cell('option_a', 'A…')}
+                          <td key="question_subtype" className="p-0 border-r border-slate-100 min-w-20">
+                            <select
+                              value={q.question_subtype || 'standard'}
+                              onChange={e => update('question_subtype', e.target.value)}
+                              className={`w-full px-1.5 py-1.5 text-xs bg-transparent outline-none focus:bg-blue-50 rounded ${(q.question_subtype || 'standard') === 'match' ? 'text-blue-600 font-bold' : 'text-slate-400'}`}
+                            >
+                              <option value="standard">MCQ</option>
+                              <option value="match">Match</option>
+                            </select>
+                          </td>
+                          {cell('option_a', (q.question_subtype === 'match' ? 'Combo A…' : 'A…'))}
                           {cell('option_b', 'B…')}
                           {cell('option_c', 'C')}
                           {cell('option_d', 'D')}
