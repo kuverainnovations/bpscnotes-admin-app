@@ -16,7 +16,7 @@ const EMPTY = {
   title:'', subject:'', instructor:'', instructorBio:'', instructorStudents:'',
   instructorCourses:1, description:'', price:0, originalPrice:0, isPaid:false,
   isFeatured:false, totalHours:0, language:'Hindi + English', status:'draft',
-  whatYouLearn:[] as string[], hasCertificate:true, maxCoinsRedeemable: null as number | null,
+  whatYouLearn:[] as string[], hasCertificate:true,
   examTags:[] as string[],
 }
 
@@ -389,7 +389,6 @@ export default function ContentPage() {
       isFeatured: c.is_featured, totalHours: c.total_hours,
       language: c.language, status: c.status,
       whatYouLearn: c.what_you_learn || [], hasCertificate: c.has_certificate !== false,
-      maxCoinsRedeemable: c.max_coins_redeemable ?? null,
       examTags: c.exam_tags || [],
     })
     setShowModal(true)
@@ -1041,13 +1040,6 @@ export default function ContentPage() {
                         <input type="number" value={form.originalPrice} onChange={e => setForm({...form, originalPrice: +e.target.value})}
                           className="input w-full" placeholder="1999" />
                         <p className="text-[10px] text-slate-400 mt-1">Shown as strikethrough</p>
-                      </div>
-                      <div className="col-span-2">
-                        <label className="block text-xs font-bold text-slate-500 mb-1.5">Max Coins Redeemable</label>
-                        <input type="number" min={0} value={form.maxCoinsRedeemable ?? ''}
-                          onChange={e => setForm({...form, maxCoinsRedeemable: e.target.value === '' ? null : +e.target.value})}
-                          className="input w-full" placeholder="Default (50)" />
-                        <p className="text-[10px] text-slate-400 mt-1">Max coins a buyer can redeem as a discount on this course. Leave blank to use the global default.</p>
                       </div>
                     </>
                   )}
