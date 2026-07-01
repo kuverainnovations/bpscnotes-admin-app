@@ -130,6 +130,58 @@ function downloadTemplate() {
     { wch: 14 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 18 },
   ]
   XLSX.utils.book_append_sheet(wb, wsQ, 'Quiz Questions')
+
+  // ── Match the Following Guide sheet ──────────────────────────────────────
+  const matchGuideRows = [
+    ['MATCH THE FOLLOWING — HOW TO FILL'],
+    [''],
+    ['Set  question_subtype = match  in the "Quiz Questions" sheet to enable this question type.'],
+    [''],
+    ['STEP 1 — Fill the question text (what the student reads)'],
+    ['  question  →  "Match List-I with List-II"'],
+    [''],
+    ['STEP 2 — Fill List-I items (left column the student sees)'],
+    ['  list1_a  →  Item A   e.g. Maurya'],
+    ['  list1_b  →  Item B   e.g. Gupta'],
+    ['  list1_c  →  Item C   (optional)'],
+    ['  list1_d  →  Item D   (optional)'],
+    [''],
+    ['STEP 3 — Fill List-II items (right column the student sees)'],
+    ['  list2_1  →  Item 1   e.g. Pataliputra'],
+    ['  list2_2  →  Item 2   e.g. Ujjain'],
+    ['  list2_3  →  Item 3   (optional)'],
+    ['  list2_4  →  Item 4   (optional)'],
+    [''],
+    ['STEP 4 — Fill the 4 COMBINATION choices (option_a to option_d)'],
+    ['  These are the 4 answer options that appear as buttons in the app.'],
+    ['  Each is a combination like: "A-1, B-2, C-3, D-4"'],
+    [''],
+    ['  option_a  →  A-1, B-2, C-3, D-4   ← this is the correct one if correct_option = a'],
+    ['  option_b  →  A-2, B-1, C-3, D-4'],
+    ['  option_c  →  A-1, B-3, C-2, D-4'],
+    ['  option_d  →  A-3, B-4, C-1, D-2'],
+    [''],
+    ['STEP 5 — Set correct_option to a / b / c / d (which combination is correct)'],
+    [''],
+    ['VISUAL EXAMPLE (how it looks in the app):'],
+    [''],
+    ['  List-I          List-II'],
+    ['  A. Maurya  →   1. Pataliputra'],
+    ['  B. Gupta   →   2. Ujjain'],
+    ['  C. Chola   →   3. Thanjavur'],
+    ['  D. Pallava →   4. Kanchipuram'],
+    [''],
+    ['  (a) A-1, B-2, C-3, D-4  ✓ correct'],
+    ['  (b) A-2, B-1, C-3, D-4'],
+    ['  (c) A-1, B-3, C-2, D-4'],
+    ['  (d) A-3, B-4, C-1, D-2'],
+    [''],
+    ['NOTE: list1 and list2 must have at least 2 items each. Minimum: list1_a, list1_b, list2_1, list2_2.'],
+  ]
+  const wsGuide = XLSX.utils.aoa_to_sheet(matchGuideRows)
+  wsGuide['!cols'] = [{ wch: 80 }]
+  XLSX.utils.book_append_sheet(wb, wsGuide, 'Match Guide')
+
   XLSX.writeFile(wb, 'quiz_bulk_upload_template.xlsx')
 }
 
@@ -434,14 +486,20 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
                   <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                     <tr>
                       <th className="px-2 py-2.5 text-left font-bold text-slate-500 w-8">#</th>
-                      {(questions.some(q => q.quiz_title) ? ['Quiz Title','Question','Type','A','B','C','D','E','Correct','Explanation','Subject',''] : ['Question','Type','A','B','C','D','E','Correct','Explanation','Subject','']).map(h => (
-                        <th key={h} className="px-2 py-2.5 text-left font-bold text-slate-500 whitespace-nowrap">{h}</th>
-                      ))}
+                      {(() => {
+                        const hasMatchQ = questions.some(q => (q.question_subtype || 'standard') === 'match')
+                        const optCols = hasMatchQ ? ['Combo A','Combo B','Combo C','Combo D','E'] : ['A','B','C','D','E']
+                        const base = questions.some(q => q.quiz_title) ? ['Quiz Title','Question','Type'] : ['Question','Type']
+                        return [...base, ...optCols, 'Correct','Explanation','Subject',''].map(h => (
+                          <th key={h} className={`px-2 py-2.5 text-left font-bold whitespace-nowrap ${h.startsWith('Combo') ? 'text-blue-500' : 'text-slate-500'}`}>{h}</th>
+                        ))
+                      })()}
                     </tr>
                   </thead>
                   <tbody>
                     {questions.map((q, i) => {
                       const hasError = errors.some(e => e.row === i + 2)
+                      const isMatch = (q.question_subtype || 'standard') === 'match'
                       const update = (field: string, val: string) => setQuestions(prev => prev.map((row, idx) => idx === i ? { ...row, [field]: val } : row))
                       const cell = (field: string, placeholder = '', wide = false) => (
                         <td key={field} className={`p-0 border-r border-slate-100 ${wide ? 'min-w-48' : 'min-w-24'}`}>
@@ -450,24 +508,68 @@ function BulkQuizUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess
                         </td>
                       )
                       return (
-                        <tr key={i} className={`border-b border-slate-100 group ${hasError ? 'bg-red-50/40' : 'hover:bg-slate-50/60'}`}>
-                          <td className="px-2 py-1.5 text-slate-400 font-mono text-center">{i + 1}</td>
+                        <tr key={i} className={`border-b border-slate-100 group align-top ${hasError ? 'bg-red-50/40' : isMatch ? 'bg-blue-50/20 hover:bg-blue-50/40' : 'hover:bg-slate-50/60'}`}>
+                          <td className="px-2 py-2 text-slate-400 font-mono text-center text-xs">{i + 1}</td>
                           {questions.some(q => q.quiz_title) && cell('quiz_title', 'Quiz title…', true)}
-                          {cell('question', 'Question…', true)}
-                          <td key="question_subtype" className="p-0 border-r border-slate-100 min-w-20">
+
+                          {/* Question cell — match rows embed List-I / List-II editors inline */}
+                          <td key="question" className="p-0 border-r border-slate-100 min-w-56">
+                            <input value={q.question || ''} onChange={e => update('question', e.target.value)} placeholder="Question…"
+                              className={`w-full px-2 py-1.5 text-xs bg-transparent outline-none focus:bg-blue-50 rounded text-slate-700 ${hasError && !q.question ? 'bg-red-50 placeholder:text-red-300' : ''}`} />
+                            {isMatch && (
+                              <div className="px-2 pb-2 space-y-1">
+                                <div className="grid grid-cols-2 gap-2 p-2 bg-white rounded-xl border border-blue-200">
+                                  <div className="space-y-1">
+                                    <p className="text-[9px] font-black text-blue-600 uppercase tracking-wider">List-I</p>
+                                    {(['list1_a','list1_b','list1_c','list1_d'] as const).map((k, li) => (
+                                      <div key={k} className="flex items-center gap-1">
+                                        <span className="w-4 h-4 rounded flex items-center justify-center bg-blue-500 text-white text-[9px] font-black shrink-0">{['A','B','C','D'][li]}</span>
+                                        <input value={q[k] || ''} onChange={e => update(k, e.target.value)}
+                                          placeholder={`Item ${['A','B','C','D'][li]}…`}
+                                          className={`flex-1 text-[10px] bg-blue-50 border rounded px-1.5 py-0.5 outline-none focus:border-blue-400 focus:bg-white text-slate-700 placeholder-slate-300 min-w-0 ${hasError && li < 2 && !q[k] ? 'border-red-300 bg-red-50' : 'border-blue-100'}`}
+                                        />
+                                      </div>
+                                    ))}
+                                  </div>
+                                  <div className="space-y-1">
+                                    <p className="text-[9px] font-black text-emerald-600 uppercase tracking-wider">List-II</p>
+                                    {(['list2_1','list2_2','list2_3','list2_4'] as const).map((k, li) => (
+                                      <div key={k} className="flex items-center gap-1">
+                                        <span className="w-4 h-4 rounded flex items-center justify-center bg-emerald-500 text-white text-[9px] font-black shrink-0">{['1','2','3','4'][li]}</span>
+                                        <input value={q[k] || ''} onChange={e => update(k, e.target.value)}
+                                          placeholder={`Item ${['1','2','3','4'][li]}…`}
+                                          className={`flex-1 text-[10px] bg-emerald-50 border rounded px-1.5 py-0.5 outline-none focus:border-emerald-400 focus:bg-white text-slate-700 placeholder-slate-300 min-w-0 ${hasError && li < 2 && !q[k] ? 'border-red-300 bg-red-50' : 'border-emerald-100'}`}
+                                        />
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                                <p className="text-[9px] text-blue-400 px-0.5">↓ Enter combination choices (A–D) below</p>
+                              </div>
+                            )}
+                          </td>
+
+                          {/* Type selector */}
+                          <td key="question_subtype" className="p-0 border-r border-slate-100 min-w-24">
                             <select
                               value={q.question_subtype || 'standard'}
                               onChange={e => update('question_subtype', e.target.value)}
-                              className={`w-full px-1.5 py-1.5 text-xs bg-transparent outline-none focus:bg-blue-50 rounded ${(q.question_subtype || 'standard') === 'match' ? 'text-blue-600 font-bold' : 'text-slate-400'}`}
+                              className={`w-full px-2 py-1.5 text-xs outline-none rounded cursor-pointer ${isMatch ? 'text-blue-600 font-bold bg-blue-50 focus:bg-blue-100' : 'text-slate-500 bg-transparent focus:bg-blue-50'}`}
                             >
-                              <option value="standard">MCQ</option>
-                              <option value="match">Match</option>
+                              <option value="standard">Standard</option>
+                              <option value="match">🔗 Match</option>
                             </select>
                           </td>
-                          {cell('option_a', (q.question_subtype === 'match' ? 'Combo A…' : 'A…'))}
-                          {cell('option_b', 'B…')}
-                          {cell('option_c', 'C')}
-                          {cell('option_d', 'D')}
+
+                          {/* Option A–D: labelled "Combo" for match rows with blue tint */}
+                          {(['option_a','option_b','option_c','option_d'] as const).map((key, oi) => (
+                            <td key={key} className={`p-0 border-r border-slate-100 min-w-24 ${isMatch ? 'bg-blue-50/40' : ''}`}>
+                              <input value={q[key] || ''} onChange={e => update(key, e.target.value)}
+                                placeholder={isMatch ? `Combo ${['A','B','C','D'][oi]}…` : `${['A','B','C','D'][oi]}…`}
+                                className={`w-full px-2 py-1.5 text-xs bg-transparent outline-none focus:bg-blue-50 rounded text-slate-700 ${hasError && oi < 2 && !q[key] ? 'bg-red-50 placeholder:text-red-300' : ''}`}
+                              />
+                            </td>
+                          ))}
                           {cell('option_e', 'E')}
                           {cell('correct_option', 'a/b/c')}
                           {cell('explanation', 'Explanation…', true)}
