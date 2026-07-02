@@ -22,6 +22,8 @@ const TYPE_META: Record<string,{ emoji:string; label:string; color:string; bg:st
   pyq:   { emoji:'📝', label:'Prev. Papers', color:'text-purple-700', bg:'bg-purple-50 border-purple-200' },
   book:  { emoji:'📚', label:'Book',         color:'text-blue-700',   bg:'bg-blue-50 border-blue-200' },
   video: { emoji:'🎬', label:'Video Notes',  color:'text-orange-700', bg:'bg-orange-50 border-orange-200' },
+  notes: { emoji:'📓', label:'Notes',        color:'text-teal-700',   bg:'bg-teal-50 border-teal-200' },
+  image: { emoji:'🖼️', label:'Image',        color:'text-pink-700',   bg:'bg-pink-50 border-pink-200' },
 }
 
 const LIMIT = 15
@@ -454,8 +456,12 @@ export default function StudyMaterialsAdminPage() {
         ) : (
           <div className="space-y-3">
             {materials.map((m: any) => {
-              const meta = TYPE_META[m.materialType] ?? TYPE_META['pdf']
-              const isVideo = m.materialType === 'video'
+              // FIX: API returns the raw column name `material_type` (snake_case),
+              // not `materialType` — this lookup always missed and fell back to
+              // TYPE_META['pdf'], so every card showed "PDF Notes" regardless of type.
+              const materialType = m.materialType || m.material_type
+              const meta = TYPE_META[materialType] ?? TYPE_META['pdf']
+              const isVideo = materialType === 'video'
               return (
                 <div key={m.id} className="card p-5 hover:shadow-md transition-shadow">
                   <div className="flex items-start gap-4">
