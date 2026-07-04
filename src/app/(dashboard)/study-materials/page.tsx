@@ -24,6 +24,7 @@ const TYPE_META: Record<string,{ emoji:string; label:string; color:string; bg:st
   video: { emoji:'🎬', label:'Video Notes',  color:'text-orange-700', bg:'bg-orange-50 border-orange-200' },
   notes: { emoji:'📓', label:'Notes',        color:'text-teal-700',   bg:'bg-teal-50 border-teal-200' },
   image: { emoji:'🖼️', label:'Image',        color:'text-pink-700',   bg:'bg-pink-50 border-pink-200' },
+  handwritten: { emoji:'✏️', label:'Handwritten', color:'text-amber-700', bg:'bg-amber-50 border-amber-200' },
 }
 
 const LIMIT = 15
@@ -46,7 +47,7 @@ function PreviewModal({ url, title, type, onClose }: { url:string; title:string;
     /\/image\/upload\//i.test(url)
   )
   const isPdf = !isVideo && !isImage && (
-    type === 'pdf' || type === 'pyq' || type === 'book' ||
+    type === 'pdf' || type === 'pyq' || type === 'book' || type === 'handwritten' ||
     /\.pdf(\?|$)/i.test(url) ||
     url.includes('docs.google.com')
   )

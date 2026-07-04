@@ -130,6 +130,7 @@ function Inner() {
 
   const save = async () => {
     if (!form.title.trim() || !form.organization.trim()) { showToast('Title and organization are required', 'error'); return }
+    if (!form.notificationUrl.trim() && !form.applicationUrl.trim() && !form.pdfUrl.trim()) { showToast('Official source link required — add a Notification URL or Application URL (Google Play policy)', 'error'); return }
     setSaving(true)
     try {
       const payload = { ...form, totalVacancies:Number(form.totalVacancies)||0, totalPosts:Number(form.totalVacancies)||0 }
@@ -371,8 +372,8 @@ function Inner() {
                   <div><label className="field-label">Notification Date</label><input type="date" value={form.notificationDate} onChange={e=>setForm({...form,notificationDate:e.target.value})} className="input w-full"/></div>
                   <div><label className="field-label">Last Date to Apply *</label><input type="date" value={form.lastDate} onChange={e=>setForm({...form,lastDate:e.target.value})} className="input w-full"/></div>
                   <div><label className="field-label">Exam Date</label><input type="date" value={form.examDate} onChange={e=>setForm({...form,examDate:e.target.value})} className="input w-full"/></div>
-                  <div><label className="field-label">Application URL</label><input type="url" value={form.applicationUrl} onChange={e=>setForm({...form,applicationUrl:e.target.value})} className="input w-full" placeholder="https://bpsc.bih.nic.in"/></div>
-                  <div><label className="field-label">Notification URL</label><input type="url" value={form.notificationUrl} onChange={e=>setForm({...form,notificationUrl:e.target.value})} className="input w-full" placeholder="https://bpsc.bih.nic.in/notice/…"/></div>
+                  <div><label className="field-label">Application URL <span className="text-slate-400 font-normal">(official site)</span></label><input type="url" value={form.applicationUrl} onChange={e=>setForm({...form,applicationUrl:e.target.value})} className="input w-full" placeholder="https://onlinebpsc.bihar.gov.in"/></div>
+                  <div><label className="field-label">Notification URL <span className="text-slate-400 font-normal">(official source — at least one URL required)</span></label><input type="url" value={form.notificationUrl} onChange={e=>setForm({...form,notificationUrl:e.target.value})} className="input w-full" placeholder="https://bpsc.bihar.gov.in/notice/…"/></div>
                   <div className="col-span-2"><label className="field-label">Notification PDF URL <span className="text-slate-400 font-normal">(or upload below)</span></label>
                     <input type="url" value={form.pdfUrl} onChange={e=>setForm({...form,pdfUrl:e.target.value})} className="input w-full" placeholder="https://…/notification.pdf"/></div>
                 </div>

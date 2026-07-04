@@ -122,7 +122,7 @@ export default function RolesPage() {
     if (!form.name.trim())  { showToast('Name is required', 'error'); return }
     if (!form.email.trim()) { showToast('Email is required', 'error'); return }
     if (!editing && !form.password)       { showToast('Password is required', 'error'); return }
-    if (!editing && form.password.length < 8) { showToast('Password must be at least 8 characters', 'error'); return }
+    if (form.password && form.password.length < 8) { showToast('Password must be at least 8 characters', 'error'); return }
 
     const payload: any = {
       name:        form.name,

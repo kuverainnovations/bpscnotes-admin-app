@@ -303,10 +303,15 @@ export default function ContentPage() {
     catch { showToast('Failed to delete', 'error') }
   }
 
+  // A lesson left on the default "PDF" type but carrying only a video would
+  // open as an (empty) PDF in the app — store what was actually uploaded.
+  const effectiveLessonType = (l: any) =>
+    l.type === 'pdf' && l.videoUrl && !l.notesUrl ? 'video' : l.type
+
   const addLesson = async (chId: string) => {
     if (!newLesson.title.trim()) return
     try {
-      await api.courses.createLesson(contentCourse.id, chId, { ...newLesson, durationMins: Number(newLesson.durationMins) })
+      await api.courses.createLesson(contentCourse.id, chId, { ...newLesson, type: effectiveLessonType(newLesson), durationMins: Number(newLesson.durationMins) })
       setAddingLesson(null)
       setNewLesson(EMPTY_LESSON)
       loadChapters(contentCourse.id)
@@ -324,7 +329,7 @@ export default function ContentPage() {
     if (!editLessonData.title?.trim()) return
     try {
       await api.courses.updateLesson(contentCourse.id, lId, {
-        ...editLessonData, durationMins: Number(editLessonData.durationMins)
+        ...editLessonData, type: effectiveLessonType(editLessonData), durationMins: Number(editLessonData.durationMins)
       })
       setEditingLesson(null)
       loadChapters(contentCourse.id)
