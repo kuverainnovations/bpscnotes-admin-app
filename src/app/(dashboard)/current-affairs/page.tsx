@@ -17,7 +17,7 @@ import {
 } from 'lucide-react'
 
 const CATEGORIES = ['General','Economy','Polity','Science & Tech','Environment','International','Bihar','Sports','Defence','Awards']
-const EMPTY_FORM = { title:'', summary:'', detail:'', keyPoints:'', examRelevance:'', importantFacts:'', category:'General', type:'prelims', examTags:[] as string[], isImportant:false, publishDate:'', status:'draft', readTime:1, mcqNegativeMarkingOverride: null as boolean | null, mcqMarksPerCorrectOverride: 1, mcqMarksPerWrongOverride: 0.33 }
+const EMPTY_FORM = { title:'', summary:'', detail:'', keyPoints:'', examRelevance:'', importantFacts:'', category:'General', categories:['General'] as string[], type:'prelims', examTags:[] as string[], isImportant:false, publishDate:'', status:'draft', readTime:1, mcqNegativeMarkingOverride: null as boolean | null, mcqMarksPerCorrectOverride: 1, mcqMarksPerWrongOverride: 0.33 }
 const OPTION_LABELS = ['A','B','C','D','E']
 const LIMIT = 20
 
@@ -283,6 +283,7 @@ function Inner() {
       examRelevance:  item.exam_relevance  || '',
       importantFacts: item.important_facts || '',
       category: item.category,
+      categories: (item.categories?.length ? item.categories : (item.category ? [item.category] : [])) as string[],
       type: item.type||(item.exam_tags?.find((t:string)=>['prelims','mains','both'].includes(t))||'prelims'),
       examTags: item.exam_tags||[], isImportant: item.is_important||false,
       publishDate: item.date?.split('T')[0]||'', status: item.status||'draft', readTime: item.read_time||1,
@@ -310,7 +311,8 @@ function Inner() {
         keyPoints:      form.keyPoints      || null,
         examRelevance:  form.examRelevance  || null,
         importantFacts: form.importantFacts || null,
-        category: form.category, type: form.type, examTags: form.examTags,
+        category: form.categories[0] || form.category, categories: form.categories,
+        type: form.type, examTags: form.examTags,
         isImportant: form.isImportant, date: form.publishDate, status: form.status, readTime: Number(form.readTime)||1,
       }
       // Only send override fields on edit — new articles always inherit
@@ -433,9 +435,11 @@ function Inner() {
                         </span>
                       )
                     })()}
-                    <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
-                      {item.category}
-                    </span>
+                    {(item.categories?.length ? item.categories : (item.category ? [item.category] : [])).map((c: string) => (
+                      <span key={c} className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                        {c}
+                      </span>
+                    ))}
                     {item.is_important && (
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
                         ⭐ Important
@@ -646,8 +650,19 @@ function Inner() {
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Article Details</p>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Category</label>
-                    <DynamicSelect type="affair-categories" value={form.category} onChange={v => setForm((f:any) => ({...f,category:v}))} placeholder="Select Category" />
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Categories</label>
+                    {form.categories?.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {form.categories.map((c: string) => (
+                          <span key={c} className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-full border border-blue-200">
+                            {c}
+                            <button type="button" onClick={() => setForm((f:any) => ({...f, categories: f.categories.filter((x: string) => x !== c)}))}
+                              className="ml-0.5 text-blue-400 hover:text-blue-700 leading-none" aria-label={`Remove ${c}`}>×</button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <DynamicSelect type="affair-categories" value="" onChange={v => v && setForm((f:any) => ({...f, categories: f.categories?.includes(v) ? f.categories : [...(f.categories || []), v]}))} placeholder="+ Add category" />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-600 mb-1.5">Type</label>
@@ -740,7 +755,9 @@ function Inner() {
             <div className={`px-6 py-4 ${preview.type==='mains'?'bg-purple-600':preview.type==='both'?'bg-blue-600':'bg-green-600'} shrink-0`}>
               <div className="flex items-start justify-between gap-2">
                 <div className="flex flex-wrap gap-2">
-                  <span className="px-2.5 py-1 bg-white/20 text-white text-xs font-bold rounded-full">{preview.category}</span>
+                  {(preview.categories?.length ? preview.categories : (preview.category ? [preview.category] : [])).map((c: string) => (
+                    <span key={c} className="px-2.5 py-1 bg-white/20 text-white text-xs font-bold rounded-full">{c}</span>
+                  ))}
                   <span className="px-2.5 py-1 bg-white/20 text-white text-xs font-bold rounded-full capitalize">{preview.type}</span>
                   {preview.is_important && <span className="px-2.5 py-1 bg-amber-400/30 text-white text-xs font-bold rounded-full">⭐ Important</span>}
                 </div>

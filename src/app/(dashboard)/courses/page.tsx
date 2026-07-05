@@ -15,7 +15,7 @@ import DynamicSelect from '@/components/ui/DynamicSelect'
 const EMPTY = {
   title:'', subject:'', instructor:'', instructorBio:'', instructorStudents:'',
   instructorCourses:1, description:'', price:0, originalPrice:0, isPaid:false,
-  isFeatured:false, totalHours:0, syllabusCoverage:0, language:'Hindi + English', status:'draft',
+  isFeatured:false, totalHours:0, syllabusCoverage:0, bpscRelevance:0, language:'Hindi + English', status:'draft',
   whatYouLearn:[] as string[], hasCertificate:true,
   examTags:[] as string[],
 }
@@ -393,6 +393,7 @@ export default function ContentPage() {
       price: c.price, originalPrice: c.original_price, isPaid: c.is_paid,
       isFeatured: c.is_featured, totalHours: c.total_hours,
       syllabusCoverage: c.syllabus_coverage || 0,
+      bpscRelevance: c.bpsc_relevance || 0,
       language: c.language, status: c.status,
       whatYouLearn: c.what_you_learn || [], hasCertificate: c.has_certificate !== false,
       examTags: c.exam_tags || [],
@@ -1059,6 +1060,12 @@ export default function ContentPage() {
                     <input type="number" min={0} max={100} value={form.syllabusCoverage} onChange={e => setForm({...form, syllabusCoverage: e.target.value === '' ? '' : +e.target.value})}
                       className="input w-full" placeholder="0" />
                     <p className="text-[10px] text-slate-400 mt-1">% of BPSC syllabus this course covers — shown to students</p>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1.5">BPSC Relevance % <span className="font-normal text-slate-400">(optional)</span></label>
+                    <input type="number" min={0} max={100} value={form.bpscRelevance} onChange={e => setForm({...form, bpscRelevance: e.target.value === '' ? '' : +e.target.value})}
+                      className="input w-full" placeholder="0" />
+                    <p className="text-[10px] text-slate-400 mt-1">How relevant this course is to the BPSC exam — shown on course cards</p>
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-500 mb-1.5">Status</label>
