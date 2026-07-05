@@ -300,7 +300,7 @@ function Inner() {
     if (!stripHtml(form.title).trim()) { showToast('Title is required', 'error'); return }
     setSaving(true)
     try {
-      // Summary feeds push notifications/share text — fall back to a
+      // Summary feeds push notifications/share text — fall back to a code
       // plain-text snippet from full content if left blank. Even when the
       // admin types into the rich summary field we send the HTML — the
       // backend sanitizer keeps it inline-only; the Android side uses
