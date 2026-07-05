@@ -17,6 +17,83 @@ import {
 } from 'lucide-react'
 
 const CATEGORIES = ['General','Economy','Polity','Science & Tech','Environment','International','Bihar','Sports','Defence','Awards']
+
+// Issue 19 — multi-category picker: every category is a tappable pill,
+// tap to select/deselect any number of them; "+ New" creates a master category.
+function MultiCategoryPicker({ selected, onChange }: { selected: string[], onChange: (next: string[]) => void }) {
+  const [options, setOptions] = useState<string[]>(CATEGORIES)
+  const [adding,  setAdding]  = useState(false)
+  const [newName, setNewName] = useState('')
+  const [saving,  setSaving]  = useState(false)
+
+  useEffect(() => {
+    api.affairCategories.list()
+      .then((res: any) => {
+        const names = (res.data?.categories || []).map((c: any) => c.name).filter(Boolean)
+        if (names.length) setOptions(Array.from(new Set([...names, ...CATEGORIES])))
+      })
+      .catch(() => {})
+  }, [])
+
+  const toggle = (name: string) =>
+    onChange(selected.includes(name) ? selected.filter(c => c !== name) : [...selected, name])
+
+  const addNew = async () => {
+    const name = newName.trim()
+    if (!name) return
+    setSaving(true)
+    try { await api.affairCategories.create({ name }) } catch {}
+    setOptions(prev => Array.from(new Set([...prev, name])))
+    if (!selected.includes(name)) onChange([...selected, name])
+    setNewName(''); setAdding(false); setSaving(false)
+  }
+
+  // Legacy categories on old articles may not exist in the master list — still show them
+  const allOptions = Array.from(new Set([...options, ...selected]))
+
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-1.5">
+        {allOptions.map(name => {
+          const on = selected.includes(name)
+          return (
+            <button key={name} type="button" onClick={() => toggle(name)}
+              className={`px-2.5 py-1 text-xs font-bold rounded-full border transition-colors ${
+                on ? 'bg-blue-600 text-white border-blue-600'
+                   : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300 hover:text-blue-600'}`}>
+              {on && '✓ '}{name}
+            </button>
+          )
+        })}
+        {!adding && (
+          <button type="button" onClick={() => setAdding(true)}
+            className="px-2.5 py-1 text-xs font-bold rounded-full border border-dashed border-blue-300 text-blue-600 bg-blue-50 hover:bg-blue-100 transition-colors">
+            + New
+          </button>
+        )}
+      </div>
+      {adding && (
+        <div className="flex gap-1.5 items-center bg-blue-50 border border-blue-200 rounded-xl px-3 py-2">
+          <input autoFocus type="text" value={newName} onChange={e => setNewName(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') { e.preventDefault(); addNew() }
+              if (e.key === 'Escape') { setAdding(false); setNewName('') }
+            }}
+            placeholder="New category name…"
+            className="flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400" />
+          <button type="button" onClick={addNew} disabled={saving || !newName.trim()}
+            className="p-1 text-green-600 hover:text-green-700 disabled:opacity-40 text-xs font-bold">
+            {saving ? <Loader2 size={14} className="animate-spin" /> : 'Add'}
+          </button>
+          <button type="button" onClick={() => { setAdding(false); setNewName('') }}
+            className="p-1 text-slate-400 hover:text-slate-600"><X size={14} /></button>
+        </div>
+      )}
+      {selected.length === 0 && <p className="text-[11px] text-amber-600">Select at least one category</p>}
+    </div>
+  )
+}
+
 const EMPTY_FORM = { title:'', summary:'', detail:'', keyPoints:'', examRelevance:'', importantFacts:'', category:'General', categories:['General'] as string[], type:'prelims', examTags:[] as string[], isImportant:false, publishDate:'', status:'draft', readTime:1, mcqNegativeMarkingOverride: null as boolean | null, mcqMarksPerCorrectOverride: 1, mcqMarksPerWrongOverride: 0.33 }
 const OPTION_LABELS = ['A','B','C','D','E']
 const LIMIT = 20
@@ -648,22 +725,11 @@ function Inner() {
               {/* ── Metadata ── */}
               <div className="border-t border-slate-100 pt-5 space-y-4">
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Article Details</p>
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">Categories <span className="text-slate-400 font-normal">(tap to select multiple)</span></label>
+                  <MultiCategoryPicker selected={form.categories || []} onChange={cats => setForm((f:any) => ({...f, categories: cats}))} />
+                </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Categories</label>
-                    {form.categories?.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mb-2">
-                        {form.categories.map((c: string) => (
-                          <span key={c} className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-full border border-blue-200">
-                            {c}
-                            <button type="button" onClick={() => setForm((f:any) => ({...f, categories: f.categories.filter((x: string) => x !== c)}))}
-                              className="ml-0.5 text-blue-400 hover:text-blue-700 leading-none" aria-label={`Remove ${c}`}>×</button>
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    <DynamicSelect type="affair-categories" value="" onChange={v => v && setForm((f:any) => ({...f, categories: f.categories?.includes(v) ? f.categories : [...(f.categories || []), v]}))} placeholder="+ Add category" />
-                  </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-600 mb-1.5">Type</label>
                     <select value={form.type} onChange={e => setForm((f:any) => ({...f,type:e.target.value}))} className="input w-full">
