@@ -207,7 +207,7 @@ function Inner() {
   const [editingMcq, setEditingMcq] = useState<any>(null)
   const [mcqSaving, setMcqSaving]   = useState(false)
 
-  // Global negative marking config — applies to every CA / Practice MCQ
+  // Global negative marking config — applies to every CA / Practice MCQ.
   // practice session in the app (these are lightweight article-attached
   // questions, not per-test records, so one global toggle covers them).
   const [showMcqConfig, setShowMcqConfig]   = useState(false)
