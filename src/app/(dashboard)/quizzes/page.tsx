@@ -1501,6 +1501,28 @@ export default function QuizzesPage() {
                               <>
                                 {q.question_image_url && <img src={q.question_image_url} alt="" className="max-h-20 rounded-xl mb-2 object-contain"/>}
                                 <p className="text-sm font-semibold text-slate-800 mb-2">{q.question_text || q.question}</p>
+                                {/* Match-the-following: show List-I/List-II so the question is
+                                    readable — bare combination options were meaningless (QA 09-Jul issue 5) */}
+                                {(() => {
+                                  if ((q.question_subtype || 'standard') !== 'match') return null
+                                  let md: any = q.match_data ?? q.matchData
+                                  if (typeof md === 'string') { try { md = JSON.parse(md) } catch { md = null } }
+                                  if (!md?.list1?.length || !md?.list2?.length) return null
+                                  const rows = Math.max(md.list1.length, md.list2.length)
+                                  return (
+                                    <div className="mb-2 rounded-xl border border-blue-200 overflow-hidden">
+                                      <div className="grid grid-cols-2 bg-blue-600 text-white text-[11px] font-black px-2.5 py-1.5">
+                                        <span>List-I</span><span>List-II</span>
+                                      </div>
+                                      {Array.from({ length: rows }).map((_, ri) => (
+                                        <div key={ri} className={`grid grid-cols-2 px-2.5 py-1.5 text-xs ${ri % 2 ? 'bg-blue-50/40' : 'bg-white'}`}>
+                                          <span className="text-slate-700">{md.list1[ri] ? `${md.list1[ri].label}. ${md.list1[ri].text}` : ''}</span>
+                                          <span className="text-slate-700">{md.list2[ri] ? `${md.list2[ri].label}. ${md.list2[ri].text}` : ''}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )
+                                })()}
                                 <div className="grid grid-cols-2 gap-1.5">
                                   {opts.map((opt: string, oi: number) => (
                                     <div key={oi} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs

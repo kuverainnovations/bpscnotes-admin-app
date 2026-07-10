@@ -887,7 +887,9 @@ function Inner() {
 
             <div className="bg-gradient-to-r from-purple-700 to-purple-500 px-6 py-4 flex items-center justify-between shrink-0">
               <div>
-                <h3 className="font-bold text-white text-lg">MCQs — {mcqAffair.title?.slice(0,55)}{mcqAffair.title?.length > 55 ? '…' : ''}</h3>
+                {/* Titles are rich HTML from the TipTap editor — strip tags here
+                    or the raw markup shows in the header (QA 09-Jul issue 16) */}
+                <h3 className="font-bold text-white text-lg">MCQs — {stripHtml(mcqAffair.title).slice(0,55)}{stripHtml(mcqAffair.title).length > 55 ? '…' : ''}</h3>
                 <p className="text-white/60 text-xs mt-0.5">Add, edit or delete multiple-choice questions</p>
               </div>
               <button onClick={() => setMcqAffair(null)} className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center">
