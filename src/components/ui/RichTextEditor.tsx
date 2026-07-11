@@ -177,7 +177,8 @@ export function useCaEditor({ mode, value, onChange, onFocus, placeholder, uploa
     if (!editor) return
     const isFocused = editor.isFocused
     if (!isFocused && value !== editor.getHTML()) {
-      editor.commands.setContent(value || '', { emitUpdate: false })
+      // tiptap v2 signature: setContent(content, emitUpdate)
+      editor.commands.setContent(value || '', false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, editor])

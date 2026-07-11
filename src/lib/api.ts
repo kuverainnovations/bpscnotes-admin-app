@@ -379,6 +379,16 @@ export const api = {
     getRedemptions:   (page = 1, limit = 20) => request(`/admin/coins/redemptions?page=${page}&limit=${limit}`),
   },
 
+  // ── Answer Writing (Mains practice) ────────────────────────
+  answerWriting: {
+    listQuestions:    (params = {})           => request(`/admin/answer-writing/questions?${qs(params)}`),
+    createQuestion:   (data: any)             => request('/admin/answer-writing/questions', { method: 'POST', body: JSON.stringify(data) }),
+    updateQuestion:   (id: string, data: any) => request(`/admin/answer-writing/questions/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    deleteQuestion:   (id: string)            => request(`/admin/answer-writing/questions/${id}`, { method: 'DELETE' }),
+    listSubmissions:  (params = {})           => request(`/admin/answer-writing/submissions?${qs(params)}`),
+    reviewSubmission: (id: string, data: any) => request(`/admin/answer-writing/submissions/${id}/review`, { method: 'PUT', body: JSON.stringify(data) }),
+  },
+
   // ── Study Rooms ───────────────────────────────────────────
   studyRooms: {
     list: () => request('/admin/study-rooms'),

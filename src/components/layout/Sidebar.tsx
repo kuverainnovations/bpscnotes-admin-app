@@ -10,7 +10,7 @@ import {
   Trophy, Radio, Award, Image, Tag, CheckSquare, Settings,
   Shield, GraduationCap, ChevronRight, ChevronDown, LogOut,
   Zap, Brain, Layers, AlertTriangle, Star, LibraryBig,
-  Coins, TrendingUp, Activity, LifeBuoy, MapPin
+  Coins, TrendingUp, Activity, LifeBuoy, MapPin, PenLine
 } from 'lucide-react'
 
 type NavItem = {
@@ -35,6 +35,7 @@ const NAV: NavGroup[] = [
     { href:'/subjects',         icon:Layers,          label:'Subjects' },
    // { href:'/support-escalations', icon:LifeBuoy,     label:'Support Escalations' },
     { href:'/quizzes',          icon:HelpCircle,      label:'Quizzes & Mock Tests' },
+    { href:'/answer-writing',   icon:PenLine,         label:'Answer Writing' },
     { href:'/current-affairs',  icon:Newspaper,       label:'Current Affairs' },
     { href:'/flashcards',       icon:Brain,           label:'Flashcards' },
     // { href:'/reviews',          icon:CheckSquare,     label:'Review Uploads' },
@@ -101,6 +102,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
     '/study-materials':    'notes',
     '/subjects':           'courses',    // part of courses content
     '/quizzes':            'quizzes',
+    '/answer-writing':     'quizzes',    // graded content — grouped with quizzes
     '/current-affairs':    'current-affairs',
     '/flashcards':         'quizzes',    // grouped with quizzes
     '/exams':              'settings',
