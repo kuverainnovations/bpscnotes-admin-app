@@ -10,6 +10,7 @@ import { useDebounce } from '@/lib/hooks'
 import DynamicSelect from '@/components/ui/DynamicSelect'
 import RichTextEditor, { CaToolbar, CaEditorField, CaEditorStyles, type ActiveCaEditor } from '@/components/ui/RichTextEditor'
 import RichContentView from '@/components/ui/RichContentView'
+import { sanitizeRichHtml } from '@/lib/sanitize'
 import {
   Plus, Search, RefreshCw, Edit, Trash2, Eye, X,
   ChevronLeft, ChevronRight, Filter, Calendar,
@@ -526,7 +527,7 @@ function Inner() {
 
                   {/* Title — now rich HTML since headline supports inline marks */}
                   <h3 className="font-bold text-slate-900 text-sm leading-snug line-clamp-3"
-                    dangerouslySetInnerHTML={{ __html: item.title }} />
+                    dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(item.title) }} />
 
                   {/* Stats mini-grid — matches quiz cards */}
                   <div className="grid grid-cols-3 gap-1.5">
@@ -834,7 +835,7 @@ function Inner() {
             </div>
 
             <div className="overflow-y-auto flex-1 p-6 space-y-4">
-              <h2 className="text-lg font-bold text-slate-900 leading-snug" dangerouslySetInnerHTML={{ __html: preview.title }} />
+              <h2 className="text-lg font-bold text-slate-900 leading-snug" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(preview.title) }} />
 
               {preview.date && (
                 <div className="flex items-center gap-2 text-xs text-slate-400">

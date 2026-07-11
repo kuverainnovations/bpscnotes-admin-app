@@ -1,9 +1,12 @@
 'use client'
 
+import { sanitizeRichHtml } from '@/lib/sanitize'
+
 /**
  * Read-only renderer for Current Affairs rich HTML content (already
- * sanitized server-side). Shares visual rules with RichTextEditor's
- * `.ca-editor-content` so the admin preview matches what was authored.
+ * sanitized server-side, re-sanitized here client-side as defense in depth).
+ * Shares visual rules with RichTextEditor's `.ca-editor-content` so the admin
+ * preview matches what was authored.
  *
  * TipTap LIST FIX (same as RichTextEditor.tsx):
  * Tailwind base reset removes list-style-type — restored here with !important.
@@ -12,7 +15,7 @@ export default function RichContentView({ html, className = '' }: { html: string
   if (!html?.trim()) return null
   return (
     <>
-      <div className={`ca-content-view ${className}`} dangerouslySetInnerHTML={{ __html: html }} />
+      <div className={`ca-content-view ${className}`} dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(html) }} />
       <style jsx global>{`
         .ca-content-view { font-size: 14px; line-height: 1.7; color: #1e293b; }
         .ca-content-view p { margin: 0 0 10px !important; }
