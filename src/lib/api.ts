@@ -377,6 +377,7 @@ export const api = {
     updateStoreItem:  (id: string, data: any) => request(`/admin/coins/store-items/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     deleteStoreItem:  (id: string)   => request(`/admin/coins/store-items/${id}`, { method: 'DELETE' }),
     getRedemptions:   (page = 1, limit = 20) => request(`/admin/coins/redemptions?page=${page}&limit=${limit}`),
+    getUnlocks:       (page = 1, limit = 20) => request(`/admin/coins/unlocks?page=${page}&limit=${limit}`),
   },
 
   // ── Study Rooms ───────────────────────────────────────────

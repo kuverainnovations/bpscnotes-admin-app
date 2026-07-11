@@ -67,7 +67,7 @@ function DecimalInput({ value, onChange, placeholder='', className='', min=0, ma
 const EMPTY_FORM = {
   title:'', subject:'', type:'topic',
   totalQuestions:10, durationMins:15,
-  coinsReward:10, status:'draft', scheduledFor:'',
+  coinsReward:10, unlockCostCoins:0, status:'draft', scheduledFor:'',
   examTags:[] as string[],
   negativeMarkingEnabled:false, marksPerCorrect:1, marksPerWrong:0,
   shuffleQuestions:true, shuffleOptions:true,
@@ -844,6 +844,7 @@ export default function QuizzesPage() {
       title: q.title, subject: q.subject, type: q.type,
       totalQuestions: q.total_questions, durationMins: q.duration_mins,
       coinsReward: q.coins_reward,
+      unlockCostCoins: q.unlock_cost_coins != null ? +q.unlock_cost_coins : 0,
       status: q.status, scheduledFor: q.scheduled_for ? q.scheduled_for.split('T')[0] : '',
       examTags: q.exam_tags || [],
       negativeMarkingEnabled: q.negative_marking_enabled === true,
@@ -997,6 +998,11 @@ export default function QuizzesPage() {
                             ⚠️ -{quiz.marks_per_wrong}
                           </span>
                         )}
+                        {(quiz.unlock_cost_coins > 0) && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-amber-50 text-amber-700 border-amber-200" title={`Users unlock this test with ${quiz.unlock_cost_coins} earned coins`}>
+                            🔒 🪙{quiz.unlock_cost_coins}
+                          </span>
+                        )}
                       </div>
                       <h3 className="font-bold text-slate-900 text-sm leading-snug line-clamp-2">{quiz.title}</h3>
                       {quiz.subject && <p className="text-xs text-slate-500 mt-0.5">{quiz.subject}</p>}
@@ -1126,6 +1132,18 @@ export default function QuizzesPage() {
                   <label className="block text-xs font-bold text-slate-600 mb-1.5">🪙 Coins Reward</label>
                   <NumInput value={form.coinsReward} onChange={v => setForm({...form,coinsReward:v})} min={0} placeholder="10" />
                 </div>
+              </div>
+
+              {/* Coin Unlock — premium content: users spend earned coins to
+                  unlock this test permanently. 0 = free for everyone. */}
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">🔒 Unlock Cost (coins)</label>
+                <NumInput value={form.unlockCostCoins} onChange={v => setForm({...form,unlockCostCoins:v})} min={0} placeholder="0" />
+                <p className="text-[11px] text-slate-500 mt-1">
+                  {form.unlockCostCoins > 0
+                    ? <>Users must spend <span className="font-bold text-amber-600">🪙 {form.unlockCostCoins}</span> earned coins to unlock this test (one-time, permanent).</>
+                    : 'Free — set a coin cost to make this a premium test unlockable with earned coins.'}
+                </p>
               </div>
 
               {/* Negative Marking — admin-configurable per test, applies to

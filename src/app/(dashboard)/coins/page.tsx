@@ -47,9 +47,9 @@ const DAY_LABELS = ['Day 1','Day 2','Day 3','Day 4','Day 5','Day 6','Day 7']
 const EMPTY_NEW_RULE = { action:'', description:'', coinsAwarded:5, maxPerDay:1, category:'custom', icon:'⚡', unitLabel:'' }
 const DEFAULT_ECONOMY = { enabled:true, coinToInrRate:1, maxCoinDiscountPctCourse:10, maxCoinDiscountPctMaterial:10, maxCoinDiscountPctSubscription:30, adMinPerSession:2, checkInRewards:[5,5,10,10,15,15,25] }
 
-const ITEM_TYPES = ['badge','discount','unlock','physical','digital','subscription']
+const ITEM_TYPES = ['badge','discount','unlock','physical','digital','subscription','streak_freeze']
 const EMPTY_ITEM = { title:'', description:'', coinCost:100, itemType:'badge', itemValue:'', stock:'', sortOrder:0, isActive:true }
-const TYPE_EMOJI: Record<string, string> = { badge:'🏅', discount:'💳', unlock:'🔓', physical:'📦', digital:'💾', subscription:'⭐' }
+const TYPE_EMOJI: Record<string, string> = { badge:'🏅', discount:'💳', unlock:'🔓', physical:'📦', digital:'💾', subscription:'⭐', streak_freeze:'🧊' }
 
 export default function CoinsPage() {
   const { showToast, ToastComponent } = useToast()
@@ -157,9 +157,11 @@ export default function CoinsPage() {
   // ── Store tab state ─────────────────────────────────────────
   const { data: storeData, loading: storeLoading, error: storeError, refetch: refetchStore } = useApiData<any>(() => api.coins.getStoreItems(), [tab === 'store'])
   const { data: redemptionsData, loading: redemptionsLoading, refetch: refetchRedemptions }    = useApiData<any>(() => api.coins.getRedemptions(), [tab === 'store'])
+  const { data: unlocksData, loading: unlocksLoading, refetch: refetchUnlocks }                = useApiData<any>(() => api.coins.getUnlocks(), [tab === 'store'])
 
   const storeItems: any[]    = storeData?.items || []
   const redemptions: any[]   = redemptionsData?.redemptions || []
+  const unlocks: any[]       = unlocksData?.unlocks || []
 
   const [editingItem, setEditingItem]   = useState<string|null>(null)
   const [itemForm, setItemForm]         = useState<any>(EMPTY_ITEM)
@@ -791,6 +793,58 @@ export default function CoinsPage() {
                       {redemptions.length === 0 && (
                         <tr>
                           <td colSpan={4} className="px-4 py-10 text-center text-slate-400 text-sm">No redemptions yet</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+
+            {/* Content Unlocks — quizzes/mock tests bought with coins */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="font-bold text-slate-900">Content Unlocks</h2>
+                  <p className="text-xs text-slate-500 mt-0.5">Premium tests students have unlocked with earned coins (set an Unlock Cost on the Quizzes page)</p>
+                </div>
+                <button onClick={refetchUnlocks} className="btn-secondary px-3 py-2"><RefreshCw size={13}/></button>
+              </div>
+              <div className="card overflow-hidden">
+                {unlocksLoading ? <PageLoader /> : (
+                  <table className="w-full text-sm">
+                    <thead className="bg-slate-50 border-b border-slate-100">
+                      <tr>
+                        <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Student</th>
+                        <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Content</th>
+                        <th className="text-right px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Coins Spent</th>
+                        <th className="text-right px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Date</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {unlocks.map((u: any) => (
+                        <tr key={u.id} className="hover:bg-slate-50/50">
+                          <td className="px-4 py-3">
+                            <p className="font-semibold text-slate-800 text-sm">{u.user_name}</p>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <span>🔓</span>
+                              <span className="text-slate-700">{u.content_title || u.content_id}</span>
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-slate-50 text-slate-500 border-slate-200 capitalize">{u.content_type}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <span className="font-bold text-amber-700">🪙 {formatNumber(u.coins_spent)}</span>
+                          </td>
+                          <td className="px-4 py-3 text-right text-xs text-slate-400">
+                            {new Date(u.created_at).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' })}
+                          </td>
+                        </tr>
+                      ))}
+                      {unlocks.length === 0 && (
+                        <tr>
+                          <td colSpan={4} className="px-4 py-10 text-center text-slate-400 text-sm">No unlocks yet — set an Unlock Cost on a quiz to make it premium</td>
                         </tr>
                       )}
                     </tbody>
