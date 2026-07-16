@@ -355,7 +355,24 @@ export default function AnswerWritingPage() {
               </div>
               <div className="rounded-xl bg-slate-50 border border-slate-100 p-4">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-2">Student's Answer</p>
-                <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{reviewing.answer_text}</p>
+                {(reviewing.answer_images?.length > 0) ? (
+                  // Handwritten answer — photographed notebook pages, in order
+                  <div className="space-y-3">
+                    {reviewing.answer_images.map((url: string, i: number) => (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img key={url} src={url} alt={`Answer page ${i + 1}`}
+                        className="w-full rounded-xl border border-slate-200" loading="lazy" />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{reviewing.answer_text}</p>
+                )}
+                {(reviewing.peer_review_count > 0) && (
+                  <p className="text-xs text-slate-500 mt-3 pt-3 border-t border-slate-200">
+                    🤝 {reviewing.peer_review_count} peer review{reviewing.peer_review_count > 1 ? 's' : ''}
+                    {reviewing.avg_peer_rating != null && <> · avg ⭐ {Number(reviewing.avg_peer_rating).toFixed(1)}</>}
+                  </p>
+                )}
               </div>
             </div>
 
