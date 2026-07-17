@@ -26,6 +26,7 @@ function NumInput({ value, onChange, placeholder = '', min = 0, max, className =
 const EMPTY_FORM = {
   questionText: '', subject: '', marks: 10, wordLimit: 250,
   modelAnswer: '', tips: '', scheduledFor: '', status: 'draft',
+  isPyq: false, pyqYear: '' as string | number,
 }
 
 const wordCount = (t: string) => t.trim().split(/\s+/).filter(Boolean).length
@@ -94,6 +95,8 @@ export default function AnswerWritingPage() {
       modelAnswer: q.model_answer || '', tips: q.tips || '',
       scheduledFor: q.scheduled_for ? String(q.scheduled_for).split('T')[0] : '',
       status: q.status,
+      isPyq: q.is_pyq === true,
+      pyqYear: q.pyq_year ?? '',
     })
     setShowForm(true)
   }
@@ -106,7 +109,12 @@ export default function AnswerWritingPage() {
 
   const handleSaveQuestion = () => {
     if (!form.questionText.trim()) { showToast('Question text is required', 'error'); return }
-    saveQuestion({ ...form, scheduledFor: form.scheduledFor?.trim() || null })
+    saveQuestion({
+      ...form,
+      scheduledFor: form.scheduledFor?.trim() || null,
+      isPyq: form.isPyq === true,
+      pyqYear: form.isPyq && form.pyqYear ? +form.pyqYear : null,
+    })
   }
 
   return (
@@ -197,8 +205,26 @@ export default function AnswerWritingPage() {
                   </div>
                 </div>
 
+                {/* PYQ — Previous Year Question badge on the app card */}
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input type="checkbox" checked={form.isPyq}
+                      onChange={e => setForm({ ...form, isPyq: e.target.checked })}
+                      className="w-4 h-4 accent-purple-600" />
+                    <span className="text-xs font-bold text-slate-600">📜 Previous Year Question (PYQ)</span>
+                  </label>
+                  {form.isPyq && (
+                    <div className="w-28">
+                      <input type="number" value={form.pyqYear} placeholder="Year"
+                        min={1990} max={2030}
+                        onChange={e => setForm({ ...form, pyqYear: e.target.value })}
+                        className="input text-sm w-full" />
+                    </div>
+                  )}
+                </div>
+
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1.5">Model Answer <span className="font-normal text-slate-400">(revealed to a student only after they submit their own)</span></label>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">Model Answer <span className="font-normal text-slate-400">(revealed to the student the day after they submit their own)</span></label>
                   <textarea value={form.modelAnswer} onChange={e => setForm({ ...form, modelAnswer: e.target.value })}
                     rows={6} className="input text-sm w-full resize-y" placeholder="The ideal structured answer students should compare theirs against…" />
                 </div>
@@ -233,6 +259,7 @@ export default function AnswerWritingPage() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${q.status === 'published' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>{q.status}</span>
                         {q.subject && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-blue-50 text-blue-700 border-blue-200">{q.subject}</span>}
+                        {q.is_pyq && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-purple-50 text-purple-700 border-purple-200">📜 PYQ{q.pyq_year ? ` ${q.pyq_year}` : ''}</span>}
                         {q.scheduled_for && (
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-purple-50 text-purple-700 border-purple-200 flex items-center gap-1">
                             <CalendarDays size={10} /> {new Date(q.scheduled_for).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
