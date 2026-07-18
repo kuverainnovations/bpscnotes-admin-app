@@ -27,6 +27,30 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
+// User choice billing: payments made via Cashfree after the user picked it
+// on Google Play's billing-choice screen must be reported to the Play
+// Developer API within 24h. has_external_tx marks such payments; a
+// "Pending" that never turns "Reported" (the hourly backend retry cron
+// keeps trying for 7 days) is a compliance problem worth investigating.
+function PlayReportBadge({ has, reportedAt }: { has: boolean; reportedAt?: string | null }) {
+  if (!has) return <span className="text-xs text-slate-300">—</span>
+  return reportedAt ? (
+    <span
+      title={`Reported to Google Play: ${formatDate(reportedAt)}`}
+      className="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700"
+    >
+      Reported
+    </span>
+  ) : (
+    <span
+      title="User-choice payment not yet reported to Google Play — retried hourly; investigate if this persists beyond a few hours"
+      className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700"
+    >
+      Pending
+    </span>
+  )
+}
+
 function MetricCard({ label, value, sub, color }: { label: string; value: string; sub?: string; color: string }) {
   return (
     <div className={`rounded-xl p-4 border ${color}`}>
@@ -135,14 +159,14 @@ function CoursePurchasesTab() {
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-xs text-slate-500 uppercase">
                 <tr>
-                  {['Date','User','Course','Amount','Status','Order ID','Provider'].map(h => (
+                  {['Date','User','Course','Amount','Status','Order ID','Provider','Play Report'].map(h => (
                     <th key={h} className="px-4 py-3 text-left font-semibold">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {purchases.length === 0 && (
-                  <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-400">No records found</td></tr>
+                  <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-400">No records found</td></tr>
                 )}
                 {purchases.map((p: any) => (
                   <tr key={p.id} className="hover:bg-slate-50 transition-colors">
@@ -159,6 +183,7 @@ function CoursePurchasesTab() {
                     <td className="px-4 py-3"><StatusBadge status={p.status} /></td>
                     <td className="px-4 py-3 font-mono text-xs text-slate-500">{p.provider_order_id || '—'}</td>
                     <td className="px-4 py-3 text-xs text-slate-500 capitalize">{p.payment_provider || '—'}</td>
+                    <td className="px-4 py-3"><PlayReportBadge has={p.has_external_tx} reportedAt={p.external_transaction_reported_at} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -217,14 +242,14 @@ function MaterialPurchasesTab() {
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-xs text-slate-500 uppercase">
                 <tr>
-                  {['Date','User','Material','Amount Paid','Platform Fee','Order ID','Status'].map(h => (
+                  {['Date','User','Material','Amount Paid','Platform Fee','Order ID','Status','Play Report'].map(h => (
                     <th key={h} className="px-4 py-3 text-left font-semibold">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {purchases.length === 0 && (
-                  <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-400">No records found</td></tr>
+                  <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-400">No records found</td></tr>
                 )}
                 {purchases.map((p: any) => (
                   <tr key={p.id} className="hover:bg-slate-50 transition-colors">
@@ -241,6 +266,7 @@ function MaterialPurchasesTab() {
                     <td className="px-4 py-3 text-slate-600">{formatCurrency(p.platform_fee)}</td>
                     <td className="px-4 py-3 font-mono text-xs text-slate-500">{p.provider_order_id || '—'}</td>
                     <td className="px-4 py-3"><StatusBadge status={p.order_status || 'completed'} /></td>
+                    <td className="px-4 py-3"><PlayReportBadge has={p.has_external_tx} reportedAt={p.external_transaction_reported_at} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -293,14 +319,14 @@ function SubscriptionsTab() {
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-xs text-slate-500 uppercase">
                 <tr>
-                  {['Date','User','Plan','Amount','Status','Order ID','Payment ID','Provider'].map(h => (
+                  {['Date','User','Plan','Amount','Status','Order ID','Payment ID','Provider','Play Report'].map(h => (
                     <th key={h} className="px-4 py-3 text-left font-semibold">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {payments.length === 0 && (
-                  <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-400">No records found</td></tr>
+                  <tr><td colSpan={9} className="px-4 py-8 text-center text-slate-400">No records found</td></tr>
                 )}
                 {payments.map((p: any) => (
                   <tr key={p.id} className="hover:bg-slate-50 transition-colors">
@@ -315,6 +341,7 @@ function SubscriptionsTab() {
                     <td className="px-4 py-3 font-mono text-xs text-slate-500">{p.provider_order_id   || '—'}</td>
                     <td className="px-4 py-3 font-mono text-xs text-slate-500">{p.provider_payment_id || '—'}</td>
                     <td className="px-4 py-3 text-xs text-slate-500 capitalize">{p.payment_provider || '—'}</td>
+                    <td className="px-4 py-3"><PlayReportBadge has={p.has_external_tx} reportedAt={p.external_transaction_reported_at} /></td>
                   </tr>
                 ))}
               </tbody>
