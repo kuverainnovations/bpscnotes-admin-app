@@ -19,6 +19,15 @@ const EMPTY = {
 }
 const SUBJECTS = ['Polity','History','Geography','Economy','Science','Environment','Bihar GK','English','Math','Current Affairs']
 
+// UTC instant (from the API) → "YYYY-MM-DDTHH:mm" in the browser's local
+// timezone, the format datetime-local inputs expect.
+function toLocalInputValue(utcIso: string): string {
+  const d = new Date(utcIso)
+  if (isNaN(d.getTime())) return ''
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
 export default function LiveClassesPage() {
   return <Suspense fallback={<div className="p-8 text-center text-slate-400">Loading…</div>}><Inner /></Suspense>
 }
@@ -52,7 +61,11 @@ function Inner() {
       description: lc.description||'', durationMins: lc.duration_mins||60,
       meetUrl: lc.meet_url||'', isLive: lc.is_live||false,
       maxAttendees: lc.max_attendees||500, coinsReward: lc.coins_reward||5,
-      scheduledAt: lc.scheduled_at ? lc.scheduled_at.replace('Z','').slice(0,16) : '',
+      // Stored value is a UTC instant — convert to the browser's local
+      // time for the datetime-local input (the old .replace('Z','') put
+      // the UTC digits in the field as if they were local, shifting the
+      // time +5:30 on every edit round-trip).
+      scheduledAt: lc.scheduled_at ? toLocalInputValue(lc.scheduled_at) : '',
     })
     setShowModal(true)
   }
@@ -61,8 +74,17 @@ function Inner() {
     if (!form.title || !form.instructor) { showToast('Title and instructor required', 'error'); return }
     setSaving(true)
     try {
-      if (editing) await api.liveClasses.update(editing.id, form)
-      else         await api.liveClasses.create(form)
+      // datetime-local gives a timezone-less string ("2026-07-17T16:01")
+      // in the admin's local time (IST). Sending it raw made the backend
+      // store those digits as UTC, so the app displayed them +5:30 later
+      // (QA 18-07 issue 3: 4:01 PM became 9:31 PM). Convert to a real
+      // UTC instant before sending.
+      const payload = {
+        ...form,
+        scheduledAt: form.scheduledAt ? new Date(form.scheduledAt).toISOString() : form.scheduledAt,
+      }
+      if (editing) await api.liveClasses.update(editing.id, payload)
+      else         await api.liveClasses.create(payload)
       setShowModal(false); load()
       showToast(editing ? 'Class updated ✅' : 'Live class scheduled ✅')
     } catch (e: any) { showToast(e.message, 'error') }

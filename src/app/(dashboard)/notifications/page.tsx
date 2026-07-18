@@ -66,7 +66,10 @@ export default function NotificationsPage() {
     try {
       await api.notifications.send({
         title: form.title, body: form.body, type: form.type,
-        target: form.target, targetExam: form.targetExam||undefined, scheduledAt: form.scheduledAt||undefined,
+        target: form.target, targetExam: form.targetExam||undefined,
+        // datetime-local is timezone-less local time — convert to a real
+        // UTC instant or the backend stores IST digits as UTC (+5:30 shift)
+        scheduledAt: form.scheduledAt ? new Date(form.scheduledAt).toISOString() : undefined,
       })
       setShowModal(false); setForm(EMPTY_FORM); load()
       showToast('Notification sent ✅')

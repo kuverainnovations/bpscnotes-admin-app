@@ -83,7 +83,9 @@ export default function AnalyticsDashboard() {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/notifications/send`, {
         method:      'POST',
         headers:     { 'Content-Type': 'application/json' },
-        body:        JSON.stringify({ ...form, targetExam: form.targetExam||undefined, scheduledAt: form.scheduledAt||undefined }),
+        // scheduledAt: datetime-local is timezone-less local time — convert
+        // to a real UTC instant or the backend stores IST digits as UTC
+        body:        JSON.stringify({ ...form, targetExam: form.targetExam||undefined, scheduledAt: form.scheduledAt ? new Date(form.scheduledAt).toISOString() : undefined }),
         credentials: 'include',
       })
       const data = await res.json()
