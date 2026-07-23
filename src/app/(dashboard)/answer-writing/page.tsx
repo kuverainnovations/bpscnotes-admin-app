@@ -45,8 +45,17 @@ export default function AnswerWritingPage() {
     useApiData<any>(() => api.answerWriting.listQuestions({ limit: 100, ...(qStatusFilter ? { status: qStatusFilter } : {}) }), [qStatusFilter])
   const questions: any[] = qData?.questions || []
 
+  // ── Sample-answer modal state ───────────────────────────────
+  const [seeding, setSeeding]         = useState<any>(null)   // question getting a sample
+  const [seedText, setSeedText]       = useState('')
+  const [seedImages, setSeedImages]   = useState<File[]>([])
+  const [seedPdf, setSeedPdf]         = useState<File | null>(null)
+  const [seedSaving, setSeedSaving]   = useState(false)
+
   // ── Submissions tab state ───────────────────────────────────
-  const [subStatusFilter, setSubStatusFilter] = useState('submitted')
+  // 'pending' spans submitted + peer_reviewed — a peer-reviewed answer is
+  // still waiting on a mentor grade.
+  const [subStatusFilter, setSubStatusFilter] = useState('pending')
   const [reviewing, setReviewing]             = useState<any>(null)   // submission being graded
   const [reviewScore, setReviewScore]         = useState(0)
   const [reviewFeedback, setReviewFeedback]   = useState('')
@@ -105,6 +114,42 @@ export default function AnswerWritingPage() {
     setReviewing(s)
     setReviewScore(s.score != null ? +s.score : 0)
     setReviewFeedback(s.feedback || '')
+  }
+
+  // ── Sample ("seed") answer ──────────────────────────────────
+  // Peer review is reciprocal per question: a student unlocks the reviews on
+  // their own answer by reviewing someone else's answer to the same question.
+  // The first student to attempt a question has nobody to review, so every
+  // question needs one sample answer in the pool before it can be published.
+  const saveSeed = async () => {
+    if (!seeding) return
+    const fd = new FormData()
+    if (seedText.trim()) fd.append('answerText', seedText.trim())
+    seedImages.forEach(f => fd.append('images', f))
+    if (seedPdf) fd.append('pdf', seedPdf)
+    if (!seedText.trim() && !seedImages.length && !seedPdf) {
+      showToast('Add answer text, photos or a PDF', 'error'); return
+    }
+    setSeedSaving(true)
+    try {
+      const res = await api.answerWriting.createSeed(seeding.id, fd)
+      showToast(res?.message || 'Sample answer saved ✅')
+      setSeeding(null); setSeedText(''); setSeedImages([]); setSeedPdf(null)
+      refetchQuestions()
+    } catch (e: any) {
+      showToast(e.message || 'Failed to save the sample answer', 'error')
+    } finally {
+      setSeedSaving(false)
+    }
+  }
+
+  const publishQuestion = async (q: any) => {
+    try {
+      await api.answerWriting.updateQuestion(q.id, { status: 'published' })
+      showToast('Question published ✅'); refetchQuestions()
+    } catch (e: any) {
+      showToast(e.message || 'Could not publish', 'error')
+    }
   }
 
   const handleSaveQuestion = () => {
@@ -236,10 +281,20 @@ export default function AnswerWritingPage() {
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className="input w-40 text-sm">
-                    <option value="draft">Draft</option>
-                    <option value="published">Published</option>
-                  </select>
+                  {/* Publishing needs a sample answer in the pool, so a new
+                      question can only be saved as a draft — add its sample
+                      from the card, then publish. */}
+                  <div>
+                    <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className="input w-40 text-sm">
+                      <option value="draft">Draft</option>
+                      <option value="published" disabled={!editing || !editing.seed_count}>Published</option>
+                    </select>
+                    {(!editing || !editing.seed_count) && (
+                      <p className="text-[11px] text-slate-400 mt-1 max-w-xs">
+                        Save as draft, add a sample answer, then publish.
+                      </p>
+                    )}
+                  </div>
                   <div className="flex gap-2">
                     <button onClick={() => { setShowForm(false); setEditing(null) }} className="btn-secondary text-sm">Cancel</button>
                     <button onClick={handleSaveQuestion} disabled={saving} className="btn-primary text-sm">
@@ -266,8 +321,11 @@ export default function AnswerWritingPage() {
                           </span>
                         )}
                         {q.pending_count > 0 && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-amber-50 text-amber-700 border-amber-200">{q.pending_count} to review</span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-amber-50 text-amber-700 border-amber-200">{q.pending_count} to grade</span>
                         )}
+                        {q.seed_count > 0
+                          ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-indigo-50 text-indigo-700 border-indigo-200">📘 sample</span>
+                          : <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-red-50 text-red-600 border-red-200">no sample answer</span>}
                       </div>
                       <div className="flex gap-1.5 shrink-0">
                         <button onClick={() => openEdit(q)} className="w-7 h-7 rounded-lg bg-slate-50 hover:bg-slate-100 flex items-center justify-center"><Edit size={12} className="text-slate-500" /></button>
@@ -283,6 +341,35 @@ export default function AnswerWritingPage() {
                       <span className="flex items-center gap-1"><PenLine size={12} /> {q.submission_count || 0} submissions</span>
                       {!q.model_answer && <span className="text-red-400 font-semibold">no model answer</span>}
                     </div>
+
+                    {/* Sample answer — required before publishing, because it is
+                        what lets the first student to attempt this question
+                        unlock the peer reviews on their own answer. */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        onClick={() => {
+                          setSeeding(q); setSeedText(''); setSeedImages([]); setSeedPdf(null)
+                        }}
+                        className="btn-secondary text-xs py-1.5 px-3 flex items-center gap-1.5">
+                        <FileText size={12} /> {q.seed_count > 0 ? 'Replace sample answer' : 'Add sample answer'}
+                      </button>
+                      {q.status !== 'published' && (
+                        <button
+                          onClick={() => publishQuestion(q)}
+                          disabled={!q.seed_count}
+                          title={q.seed_count ? '' : 'Add a sample answer first'}
+                          className="btn-primary text-xs py-1.5 px-3 flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed">
+                          <Send size={12} /> Publish
+                        </button>
+                      )}
+                    </div>
+                    {!q.seed_count && (
+                      <p className="text-[11px] text-red-500 leading-relaxed">
+                        Peer review needs one answer already in the pool. Without a sample,
+                        the first students to attempt this question can&apos;t review anyone —
+                        so their own reviews stay locked.
+                      </p>
+                    )}
                   </div>
                 ))}
                 {questions.length === 0 && (
@@ -302,9 +389,11 @@ export default function AnswerWritingPage() {
         {tab === 'submissions' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between flex-wrap gap-3">
-              <select value={subStatusFilter} onChange={e => setSubStatusFilter(e.target.value)} className="input w-48 text-sm">
-                <option value="submitted">⏳ Pending review</option>
-                <option value="reviewed">✅ Reviewed</option>
+              <select value={subStatusFilter} onChange={e => setSubStatusFilter(e.target.value)} className="input w-56 text-sm">
+                <option value="pending">⏳ Awaiting your grade</option>
+                <option value="submitted">· not peer reviewed yet</option>
+                <option value="peer_reviewed">· peer reviewed</option>
+                <option value="reviewed">✅ Graded</option>
                 <option value="">All submissions</option>
               </select>
               <button onClick={refetchSubmissions} className="btn-secondary px-3 py-2"><RefreshCw size={13} /></button>
@@ -349,7 +438,7 @@ export default function AnswerWritingPage() {
                     ))}
                     {submissions.length === 0 && (
                       <tr><td colSpan={6} className="px-4 py-12 text-center text-slate-400 text-sm">
-                        {subStatusFilter === 'submitted' ? 'No answers waiting for review 🎉' : 'No submissions yet'}
+                        {subStatusFilter === 'pending' ? 'No answers waiting for your grade 🎉' : 'No submissions yet'}
                       </td></tr>
                     )}
                   </tbody>
@@ -359,6 +448,75 @@ export default function AnswerWritingPage() {
           </div>
         )}
       </div>
+
+      {/* ── Sample answer modal ─────────────────────────────── */}
+      {seeding && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={() => !seedSaving && setSeeding(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+              <div>
+                <h3 className="font-bold text-slate-900">Sample Answer</h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Seeds the peer-review pool for this question — one per question
+                </p>
+              </div>
+              <button onClick={() => setSeeding(null)} className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center"><X size={14} /></button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+              <div className="rounded-xl bg-blue-50/60 border border-blue-100 p-4">
+                <p className="text-sm text-slate-800 font-semibold leading-relaxed line-clamp-3">{seeding.question_text}</p>
+              </div>
+
+              <div className="rounded-xl bg-amber-50 border border-amber-100 p-3">
+                <p className="text-xs text-amber-800 leading-relaxed">
+                  Students see this labelled <strong>&ldquo;Sample answer&rdquo;</strong> — it is never
+                  presented as another student&apos;s work. It stays in the pool
+                  indefinitely so every student can use it to unlock their own reviews,
+                  and it never appears in your grading queue or on the leaderboards.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">Answer text</label>
+                <textarea value={seedText} onChange={e => setSeedText(e.target.value)}
+                  rows={10} className="input text-sm w-full resize-y font-serif"
+                  placeholder="Write the sample answer as a student would — introduction, body, conclusion…" />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  {wordCount(seedText)} words
+                  {seeding.word_limit ? ` · limit ${seeding.word_limit}` : ''}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">…or photos (max 5)</label>
+                  <input type="file" accept="image/*" multiple
+                    onChange={e => setSeedImages(Array.from(e.target.files || []).slice(0, 5))}
+                    className="text-xs w-full" />
+                  {seedImages.length > 0 && (
+                    <p className="text-[11px] text-slate-500 mt-1">{seedImages.length} photo(s) selected</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">…or a PDF</label>
+                  <input type="file" accept="application/pdf"
+                    onChange={e => setSeedPdf(e.target.files?.[0] || null)}
+                    className="text-xs w-full" />
+                  {seedPdf && <p className="text-[11px] text-slate-500 mt-1 truncate">{seedPdf.name}</p>}
+                </div>
+              </div>
+            </div>
+
+            <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-2 bg-slate-50/50 rounded-b-2xl">
+              <button onClick={() => setSeeding(null)} disabled={seedSaving} className="btn-secondary text-sm">Cancel</button>
+              <button onClick={saveSeed} disabled={seedSaving} className="btn-primary text-sm">
+                {seedSaving ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />} Save sample answer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Review modal ────────────────────────────────────── */}
       {reviewing && (
@@ -382,7 +540,21 @@ export default function AnswerWritingPage() {
               </div>
               <div className="rounded-xl bg-slate-50 border border-slate-100 p-4">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-2">Student's Answer</p>
-                {(reviewing.answer_images?.length > 0) ? (
+                {reviewing.answer_pdf ? (
+                  // PDF answer — inline so grading needs no download round-trip
+                  <div className="space-y-2">
+                    <object data={reviewing.answer_pdf} type="application/pdf"
+                      className="w-full h-[60vh] rounded-xl border border-slate-200">
+                      <p className="text-sm text-slate-600 p-4">
+                        This browser can&apos;t preview PDFs inline.
+                      </p>
+                    </object>
+                    <a href={reviewing.answer_pdf} target="_blank" rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-600 hover:underline">
+                      <FileText size={12} /> Open the PDF in a new tab
+                    </a>
+                  </div>
+                ) : (reviewing.answer_images?.length > 0) ? (
                   // Handwritten answer — photographed notebook pages, in order
                   <div className="space-y-3">
                     {reviewing.answer_images.map((url: string, i: number) => (

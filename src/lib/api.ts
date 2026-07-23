@@ -387,6 +387,12 @@ export const api = {
     deleteQuestion:   (id: string)            => request(`/admin/answer-writing/questions/${id}`, { method: 'DELETE' }),
     listSubmissions:  (params = {})           => request(`/admin/answer-writing/submissions?${qs(params)}`),
     reviewSubmission: (id: string, data: any) => request(`/admin/answer-writing/submissions/${id}/review`, { method: 'PUT', body: JSON.stringify(data) }),
+    // Sample answer — seeds the peer-review pool so the first student to
+    // attempt a question can still unlock the reviews on their own answer.
+    // FormData: answerText and/or images[] and/or pdf.
+    createSeed:       (id: string, body: FormData) =>
+      request(`/admin/answer-writing/questions/${id}/seed`, { method: 'POST', body, isFormData: true }),
+    deleteSeed:       (id: string)            => request(`/admin/answer-writing/questions/${id}/seed`, { method: 'DELETE' }),
   },
 
   // ── Study Rooms ───────────────────────────────────────────
