@@ -281,17 +281,16 @@ export default function AnswerWritingPage() {
                 </div>
 
                 <div className="flex items-center justify-between">
-                  {/* Publishing needs a sample answer in the pool, so a new
-                      question can only be saved as a draft — add its sample
-                      from the card, then publish. */}
+                  {/* A sample answer is recommended for peer review but not
+                      required, so publishing straight away is allowed. */}
                   <div>
                     <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className="input w-40 text-sm">
                       <option value="draft">Draft</option>
-                      <option value="published" disabled={!editing || !editing.seed_count}>Published</option>
+                      <option value="published">Published</option>
                     </select>
                     {(!editing || !editing.seed_count) && (
                       <p className="text-[11px] text-slate-400 mt-1 max-w-xs">
-                        Save as draft, add a sample answer, then publish.
+                        Tip: add a sample answer so the first students have something to review.
                       </p>
                     )}
                   </div>
@@ -323,9 +322,9 @@ export default function AnswerWritingPage() {
                         {q.pending_count > 0 && (
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-amber-50 text-amber-700 border-amber-200">{q.pending_count} to grade</span>
                         )}
-                        {q.seed_count > 0
-                          ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-indigo-50 text-indigo-700 border-indigo-200">📘 sample</span>
-                          : <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-red-50 text-red-600 border-red-200">no sample answer</span>}
+                        {q.seed_count > 0 && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-indigo-50 text-indigo-700 border-indigo-200">📘 sample</span>
+                        )}
                       </div>
                       <div className="flex gap-1.5 shrink-0">
                         <button onClick={() => openEdit(q)} className="w-7 h-7 rounded-lg bg-slate-50 hover:bg-slate-100 flex items-center justify-center"><Edit size={12} className="text-slate-500" /></button>
@@ -342,9 +341,8 @@ export default function AnswerWritingPage() {
                       {!q.model_answer && <span className="text-red-400 font-semibold">no model answer</span>}
                     </div>
 
-                    {/* Sample answer — required before publishing, because it is
-                        what lets the first student to attempt this question
-                        unlock the peer reviews on their own answer. */}
+                    {/* Sample answer — recommended for peer review (gives the
+                        first students something to review) but not required. */}
                     <div className="flex items-center gap-2 flex-wrap">
                       <button
                         onClick={() => {
@@ -356,18 +354,15 @@ export default function AnswerWritingPage() {
                       {q.status !== 'published' && (
                         <button
                           onClick={() => publishQuestion(q)}
-                          disabled={!q.seed_count}
-                          title={q.seed_count ? '' : 'Add a sample answer first'}
-                          className="btn-primary text-xs py-1.5 px-3 flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed">
+                          className="btn-primary text-xs py-1.5 px-3 flex items-center gap-1.5">
                           <Send size={12} /> Publish
                         </button>
                       )}
                     </div>
                     {!q.seed_count && (
-                      <p className="text-[11px] text-red-500 leading-relaxed">
-                        Peer review needs one answer already in the pool. Without a sample,
-                        the first students to attempt this question can&apos;t review anyone —
-                        so their own reviews stay locked.
+                      <p className="text-[11px] text-slate-400 leading-relaxed">
+                        Tip: add a sample answer so the first students have something to review
+                        and can unlock their own peer reviews sooner.
                       </p>
                     )}
                   </div>
