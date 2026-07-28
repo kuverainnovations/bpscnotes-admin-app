@@ -5,6 +5,7 @@ import api from '@/lib/api'
 import { useApiData, useMutation } from '@/lib/hooks'
 import { PageLoader, ErrorMessage, useToast } from '@/components/ui/feedback'
 import DynamicSelect from '@/components/ui/DynamicSelect'
+import RichTextEditor from '@/components/ui/RichTextEditor'
 import {
   Plus, X, RefreshCw, Edit, Trash2, PenLine, Clock, CheckCircle2,
   FileText, CalendarDays, Award, AlignLeft, Send, Loader2, Inbox,
@@ -270,8 +271,17 @@ export default function AnswerWritingPage() {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-600 mb-1.5">Model Answer <span className="font-normal text-slate-400">(revealed to the student the day after they submit their own)</span></label>
-                  <textarea value={form.modelAnswer} onChange={e => setForm({ ...form, modelAnswer: e.target.value })}
-                    rows={6} className="input text-sm w-full resize-y" placeholder="The ideal structured answer students should compare theirs against…" />
+                  {/* Same rich-text editor as Current Affairs — headings, bold,
+                      lists, tables, colours, images (client, 29 Jul). */}
+                  <RichTextEditor
+                    value={form.modelAnswer}
+                    onChange={html => setForm({ ...form, modelAnswer: html })}
+                    uploadImage={async (file) => {
+                      const res = await api.currentAffairs.uploadImage(file)
+                      return res.data?.url
+                    }}
+                    placeholder="The ideal structured answer students should compare theirs against…"
+                  />
                 </div>
 
                 <div>
