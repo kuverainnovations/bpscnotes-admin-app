@@ -280,14 +280,26 @@ export default function AnswerWritingPage() {
                     rows={2} className="input text-sm w-full resize-y" placeholder="e.g. Structure: intro → 3 arguments with examples → balanced conclusion" />
                 </div>
 
-                <div className="flex items-center justify-between">
-                  {/* A sample answer is recommended for peer review but not
-                      required, so publishing straight away is allowed. */}
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  {/* Draft / Publish as a segmented pill — same flow as the
+                      Current Affairs editor. A sample answer is recommended for
+                      peer review but not required, so Publish is always allowed. */}
                   <div>
-                    <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className="input w-40 text-sm">
-                      <option value="draft">Draft</option>
-                      <option value="published">Published</option>
-                    </select>
+                    <div className="inline-flex rounded-xl overflow-hidden border border-slate-200 text-xs font-semibold">
+                      {(['draft', 'published'] as const).map(s => (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => setForm({ ...form, status: s })}
+                          className={`px-4 py-2 transition-colors ${
+                            form.status === s
+                              ? s === 'published' ? 'bg-green-500 text-white' : 'bg-slate-700 text-white'
+                              : 'text-slate-500 hover:bg-slate-50'
+                          }`}>
+                          {s === 'published' ? '✅ Publish' : '📝 Draft'}
+                        </button>
+                      ))}
+                    </div>
                     {(!editing || !editing.seed_count) && (
                       <p className="text-[11px] text-slate-400 mt-1 max-w-xs">
                         Tip: add a sample answer so the first students have something to review.
@@ -297,7 +309,10 @@ export default function AnswerWritingPage() {
                   <div className="flex gap-2">
                     <button onClick={() => { setShowForm(false); setEditing(null) }} className="btn-secondary text-sm">Cancel</button>
                     <button onClick={handleSaveQuestion} disabled={saving} className="btn-primary text-sm">
-                      {saving ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />} {editing ? 'Save Changes' : 'Create Question'}
+                      {saving ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
+                      {editing
+                        ? (form.status === 'published' ? 'Save & Publish' : 'Save Changes')
+                        : (form.status === 'published' ? 'Create & Publish' : 'Create Draft')}
                     </button>
                   </div>
                 </div>
