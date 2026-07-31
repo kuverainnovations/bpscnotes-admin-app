@@ -50,7 +50,7 @@ const EMPTY: any = {
   title:'', organization:'', category:'BPSC', totalVacancies:0,
   jobState:'Bihar', jobDistrict:'', jobCity:'', isRemote:false,
   salary:'', qualification:'', ageLimit:'', experienceRequired:'Any',
-  lastDate:'', notificationDate:'', examDate:'',
+  lastDate:'', notificationDate:'', examDate:'', examDateTbd:false,
   applicationUrl:'', isNew:true, isFeatured:false,
   description:'', briefDescription:'', pdfUrl:'', advertPdfUrl:'', notificationUrl:'',
 }
@@ -119,6 +119,8 @@ function Inner() {
       lastDate:j.last_date?.split('T')[0]||'',
       notificationDate:j.notification_date?.split('T')[0]||'',
       examDate:j.exam_date?.split('T')[0]||'',
+      // No column for this — an absent exam_date *is* "to be notified later".
+      examDateTbd:!j.exam_date,
       applicationUrl:j.application_link||'',
       isNew:j.is_new!==undefined?j.is_new:true, isFeatured:j.is_featured||false,
       description:j.description||'', briefDescription:j.brief_description||'',
@@ -371,7 +373,21 @@ function Inner() {
                 <div className="grid grid-cols-2 gap-3">
                   <div><label className="field-label">Notification Date</label><input type="date" value={form.notificationDate} onChange={e=>setForm({...form,notificationDate:e.target.value})} className="input w-full"/></div>
                   <div><label className="field-label">Last Date to Apply *</label><input type="date" value={form.lastDate} onChange={e=>setForm({...form,lastDate:e.target.value})} className="input w-full"/></div>
-                  <div><label className="field-label">Exam Date</label><input type="date" value={form.examDate} onChange={e=>setForm({...form,examDate:e.target.value})} className="input w-full"/></div>
+                  <div>
+                    <label className="field-label">Exam Date</label>
+                    <input type="date" value={form.examDate} disabled={form.examDateTbd}
+                      onChange={e=>setForm({...form,examDate:e.target.value})}
+                      className="input w-full disabled:bg-slate-100 disabled:text-slate-400"/>
+                    {/* Boards routinely publish a vacancy before fixing an exam date.
+                        Toggling this clears the date; the app then shows "To be announced". */}
+                    <label className="flex items-center gap-2 mt-2 cursor-pointer"
+                      onClick={()=>setForm({...form, examDateTbd:!form.examDateTbd, examDate:!form.examDateTbd?'':form.examDate})}>
+                      <div className={`w-9 h-5 rounded-full transition-colors relative ${form.examDateTbd?'bg-orange-500':'bg-slate-200'}`}>
+                        <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${form.examDateTbd?'translate-x-4':'translate-x-0.5'}`}/>
+                      </div>
+                      <span className="text-xs font-semibold text-slate-600">To be notified later</span>
+                    </label>
+                  </div>
                   <div><label className="field-label">Application URL <span className="text-slate-400 font-normal">(official site)</span></label><input type="url" value={form.applicationUrl} onChange={e=>setForm({...form,applicationUrl:e.target.value})} className="input w-full" placeholder="https://onlinebpsc.bihar.gov.in"/></div>
                   <div><label className="field-label">Notification URL <span className="text-slate-400 font-normal">(official source — at least one URL required)</span></label><input type="url" value={form.notificationUrl} onChange={e=>setForm({...form,notificationUrl:e.target.value})} className="input w-full" placeholder="https://bpsc.bihar.gov.in/notice/…"/></div>
                   <div className="col-span-2"><label className="field-label">Notification PDF URL <span className="text-slate-400 font-normal">(or upload below)</span></label>
