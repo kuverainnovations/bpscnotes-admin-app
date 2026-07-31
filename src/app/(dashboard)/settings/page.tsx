@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import Header from '@/components/layout/Header'
 import api from '@/lib/api'
 import { useToast } from '@/components/ui/feedback'
-import { Save, RefreshCw, Database, Smartphone, Coins, AlertTriangle, Bell } from 'lucide-react'
+import { Save, RefreshCw, Database, Smartphone, Coins, AlertTriangle, Bell, Share2 } from 'lucide-react'
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<Record<string, string>>({})
@@ -187,6 +187,34 @@ export default function SettingsPage() {
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1.5">Support Email</label>
                 <input value={settings.support_email || ''} onChange={e => set('support_email', e.target.value)} className="input" placeholder="support@bpscnotes.com" />
+              </div>
+            </div>
+          </div>
+
+          {/* Social links — rendered next to Logout in the app. Leaving one blank
+              hides that icon, so an unset channel never ships a dead link. */}
+          <div className="card p-5">
+            <div className="flex items-center gap-2 mb-2">
+              <Share2 size={18} className="text-brand-500" />
+              <h2 className="section-title mb-0">Social Links</h2>
+            </div>
+            <p className="text-xs text-slate-500 mb-3">Shown in the app under Settings and in the menu drawer. Leave blank to hide that icon.</p>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">Instagram</label>
+                <input value={settings.social_instagram || ''} onChange={e => set('social_instagram', e.target.value)} className="input" placeholder="https://instagram.com/bpscnotes" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">Telegram</label>
+                <input value={settings.social_telegram || ''} onChange={e => set('social_telegram', e.target.value)} className="input" placeholder="https://t.me/bpscnotes" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">Facebook</label>
+                <input value={settings.social_facebook || ''} onChange={e => set('social_facebook', e.target.value)} className="input" placeholder="https://facebook.com/bpscnotes" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">WhatsApp</label>
+                <input value={settings.social_whatsapp || ''} onChange={e => set('social_whatsapp', e.target.value)} className="input" placeholder="https://whatsapp.com/channel/… or https://wa.me/91XXXXXXXXXX" />
               </div>
             </div>
           </div>
