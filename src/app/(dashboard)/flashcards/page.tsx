@@ -1,7 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import Header from '@/components/layout/Header'
-import DynamicSelect from '@/components/ui/DynamicSelect'
 import { useToast } from '@/components/ui/feedback'
 import api from '@/lib/api'
 import { useDebounce } from '@/lib/hooks'
@@ -13,14 +12,11 @@ import {
 
 type SideType = 'text' | 'image'
 const EXAM_TAGS = ['BPSC 70th CCE','BPSC 71st CCE','Bihar Police SI','Bihar Constable','BPSC Teacher','UPSC CSE','SSC CGL']
-const SUBJECT_EMOJI: Record<string,string> = { Polity:'⚖️', History:'🏛️', Geography:'🗺️', Economy:'💰', 'Bihar GK':'🏔️', Science:'🔬', Environment:'🌿', General:'📚' }
 const LIMIT = 24
 
 const emptyForm = {
   frontType: 'text' as SideType, backType: 'text' as SideType,
-  // Blank, not 'Polity' — a default here is what silently mislabelled every
-  // card while the subject field was missing from the form.
-  front:'', back:'', subject:'', topic:'', hint:'',
+  front:'', back:'', topic:'', hint:'',
   examTags:['BPSC 70th CCE'] as string[], isActive:true,
   imageUrl:null as string|null, backImageUrl:null as string|null,
 }
@@ -87,7 +83,6 @@ export default function FlashcardsPage() {
   const [list, setList]         = useState<any[]>([])
   const [loading, setLoading]   = useState(true)
   const [search, setSearch]     = useState('')
-  const [filterSubject, setFilter] = useState('')
   const [page, setPage]         = useState(1)
   const [total, setTotal]       = useState(0)
   const [showModal, setShowModal] = useState(false)
@@ -105,14 +100,14 @@ export default function FlashcardsPage() {
   const load = async () => {
     setLoading(true)
     try {
-      const res = await api.flashcards.list({ subject: filterSubject, search: debouncedSearch, page, limit: LIMIT })
+      const res = await api.flashcards.list({ search: debouncedSearch, page, limit: LIMIT })
       setList(res.data?.flashcards || [])
       setTotal(res.meta?.total ?? res.data?.total ?? res.data?.flashcards?.length ?? 0)
     } catch (e) { console.error(e) }
     finally { setLoading(false) }
   }
-  useEffect(() => { setPage(1) }, [debouncedSearch, filterSubject])
-  useEffect(() => { load() }, [debouncedSearch, filterSubject, page])
+  useEffect(() => { setPage(1) }, [debouncedSearch])
+  useEffect(() => { load() }, [debouncedSearch, page])
 
   const openNew  = () => { setEditing(null); setForm(emptyForm); setShowModal(true) }
   const openEdit = (c: any) => {
@@ -120,7 +115,7 @@ export default function FlashcardsPage() {
     setForm({
       frontType: c.image_url ? 'image' : 'text', backType: c.back_image_url ? 'image' : 'text',
       front:c.front||c.question||'', back:c.back||c.answer||'',
-      subject:c.subject||'', topic:c.topic||'', hint:c.hint||'',
+      topic:c.topic||'', hint:c.hint||'',
       examTags:c.exam_tags||[], isActive:c.is_active!==false,
       imageUrl:c.image_url||null, backImageUrl:c.back_image_url||null,
     })
@@ -137,13 +132,10 @@ export default function FlashcardsPage() {
     if (form.frontType==='image' && !form.imageUrl)     { showToast('Upload a front image','error'); return }
     if (form.backType==='text'  && !form.back.trim())   { showToast('Answer text is required','error'); return }
     if (form.backType==='image' && !form.backImageUrl)  { showToast('Upload a back image','error'); return }
-    // Subject drives the list filter, the chip and the Publish & Notify push.
-    // Saving without one silently filed the card under the form's default.
-    if (!form.subject?.trim())                          { showToast('Select a subject','error'); return }
     setSaving(true)
     try {
-      const payload = { front:form.front?.trim()||'', back:form.back?.trim()||'', subject:form.subject,
-        topic:form.topic.trim()||form.subject, hint:form.hint.trim(),
+      const payload = { front:form.front?.trim()||'', back:form.back?.trim()||'',
+        topic:form.topic.trim(), hint:form.hint.trim(),
         examTags:form.examTags, isActive:form.isActive, cardType:form.frontType,
         imageUrl:form.frontType==='image'?form.imageUrl:null, backImageUrl:form.backType==='image'?form.backImageUrl:null }
       if (editing) await api.flashcards.update(editing.id, payload)
@@ -159,12 +151,13 @@ export default function FlashcardsPage() {
     catch (e: any) { showToast(e.message,'error') }
   }
 
-  const publishNotify = async (subject: string) => {
+  const publishNotify = async () => {
+    if (!confirm('Send a "New Flashcards" notification to all subscribers?')) return
     setNotifying(true)
     try {
-      const count = list.filter(c => c.subject === subject && c.is_active !== false).length
-      await api.flashcards.publishNotify(subject, count)
-      showToast(`🔔 Notification sent for ${subject} flashcards`, 'success')
+      const count = list.filter(c => c.is_active !== false).length
+      await api.flashcards.publishNotify('', count)
+      showToast('🔔 Notification sent to all flashcard subscribers', 'success')
     } catch (e: any) {
       showToast(e.message || 'Notification failed', 'error')
     } finally {
@@ -206,22 +199,17 @@ export default function FlashcardsPage() {
             <input value={search} onChange={e => { setSearch(e.target.value); setPage(1) }}
               placeholder="Search flashcards…" className="input pl-9" />
           </div>
-          <div className="min-w-44 flex-shrink-0">
-            <DynamicSelect type="subjects" value={filterSubject} onChange={v => { setFilter(v); setPage(1) }} placeholder="All Subjects" />
-          </div>
           <button onClick={load} className="btn-secondary px-3 py-2" title="Refresh"><RefreshCw size={13}/></button>
-          {/* Publish & Notify — sends push to flashcard subscribers for current subject filter */}
-          {filterSubject && (
-            <button
-              onClick={() => publishNotify(filterSubject)}
-              disabled={notifying}
-              title={`Send "New Flashcards" push for ${filterSubject}`}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 disabled:opacity-50 transition-colors"
-            >
-              {notifying ? <Loader2 size={13} className="animate-spin"/> : <Bell size={13}/>}
-              Notify {filterSubject}
-            </button>
-          )}
+          {/* One push to every flashcard subscriber — there is no subject to scope it to. */}
+          <button
+            onClick={publishNotify}
+            disabled={notifying}
+            title='Send a "New Flashcards" push to all subscribers'
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 disabled:opacity-50 transition-colors"
+          >
+            {notifying ? <Loader2 size={13} className="animate-spin"/> : <Bell size={13}/>}
+            Notify
+          </button>
           <button onClick={openNew} className="btn-primary"><Plus size={14}/> New Flashcard</button>
         </div>
 
@@ -240,7 +228,6 @@ export default function FlashcardsPage() {
           <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
             {list.map(c => {
               const hasFront = !!c.image_url, hasBack = !!c.back_image_url
-              const emoji = SUBJECT_EMOJI[c.subject] || '📚'
               return (
                 <div key={c.id} className="card p-0 overflow-hidden hover:shadow-lg transition-shadow group flex flex-col">
                   {/* Subject color bar */}
@@ -249,7 +236,7 @@ export default function FlashcardsPage() {
                     {/* Header */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-brand-50 text-brand-700">{emoji} {c.subject}</span>
+                        {c.topic && <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-brand-50 text-brand-700">🗂 {c.topic}</span>}
                         {c.topic && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500">{c.topic}</span>}
                         {!c.is_active && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-50 text-red-500">Hidden</span>}
                         {(hasFront||hasBack) && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-50 text-purple-600">{hasFront&&hasBack?'🖼️+🖼️':hasFront?'🖼️ Front':'🖼️ Back'}</span>}
@@ -306,7 +293,7 @@ export default function FlashcardsPage() {
           <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="bg-gradient-to-r from-brand-700 to-brand-500 px-5 py-4 flex items-center justify-between">
               <div>
-                <p className="font-bold text-white text-sm">{SUBJECT_EMOJI[preview.subject]||'📚'} {preview.subject}</p>
+                <p className="font-bold text-white text-sm">📚 {preview.topic || 'Flashcard'}</p>
                 {preview.topic && <p className="text-white/60 text-xs">{preview.topic}</p>}
               </div>
               <button onClick={() => setPreview(null)} className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center"><X size={13} className="text-white"/></button>
@@ -342,32 +329,19 @@ export default function FlashcardsPage() {
             </div>
 
             <div className="overflow-y-auto flex-1 p-6 space-y-5">
-              {/* Subject + Topic. These were removed as "not required", but subject
-                  is what the list filter, the coloured chip and the Publish &
-                  Notify push all key off — with no field every card silently
-                  saved as the form default, Polity. Topic is genuinely optional
-                  and falls back to the subject when left blank. */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">Subject *</label>
-                  <DynamicSelect
-                    type="subjects"
-                    value={form.subject}
-                    onChange={v => setForm((f:any) => ({...f, subject: v}))}
-                    placeholder="Select subject"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">
-                    Topic <span className="text-slate-400 font-normal">(optional)</span>
-                  </label>
-                  <input
-                    value={form.topic}
-                    onChange={e => setForm((f:any) => ({...f, topic: e.target.value}))}
-                    className="input w-full"
-                    placeholder="e.g. Fundamental Rights"
-                  />
-                </div>
+              {/* No subject field, by decision: flashcards are one undivided deck,
+                  so a per-card subject drove nothing a student ever saw. Topic
+                  stays — free text shown on the card and useful for admin search. */}
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">
+                  Topic <span className="text-slate-400 font-normal">(optional)</span>
+                </label>
+                <input
+                  value={form.topic}
+                  onChange={e => setForm((f:any) => ({...f, topic: e.target.value}))}
+                  className="input w-full"
+                  placeholder="e.g. Fundamental Rights"
+                />
               </div>
 
               {/* Front */}
