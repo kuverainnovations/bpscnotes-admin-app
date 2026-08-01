@@ -7,7 +7,7 @@ import { useDebounce } from '@/lib/hooks'
 import {
   Search, Plus, Edit, Trash2, RefreshCw, Brain,
   Eye, X, Image as ImageIcon, FileText, ChevronLeft,
-  ChevronRight, Loader2, CheckCircle, Bell,
+  ChevronRight, Loader2, CheckCircle, Bell, EyeOff,
 } from 'lucide-react'
 
 type SideType = 'text' | 'image'
@@ -146,9 +146,19 @@ export default function FlashcardsPage() {
   }
 
   const del = async (id: string, label: string) => {
-    if (!confirm(`Delete "${label.slice(0,60)}…"?`)) return
-    try { await api.flashcards.delete(id); load(); showToast('Deleted') }
+    // Spelled out because this is now a real delete — it used to only hide.
+    if (!confirm(`Permanently delete "${label.slice(0,60)}…"?\n\nThis cannot be undone. To take it out of the app without deleting, use Hide instead.`)) return
+    try { await api.flashcards.delete(id); load(); showToast('Deleted permanently') }
     catch (e: any) { showToast(e.message,'error') }
+  }
+
+  const toggleHidden = async (c: any) => {
+    const next = c.is_active === false
+    try {
+      await api.flashcards.setVisibility(c.id, next)
+      load()
+      showToast(next ? 'Now visible in the app' : 'Hidden from the app')
+    } catch (e: any) { showToast(e.message,'error') }
   }
 
   const publishNotify = async () => {
@@ -237,13 +247,16 @@ export default function FlashcardsPage() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {c.topic && <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-brand-50 text-brand-700">🗂 {c.topic}</span>}
-                        {c.topic && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500">{c.topic}</span>}
                         {!c.is_active && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-50 text-red-500">Hidden</span>}
                         {(hasFront||hasBack) && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-50 text-purple-600">{hasFront&&hasBack?'🖼️+🖼️':hasFront?'🖼️ Front':'🖼️ Back'}</span>}
                       </div>
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                         <button onClick={() => setPreview(c)} className="w-7 h-7 rounded-lg bg-blue-50 hover:bg-blue-100 flex items-center justify-center"><Eye size={12} className="text-blue-500"/></button>
                         <button onClick={() => openEdit(c)} className="w-7 h-7 rounded-lg bg-amber-50 hover:bg-amber-100 flex items-center justify-center"><Edit size={12} className="text-amber-600"/></button>
+                        <button onClick={() => toggleHidden(c)} title={c.is_active===false?'Show in app':'Hide from app'}
+                          className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center">
+                          {c.is_active===false ? <Eye size={12} className="text-slate-500"/> : <EyeOff size={12} className="text-slate-500"/>}
+                        </button>
                         <button onClick={() => del(c.id, c.front||c.question||'')} className="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center"><Trash2 size={12} className="text-red-500"/></button>
                       </div>
                     </div>

@@ -540,6 +540,8 @@ export const api = {
     create: (data: any)  => request('/admin/flashcards', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: any) => request(`/admin/flashcards/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: string) => request(`/admin/flashcards/${id}`, { method: 'DELETE' }),
+    setVisibility: (id: string, isActive: boolean) =>
+      request(`/admin/flashcards/${id}/visibility`, { method: 'PATCH', body: JSON.stringify({ isActive }) }),
     publishNotify: (subject: string, count?: number) =>
       request('/admin/flashcards/publish-notify', { method: 'POST', body: JSON.stringify({ subject, count }) }),
   },
