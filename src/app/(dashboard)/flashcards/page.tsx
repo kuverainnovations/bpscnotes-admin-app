@@ -18,7 +18,9 @@ const LIMIT = 24
 
 const emptyForm = {
   frontType: 'text' as SideType, backType: 'text' as SideType,
-  front:'', back:'', subject:'Polity', topic:'', hint:'',
+  // Blank, not 'Polity' — a default here is what silently mislabelled every
+  // card while the subject field was missing from the form.
+  front:'', back:'', subject:'', topic:'', hint:'',
   examTags:['BPSC 70th CCE'] as string[], isActive:true,
   imageUrl:null as string|null, backImageUrl:null as string|null,
 }
@@ -118,7 +120,7 @@ export default function FlashcardsPage() {
     setForm({
       frontType: c.image_url ? 'image' : 'text', backType: c.back_image_url ? 'image' : 'text',
       front:c.front||c.question||'', back:c.back||c.answer||'',
-      subject:c.subject||'Polity', topic:c.topic||'', hint:c.hint||'',
+      subject:c.subject||'', topic:c.topic||'', hint:c.hint||'',
       examTags:c.exam_tags||[], isActive:c.is_active!==false,
       imageUrl:c.image_url||null, backImageUrl:c.back_image_url||null,
     })
@@ -135,6 +137,9 @@ export default function FlashcardsPage() {
     if (form.frontType==='image' && !form.imageUrl)     { showToast('Upload a front image','error'); return }
     if (form.backType==='text'  && !form.back.trim())   { showToast('Answer text is required','error'); return }
     if (form.backType==='image' && !form.backImageUrl)  { showToast('Upload a back image','error'); return }
+    // Subject drives the list filter, the chip and the Publish & Notify push.
+    // Saving without one silently filed the card under the form's default.
+    if (!form.subject?.trim())                          { showToast('Select a subject','error'); return }
     setSaving(true)
     try {
       const payload = { front:form.front?.trim()||'', back:form.back?.trim()||'', subject:form.subject,
@@ -337,7 +342,33 @@ export default function FlashcardsPage() {
             </div>
 
             <div className="overflow-y-auto flex-1 p-6 space-y-5">
-              {/* Subject + Topic removed — not required */}
+              {/* Subject + Topic. These were removed as "not required", but subject
+                  is what the list filter, the coloured chip and the Publish &
+                  Notify push all key off — with no field every card silently
+                  saved as the form default, Polity. Topic is genuinely optional
+                  and falls back to the subject when left blank. */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Subject *</label>
+                  <DynamicSelect
+                    type="subjects"
+                    value={form.subject}
+                    onChange={v => setForm((f:any) => ({...f, subject: v}))}
+                    placeholder="Select subject"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">
+                    Topic <span className="text-slate-400 font-normal">(optional)</span>
+                  </label>
+                  <input
+                    value={form.topic}
+                    onChange={e => setForm((f:any) => ({...f, topic: e.target.value}))}
+                    className="input w-full"
+                    placeholder="e.g. Fundamental Rights"
+                  />
+                </div>
+              </div>
 
               {/* Front */}
               <div className="border-2 border-blue-200 rounded-2xl overflow-hidden">
