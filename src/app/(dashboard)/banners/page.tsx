@@ -29,7 +29,12 @@ const EMPTY = {
   title:'', subtitle:'', imageUrl:'', ctaLabel:'',
   ctaRoute:'', bgColor:'#1565C0', bgColorEnd:'#1E88E5', isActive:true, sortOrder:0,
 }
-const ROUTES = ['/quizzes','/current-affairs','/study-materials','/wallet','/subscription','/rooms_hub','/jobs','/leaderboard','/flashcards','/achievements','/challenges','/courses']
+// Every value here must be handled by navigateBanner() in the app's
+// DashboardScreen.kt — an unmapped route silently falls back to My Learning.
+// '/offers' opens the Marketplace showing only discounted courses; it exists so
+// a "20% off" banner lands on the courses that are actually on offer instead of
+// the whole catalogue.
+const ROUTES = ['/quizzes','/current-affairs','/study-materials','/wallet','/subscription','/rooms_hub','/jobs','/leaderboard','/flashcards','/achievements','/challenges','/courses','/offers']
 
 export default function BannersPage() {
   return (
