@@ -284,6 +284,20 @@ export const api = {
       request(`/admin/support-escalations/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   },
 
+  // ── Moderation ────────────────────────────────────────────
+  // Backs the UGC report queue. Play's UGC policy expects reports to be
+  // acted on, not just collected — `action` is the half that proves it.
+  moderation: {
+    list: (params: any = {}) =>
+      request(`/admin/moderation/reports?${qs(params)}`),
+    // action: 'hide' | 'unhide' | 'ban' | 'dismiss'
+    act: (id: string, action: string) =>
+      request(`/admin/moderation/reports/${id}/action`, {
+        method: 'POST',
+        body: JSON.stringify({ action }),
+      }),
+  },
+
   // ── Quizzes ───────────────────────────────────────────────
   quizzes: {
     list:         (params = {}) => request(`/admin/quizzes?${qs(params)}`),

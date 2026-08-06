@@ -10,7 +10,7 @@ import {
   Trophy, Radio, Award, Image, Tag, CheckSquare, Settings,
   Shield, GraduationCap, ChevronRight, ChevronDown, LogOut,
   Zap, Brain, Layers, AlertTriangle, Star, LibraryBig,
-  Coins, TrendingUp, Activity, LifeBuoy, MapPin, PenLine
+  Coins, TrendingUp, Activity, LifeBuoy, MapPin, PenLine, Flag
 } from 'lucide-react'
 
 type NavItem = {
@@ -27,6 +27,8 @@ const NAV: NavGroup[] = [
     { href:'/users',                    icon:Users,           label:'User Management' },
     // { href:'/users/suspicious',         icon:AlertTriangle,   label:'Suspicious Accounts' },
     // { href:'/users/security-alerts',    icon:Shield,          label:'Security Alerts' },
+    // Play's UGC policy expects reported content to actually be reviewed.
+    { href:'/moderation',               icon:Flag,            label:'Content Reports' },
     { href:'/roles',                    icon:Shield,          label:'Admin Roles' },
   ]},
   { group:'Content',    defaultOpen:true,  items:[
