@@ -260,7 +260,11 @@ export const api = {
   
     toggleTrending: (id: string) =>
       request(`/admin/study-materials/${id}/trending`, { method: 'PATCH' }),
-  
+
+    // Whether this PDF may be downloaded. Reading it in the app is unaffected.
+    toggleDownload: (id: string) =>
+      request(`/admin/study-materials/${id}/download`, { method: 'PATCH' }),
+
     delete: (id: string) =>
       request(`/admin/study-materials/${id}`, {
         method: 'DELETE',

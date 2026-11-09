@@ -485,6 +485,7 @@ export default function StudyMaterialsAdminPage() {
                         )}
                         {m.isFeatured  && <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-blue-50 text-blue-700 border border-blue-200">📌 Featured</span>}
                         {m.isTrending  && <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-orange-50 text-orange-700 border border-orange-200">🔥 Trending</span>}
+                        {m.allowDownload === false && <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-red-50 text-red-700 border border-red-200">⛔ No download</span>}
                         <span className="relative">
                           <button
                             onClick={() => setLangEditId(langEditId === m.id ? null : m.id)}
@@ -623,6 +624,12 @@ export default function StudyMaterialsAdminPage() {
                       <button onClick={() => api.studyMaterials.toggleTrending(m.id).then(() => { load(); loadStats() })}
                         className={`p-2 rounded-xl transition-colors ${m.isTrending ? 'bg-orange-100 text-orange-700' : 'bg-slate-100 hover:bg-slate-200 text-slate-500'}`}
                         title="Toggle Trending"><TrendingUp size={14}/></button>
+                      {/* Downloads off still lets students read the PDF in the app. */}
+                      <button onClick={() => api.studyMaterials.toggleDownload(m.id).then(() => load())}
+                        className={`p-2 rounded-xl transition-colors ${m.allowDownload === false ? 'bg-red-100 text-red-700' : 'bg-slate-100 hover:bg-slate-200 text-slate-500'}`}
+                        title={m.allowDownload === false ? 'Downloads blocked — click to allow' : 'Downloads allowed — click to block'}>
+                        <Download size={14}/>
+                      </button>
 
                       {m.status === 'pending' && (
                         <>

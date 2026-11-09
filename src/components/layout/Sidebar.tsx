@@ -104,7 +104,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
     '/study-materials':    'notes',
     '/subjects':           'courses',    // part of courses content
     '/quizzes':            'quizzes',
-    '/answer-writing':     'quizzes',    // graded content — grouped with quizzes
+    '/answer-writing':     'answer-writing',
     '/current-affairs':    'current-affairs',
     '/flashcards':         'quizzes',    // grouped with quizzes
     '/exams':              'settings',

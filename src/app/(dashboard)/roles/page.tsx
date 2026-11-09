@@ -13,10 +13,10 @@ import {
 
 // ── Constants ────────────────────────────────────────────────
 const ALL_PERMISSIONS = [
-  'dashboard', 'users', 'courses', 'notes', 'quizzes', 'current-affairs',
-  'jobs', 'subscriptions', 'notifications', 'coins', 'study-rooms',
-  'leaderboard', 'live-classes', 'certificates', 'banners', 'coupons',
-  'reviews', 'settings', 'roles',
+  'dashboard', 'users', 'courses', 'notes', 'quizzes', 'answer-writing',
+  'current-affairs', 'jobs', 'subscriptions', 'notifications', 'coins',
+  'study-rooms', 'leaderboard', 'live-classes', 'certificates', 'banners',
+  'coupons', 'reviews', 'settings', 'roles',
 ]
 
 const PERM_META: Record<string, { icon: string; color: string; bg: string }> = {
@@ -25,6 +25,7 @@ const PERM_META: Record<string, { icon: string; color: string; bg: string }> = {
   courses:          { icon: '📚', color: 'text-green-700',  bg: 'bg-green-50 border-green-200' },
   notes:            { icon: '📝', color: 'text-teal-700',   bg: 'bg-teal-50 border-teal-200' },
   quizzes:          { icon: '❓', color: 'text-orange-700', bg: 'bg-orange-50 border-orange-200' },
+  'answer-writing': { icon: '✍️', color: 'text-cyan-700',   bg: 'bg-cyan-50 border-cyan-200' },
   'current-affairs':{ icon: '📰', color: 'text-red-700',    bg: 'bg-red-50 border-red-200' },
   jobs:             { icon: '💼', color: 'text-amber-700',  bg: 'bg-amber-50 border-amber-200' },
   subscriptions:    { icon: '💳', color: 'text-pink-700',   bg: 'bg-pink-50 border-pink-200' },

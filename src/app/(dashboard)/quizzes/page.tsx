@@ -72,6 +72,7 @@ const EMPTY_FORM = {
   negativeMarkingEnabled:false, marksPerCorrect:1, marksPerWrong:0,
   shuffleQuestions:true, shuffleOptions:true,
   isExamMode: false,
+  isPaid:false, price:0, coinPrice:0,
 }
 
 // Issue 13: admin chooses option count (2–5)
@@ -852,6 +853,9 @@ export default function QuizzesPage() {
       shuffleQuestions: q.shuffle_questions !== false,
       shuffleOptions:   q.shuffle_options   !== false,
       isExamMode:       q.is_exam_mode === true,
+      isPaid:           q.is_paid === true,
+      price:            q.price      != null ? +q.price      : 0,
+      coinPrice:        q.coin_price != null ? +q.coin_price : 0,
     })
     setShowModal(true)
   }
@@ -1126,6 +1130,47 @@ export default function QuizzesPage() {
                   <label className="block text-xs font-bold text-slate-600 mb-1.5">🪙 Coins Reward</label>
                   <NumInput value={form.coinsReward} onChange={v => setForm({...form,coinsReward:v})} min={0} placeholder="10" />
                 </div>
+              </div>
+
+              {/* Paid test. Mock tests are the usual case, but any quiz record
+                  can be sold — they all share this one table. Leaving the
+                  switch off keeps the test free no matter what prices are
+                  stored, so a test can come off sale without losing them. */}
+              <div className="rounded-2xl border-2 border-slate-200 overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-3 bg-slate-50">
+                  <label className="flex items-center gap-2.5 cursor-pointer select-none"
+                    onClick={() => setForm({...form, isPaid: !form.isPaid})}>
+                    <div className={`w-10 h-5 rounded-full transition-colors relative shrink-0 ${form.isPaid ? 'bg-emerald-500' : 'bg-slate-200'}`}>
+                      <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${form.isPaid ? 'translate-x-5' : 'translate-x-0.5'}`}/>
+                    </div>
+                    <span className="text-sm font-bold text-slate-700">💰 Paid Test</span>
+                  </label>
+                  {form.isPaid && (
+                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-full">ON SALE</span>
+                  )}
+                </div>
+                {form.isPaid && (
+                  <div className="p-4 space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-600 mb-1.5">Price (₹)</label>
+                        <NumInput value={form.price} onChange={v => setForm({...form,price:v})} min={0} placeholder="0" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-600 mb-1.5">🪙 Coin Price</label>
+                        <NumInput value={form.coinPrice} onChange={v => setForm({...form,coinPrice:v})} min={0} placeholder="0" />
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      Set either or both. A price of 0 means that payment method is not offered.
+                      {form.price === 0 && form.coinPrice === 0 && (
+                        <span className="block mt-1 font-bold text-amber-600">
+                          ⚠️ Both are 0 — nobody can unlock this test. Set at least one.
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Negative Marking — admin-configurable per test, applies to
