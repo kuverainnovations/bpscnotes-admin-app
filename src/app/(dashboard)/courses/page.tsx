@@ -17,7 +17,7 @@ const EMPTY = {
   instructorCourses:1, description:'', price:0, originalPrice:0, isPaid:false,
   isFeatured:false, totalHours:0, syllabusCoverage:0, bpscRelevance:0, language:'Hindi + English', status:'draft',
   whatYouLearn:[] as string[], hasCertificate:true,
-  examTags:[] as string[], allowDownload:true,
+  examTags:[] as string[], allowDownload:false,
 }
 
 const LESSON_TYPES = [
@@ -397,8 +397,10 @@ export default function ContentPage() {
       language: c.language, status: c.status,
       whatYouLearn: c.what_you_learn || [], hasCertificate: c.has_certificate !== false,
       examTags: c.exam_tags || [],
-      // Absent on courses created before the column existed — treat as allowed.
-      allowDownload: c.allow_download !== false,
+      // Off unless explicitly switched on. Course PDFs are sold, and a saved
+      // file can be forwarded, so a missing or unknown value must read as
+      // "not downloadable" rather than opening the catalogue up by accident.
+      allowDownload: c.allow_download === true,
     })
     setShowModal(true)
   }
@@ -1132,7 +1134,7 @@ export default function ContentPage() {
                 <div className="grid grid-cols-1 gap-3">
                   {[
                     { key: 'isFeatured',    icon: <Crown size={14}/>,  label: 'Featured',    desc: 'Show on home screen' },
-                    { key: 'allowDownload', icon: <Lock size={14}/>,   label: 'Allow PDF downloads', desc: 'Off: students can still read lesson notes in the app, but not save them' },
+                    { key: 'allowDownload', icon: <Lock size={14}/>,   label: 'Allow PDF downloads', desc: 'Off by default. On: students can save lesson notes to their phone to read offline or print — and can also forward the file to anyone' },
                     // TEMP #15: { key: 'hasCertificate', icon: <Award size={14}/>, label: 'Certificate', desc: 'On course completion' },
                   ].filter(opt => opt.key !== 'hasCertificate').map(opt => (
                     <label key={opt.key}
