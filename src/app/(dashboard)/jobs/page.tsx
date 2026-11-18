@@ -353,9 +353,13 @@ function Inner() {
                 </label>
                 {!form.isRemote&&(
                   <div className="grid grid-cols-3 gap-3">
-                    <div><label className="field-label">State</label>
+                    <div><label className="field-label">State <span className="text-slate-400 font-normal">(opt)</span></label>
                       <input value={form.jobState} onChange={e=>setForm({...form,jobState:e.target.value})} className="input w-full" placeholder="Bihar"/></div>
-                    <div><label className="field-label">District</label>
+                    {/* District has always been optional — the empty value means
+                        "All Districts" and nothing validates it. Only the label
+                        said otherwise, because City was marked "(opt)" and this
+                        was not, so admins read it as required. */}
+                    <div><label className="field-label">District <span className="text-slate-400 font-normal">(opt)</span></label>
                       <select value={form.jobDistrict} onChange={e=>setForm({...form,jobDistrict:e.target.value})} className="input w-full">
                         <option value="">All Districts</option>
                         {BIHAR_DISTRICTS.map(d=><option key={d} value={d}>{d}</option>)}
