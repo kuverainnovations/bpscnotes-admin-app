@@ -1162,10 +1162,15 @@ export default function QuizzesPage() {
                       </div>
                     </div>
                     <p className="text-[11px] text-slate-500">
-                      Set either or both. A price of 0 means that payment method is not offered.
-                      {form.price === 0 && form.coinPrice === 0 && (
+                      <strong>Coin Price is required.</strong> Coins are the only unlock
+                      path that works today — ₹ checkout is not connected to the payment
+                      gateway yet, so a rupee price is stored and displayed but cannot be
+                      charged.
+                      {form.coinPrice <= 0 && (
                         <span className="block mt-1 font-bold text-amber-600">
-                          ⚠️ Both are 0 — nobody can unlock this test. Set at least one.
+                          ⚠️ Coin Price is 0 — nobody can unlock this test, and students
+                          who open it will just get an error. Set a coin price, or turn
+                          Paid Test off.
                         </span>
                       )}
                     </p>
@@ -1302,7 +1307,17 @@ export default function QuizzesPage() {
 
             <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50/50 shrink-0">
               <button onClick={() => setShowModal(false)} className="btn-secondary">Cancel</button>
-              <button onClick={() => save({...form, scheduledFor:form.scheduledFor?.trim()||null})}
+              <button onClick={() => {
+                            // A paid test with no coin price is a dead end: the
+                            // server blocks the start, and the unlock refuses a
+                            // zero coin cost, so the student can never get in.
+                            // Caught here rather than discovered by a user.
+                            if (form.isPaid && (!form.coinPrice || form.coinPrice <= 0)) {
+                              showToast('Set a Coin Price — a paid test with 0 coins can never be unlocked', 'error')
+                              return
+                            }
+                            save({...form, scheduledFor:form.scheduledFor?.trim()||null})
+                          }}
                 disabled={saving || !form.title.trim()}
                 className="btn-primary disabled:opacity-40">
                 {saving ? <><Loader2 size={14} className="animate-spin"/> Saving…</> : editing ? 'Update Quiz' : 'Create Quiz →'}
