@@ -321,6 +321,21 @@ export const api = {
     deleteQuestion:   (questionId: string)            => request(`/admin/questions/${questionId}`, { method: 'DELETE' }),
   },
 
+  // ── Mock test packages ────────────────────────────────────
+  // A bundle of tests sold once, the way a course is. Owning the package
+  // unlocks every test inside it; individual test prices still work.
+  quizPackages: {
+    list:    ()                       => request('/admin/quiz-packages'),
+    get:     (id: string)             => request(`/admin/quiz-packages/${id}`),
+    create:  (data: any)              => request('/admin/quiz-packages', { method: 'POST', body: JSON.stringify(data) }),
+    update:  (id: string, data: any)  => request(`/admin/quiz-packages/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete:  (id: string)             => request(`/admin/quiz-packages/${id}`, { method: 'DELETE' }),
+    // Replaces the whole list in one call. Tests dropped from it become
+    // standalone again — they are never deleted.
+    setTests: (id: string, quizIds: string[]) =>
+                request(`/admin/quiz-packages/${id}/tests`, { method: 'PUT', body: JSON.stringify({ quizIds }) }),
+  },
+
   // ── Current Affairs ───────────────────────────────────────
   currentAffairs: {
     list:   (params = {}) => request(`/admin/current-affairs?${qs(params)}`),
