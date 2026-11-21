@@ -1162,15 +1162,13 @@ export default function QuizzesPage() {
                       </div>
                     </div>
                     <p className="text-[11px] text-slate-500">
-                      <strong>Coin Price is required.</strong> Coins are the only unlock
-                      path that works today — ₹ checkout is not connected to the payment
-                      gateway yet, so a rupee price is stored and displayed but cannot be
-                      charged.
-                      {form.coinPrice <= 0 && (
+                      Set either or both — students see whichever you offer. A rupee
+                      price is charged through Google Play, so the test appears in the
+                      Play catalogue within a few minutes of saving.
+                      {form.price === 0 && form.coinPrice === 0 && (
                         <span className="block mt-1 font-bold text-amber-600">
-                          ⚠️ Coin Price is 0 — nobody can unlock this test, and students
-                          who open it will just get an error. Set a coin price, or turn
-                          Paid Test off.
+                          ⚠️ Both are 0 — nobody can unlock this test, and students who
+                          open it just get an error. Set a price, or turn Paid Test off.
                         </span>
                       )}
                     </p>
@@ -1308,12 +1306,12 @@ export default function QuizzesPage() {
             <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50/50 shrink-0">
               <button onClick={() => setShowModal(false)} className="btn-secondary">Cancel</button>
               <button onClick={() => {
-                            // A paid test with no coin price is a dead end: the
-                            // server blocks the start, and the unlock refuses a
-                            // zero coin cost, so the student can never get in.
-                            // Caught here rather than discovered by a user.
-                            if (form.isPaid && (!form.coinPrice || form.coinPrice <= 0)) {
-                              showToast('Set a Coin Price — a paid test with 0 coins can never be unlocked', 'error')
+                            // A paid test with neither price is a dead end: the
+                            // server blocks the start and no unlock path applies,
+                            // so the student can never get in. Caught here rather
+                            // than discovered by a user.
+                            if (form.isPaid && (!form.price || form.price <= 0) && (!form.coinPrice || form.coinPrice <= 0)) {
+                              showToast('Set a rupee price or a coin price — a paid test with both at 0 can never be unlocked', 'error')
                               return
                             }
                             save({...form, scheduledFor:form.scheduledFor?.trim()||null})
