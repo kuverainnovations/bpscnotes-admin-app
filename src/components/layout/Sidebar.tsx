@@ -36,8 +36,8 @@ const NAV: NavGroup[] = [
     { href:'/study-materials',  icon:LibraryBig,      label:'Study Materials' },
     { href:'/subjects',         icon:Layers,          label:'Subjects' },
    // { href:'/support-escalations', icon:LifeBuoy,     label:'Support Escalations' },
-    { href:'/quizzes',          icon:HelpCircle,      label:'Quizzes & Mock Tests' },
-    { href:'/quiz-packages',    icon:Layers,          label:'Mock Test Packages' },
+    { href:'/quizzes',          icon:HelpCircle,      label:'Quizzes' },
+    { href:'/mock-tests',       icon:FileText,        label:'Mock Tests' },
     { href:'/answer-writing',   icon:PenLine,         label:'Answer Writing' },
     { href:'/current-affairs',  icon:Newspaper,       label:'Current Affairs' },
     { href:'/flashcards',       icon:Brain,           label:'Flashcards' },
@@ -105,7 +105,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
     '/study-materials':    'notes',
     '/subjects':           'courses',    // part of courses content
     '/quizzes':            'quizzes',
-    '/quiz-packages':      'quizzes',
+    '/mock-tests':         'quizzes',
     '/answer-writing':     'answer-writing',
     '/current-affairs':    'current-affairs',
     '/flashcards':         'quizzes',    // grouped with quizzes
